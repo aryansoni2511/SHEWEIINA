@@ -1,0 +1,1545 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <!-- SEO & Meta Tags -->
+  <title>Shewwina — The Operating System for Customer Flow</title>
+  <meta name="description" content="Shewwina helps salons, clinics, restaurants, and service centers manage digital waitlists, online appointment booking, and automated WhatsApp queue alerts to eliminate waiting times." />
+  <meta name="keywords" content="digital queue, smart waiting list, salon appointment booking, clinic OPD queue management, customer flow OS, Shewwina" />
+  <meta name="author" content="Shewwina Technologies Inc." />
+
+  <!-- Open Graph / Social Meta -->
+  <meta property="og:title" content="Shewwina — Stop Waiting. Start Living." />
+  <meta property="og:description" content="Manage appointments and live queues digitally. Reduce waiting time by 30% and boost customer satisfaction." />
+  <meta property="og:image" content="./shewwina_hero_illustration.jpg" />
+  <meta property="og:type" content="website" />
+
+  <!-- Google Fonts: Plus Jakarta Sans & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Plus Jakarta Sans', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#f0f7ff',
+              100: '#e0effe',
+              200: '#bae0ff',
+              500: '#0066ff',
+              600: '#0052cc',
+              700: '#003d99',
+              900: '#091e42',
+              950: '#030c1d',
+            }
+          },
+          animation: {
+            'fade-in': 'fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+            'slide-down': 'slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+          },
+          keyframes: {
+            fadeIn: {
+              '0%': { opacity: '0', transform: 'translateY(-6px) scale(0.98)' },
+              '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+            },
+            slideDown: {
+              '0%': { opacity: '0', transform: 'translateY(-12px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Design System Utilities */
+    .glass-nav {
+      transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    .glass-nav.scrolled {
+      background-color: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+      box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05);
+    }
+    .bg-grid-pattern {
+      background-size: 40px 40px;
+      background-image: 
+        linear-gradient(to right, rgba(226, 232, 240, 0.4) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(226, 232, 240, 0.4) 1px, transparent 1px);
+    }
+    .glow-radial {
+      background: radial-gradient(circle 600px at 50% 150px, rgba(0, 102, 255, 0.12), transparent 70%);
+    }
+    .accordion-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+      opacity: 0;
+    }
+    .accordion-content.open {
+      max-height: 250px;
+      opacity: 1;
+    }
+  </style>
+</head>
+<body id="top" class="bg-white text-slate-900 font-sans antialiased min-h-screen relative selection:bg-brand-500 selection:text-white">
+
+  <!-- ========================================== -->
+  <!-- 1. HEADER / NAVBAR (STICKY + MEGA MENU + MOBILE DRAWER) -->
+  <!-- ========================================== -->
+  <header id="main-header" class="sticky top-0 z-50 w-full glass-nav border-b border-transparent bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-20">
+
+        <!-- LOGO (LEFT) -->
+        <div class="flex items-center gap-3">
+          <a href="#top" class="flex items-center gap-2.5 group focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-lg p-1 transition-transform active:scale-95" aria-label="Shewwina Homepage">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 via-blue-600 to-indigo-600 p-0.5 shadow-md shadow-brand-500/20 group-hover:shadow-lg transition-all duration-300">
+              <div class="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center relative overflow-hidden">
+                <div class="absolute inset-0 bg-gradient-to-tr from-brand-600/40 to-transparent opacity-80"></div>
+                <svg class="w-5 h-5 text-white relative z-10 transform group-hover:rotate-12 transition-transform duration-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                </svg>
+              </div>
+            </div>
+            
+            <div class="flex flex-col">
+              <span class="font-display font-extrabold text-xl tracking-tight text-slate-900 group-hover:text-brand-600 transition-colors">
+                Shewwina<span class="text-brand-600">.</span>
+              </span>
+              <span class="text-[10px] font-medium tracking-wider text-slate-400 uppercase -mt-1 hidden sm:block">Customer Flow OS</span>
+            </div>
+          </a>
+        </div>
+
+        <!-- NAVIGATION LINKS (CENTER - DESKTOP) -->
+        <nav class="hidden md:flex items-center space-x-1 lg:space-x-1.5" aria-label="Main Navigation">
+          <a href="#home" class="px-3.5 py-2 text-sm font-medium text-slate-700 hover:text-slate-900 rounded-full hover:bg-slate-100/80 transition-all">Home</a>
+          
+          <!-- Features Mega-Menu Dropdown -->
+          <div class="relative group" id="features-dropdown-container">
+            <button 
+              id="features-dropdown-btn"
+              class="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium text-slate-700 hover:text-slate-900 rounded-full hover:bg-slate-100/80 transition-all focus:outline-none"
+              aria-expanded="false"
+            >
+              <span>Features</span>
+              <svg class="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-transform duration-200 group-hover:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            <!-- Stripe Mega Menu Dropdown -->
+            <div class="absolute left-1/2 -translate-x-1/2 mt-2 w-[540px] opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all duration-200 z-50">
+              <div class="p-4 bg-white/95 backdrop-blur-xl rounded-2xl border border-slate-200/80 shadow-2xl shadow-slate-900/10">
+                <div class="grid grid-cols-2 gap-2">
+                  <a href="#features" class="flex gap-3.5 p-3 rounded-xl hover:bg-slate-50 transition-colors group/item">
+                    <div class="w-10 h-10 rounded-lg bg-blue-50 text-brand-600 flex items-center justify-center shrink-0 group-hover/item:bg-brand-600 group-hover/item:text-white transition-colors">
+                      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    </div>
+                    <div>
+                      <div class="text-sm font-semibold text-slate-900 group-hover/item:text-brand-600 flex items-center gap-1.5">
+                        Smart Queues
+                        <span class="text-[10px] font-medium text-brand-600 bg-brand-50 px-1.5 py-0.5 rounded-full">AI</span>
+                      </div>
+                      <p class="text-xs text-slate-500 mt-0.5">Virtual waitlists & live ETAs for clients.</p>
+                    </div>
+                  </a>
+
+                  <a href="#features" class="flex gap-3.5 p-3 rounded-xl hover:bg-slate-50 transition-colors group/item">
+                    <div class="w-10 h-10 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 group-hover/item:bg-purple-600 group-hover/item:text-white transition-colors">
+                      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    </div>
+                    <div>
+                      <div class="text-sm font-semibold text-slate-900 group-hover/item:text-purple-600">Appointments</div>
+                      <p class="text-xs text-slate-500 mt-0.5">Automated 24/7 booking engine.</p>
+                    </div>
+                  </a>
+
+                  <a href="#features" class="flex gap-3.5 p-3 rounded-xl hover:bg-slate-50 transition-colors group/item">
+                    <div class="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 group-hover/item:bg-emerald-600 group-hover/item:text-white transition-colors">
+                      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                    </div>
+                    <div>
+                      <div class="text-sm font-semibold text-slate-900 group-hover/item:text-emerald-600">Flow Analytics</div>
+                      <p class="text-xs text-slate-500 mt-0.5">Predictive customer throughput heatmaps.</p>
+                    </div>
+                  </a>
+
+                  <a href="#features" class="flex gap-3.5 p-3 rounded-xl hover:bg-slate-50 transition-colors group/item">
+                    <div class="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 group-hover/item:bg-amber-600 group-hover/item:text-white transition-colors">
+                      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                    </div>
+                    <div>
+                      <div class="text-sm font-semibold text-slate-900 group-hover/item:text-amber-600">WhatsApp SMS</div>
+                      <p class="text-xs text-slate-500 mt-0.5">Automated turn alerts & delay updates.</p>
+                    </div>
+                  </a>
+                </div>
+
+                <div class="mt-3 pt-3 border-t border-slate-100 bg-slate-50/60 -mx-4 -mb-4 p-3.5 px-6 rounded-b-2xl flex items-center justify-between text-xs">
+                  <span class="text-slate-500">Looking for multi-location enterprise support?</span>
+                  <a href="#contact" class="font-semibold text-brand-600 hover:text-brand-700 inline-flex items-center gap-1">
+                    Explore Enterprise &rarr;
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <a href="#problems" class="px-3.5 py-2 text-sm font-medium text-slate-700 hover:text-slate-900 rounded-full hover:bg-slate-100/80 transition-all">Problems</a>
+          <a href="#solutions" class="px-3.5 py-2 text-sm font-medium text-slate-700 hover:text-slate-900 rounded-full hover:bg-slate-100/80 transition-all">Solutions</a>
+          <a href="#how-it-works" class="px-3.5 py-2 text-sm font-medium text-slate-700 hover:text-slate-900 rounded-full hover:bg-slate-100/80 transition-all">How it Works</a>
+          <a href="#industries" class="px-3.5 py-2 text-sm font-medium text-slate-700 hover:text-slate-900 rounded-full hover:bg-slate-100/80 transition-all">Industries</a>
+          <a href="#stats" class="px-3.5 py-2 text-sm font-medium text-slate-700 hover:text-slate-900 rounded-full hover:bg-slate-100/80 transition-all">Stats</a>
+          <a href="#testimonials" class="px-3.5 py-2 text-sm font-medium text-slate-700 hover:text-slate-900 rounded-full hover:bg-slate-100/80 transition-all">Reviews</a>
+          <a href="#faq" class="px-3.5 py-2 text-sm font-medium text-slate-700 hover:text-slate-900 rounded-full hover:bg-slate-100/80 transition-all">FAQ</a>
+        </nav>
+
+        <!-- CTA BUTTONS (RIGHT - DESKTOP) -->
+        <div class="hidden md:flex items-center space-x-3">
+          <a href="#login" class="text-sm font-medium text-slate-700 hover:text-slate-950 px-4 py-2 rounded-full hover:bg-slate-100/80 transition-all">Login</a>
+          <a href="#cta" class="relative inline-flex items-center justify-center px-5 py-2.5 text-sm font-semibold text-white bg-slate-950 hover:bg-slate-800 rounded-full shadow-sm hover:shadow hover:-translate-y-0.5 active:translate-y-0 active:scale-95 transition-all duration-200 group overflow-hidden">
+            <span class="relative flex items-center gap-1.5">
+              Get Started
+              <svg class="w-4 h-4 text-slate-300 group-hover:text-white group-hover:translate-x-0.5 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+            </span>
+          </a>
+        </div>
+
+        <!-- MOBILE HAMBURGER BUTTON -->
+        <div class="flex items-center md:hidden">
+          <button 
+            id="mobile-menu-toggle" 
+            type="button" 
+            class="p-2.5 rounded-xl text-slate-700 hover:text-slate-900 hover:bg-slate-100 focus:outline-none transition-colors"
+            aria-expanded="false"
+            aria-controls="mobile-menu"
+          >
+            <span class="sr-only">Toggle Main Menu</span>
+            <svg id="hamburger-icon" class="w-6 h-6 block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+            <svg id="close-icon" class="w-6 h-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- MOBILE MENU DRAWER -->
+    <div id="mobile-menu" class="hidden md:hidden border-b border-slate-200 bg-white/95 backdrop-blur-2xl transition-all duration-300">
+      <div class="px-4 pt-3 pb-6 space-y-1.5 max-w-lg mx-auto">
+        <a href="#home" class="mobile-link block px-4 py-3 rounded-xl text-base font-semibold text-slate-800 hover:bg-slate-100">Home</a>
+        <a href="#features" class="mobile-link block px-4 py-3 rounded-xl text-base font-semibold text-slate-800 hover:bg-slate-100">Features</a>
+        <a href="#problems" class="mobile-link block px-4 py-3 rounded-xl text-base font-semibold text-slate-800 hover:bg-slate-100">Problems We Solve</a>
+        <a href="#solutions" class="mobile-link block px-4 py-3 rounded-xl text-base font-semibold text-slate-800 hover:bg-slate-100">Solutions</a>
+        <a href="#how-it-works" class="mobile-link block px-4 py-3 rounded-xl text-base font-semibold text-slate-800 hover:bg-slate-100">How it Works</a>
+        <a href="#industries" class="mobile-link block px-4 py-3 rounded-xl text-base font-semibold text-slate-800 hover:bg-slate-100">Industries</a>
+        <a href="#stats" class="mobile-link block px-4 py-3 rounded-xl text-base font-semibold text-slate-800 hover:bg-slate-100">Impact Stats</a>
+        <a href="#testimonials" class="mobile-link block px-4 py-3 rounded-xl text-base font-semibold text-slate-800 hover:bg-slate-100">Reviews</a>
+        <a href="#faq" class="mobile-link block px-4 py-3 rounded-xl text-base font-semibold text-slate-800 hover:bg-slate-100">FAQ</a>
+
+        <div class="pt-4 mt-4 border-t border-slate-100 flex flex-col gap-2.5">
+          <a href="#login" class="mobile-link w-full text-center px-4 py-3 text-base font-semibold text-slate-700 bg-slate-100 rounded-xl">Login</a>
+          <a href="#cta" class="mobile-link w-full text-center px-4 py-3.5 text-base font-semibold text-white bg-slate-950 rounded-xl shadow-md flex items-center justify-center gap-2">
+            Get Started
+            <svg class="w-4 h-4 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+
+  <main id="main-content">
+    
+    <!-- ========================================== -->
+    <!-- 2. HERO SECTION -->
+    <!-- ========================================== -->
+    <section id="home" class="relative overflow-hidden pt-12 lg:pt-20 pb-24 bg-white">
+      <div class="absolute inset-0 bg-grid-pattern opacity-60 pointer-events-none"></div>
+      <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[600px] glow-radial pointer-events-none"></div>
+
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        
+        <div class="max-w-4xl mx-auto text-center">
+          
+          <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900/5 border border-slate-900/10 text-slate-700 text-xs sm:text-sm font-medium mb-8 hover:bg-slate-900/10 transition-colors shadow-sm">
+            <span class="inline-block w-2 h-2 rounded-full bg-brand-600 animate-pulse"></span>
+            <span class="font-semibold text-slate-900">Shewwina 2.0</span>
+            <span class="text-slate-400">&bull;</span>
+            <span class="text-slate-600">The Next-Gen Digital Queue Engine for Salons & Clinics</span>
+            <svg class="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7" /></svg>
+          </div>
+
+          <h1 class="font-display text-5xl sm:text-7xl lg:text-8xl font-black text-slate-900 tracking-tight leading-[1.05]">
+            Stop Waiting. <br class="hidden sm:block" />
+            <span class="bg-clip-text text-transparent bg-gradient-to-r from-brand-600 via-indigo-600 to-purple-600">
+              Start Living.
+            </span>
+          </h1>
+
+          <p class="mt-8 text-lg sm:text-2xl text-slate-600 max-w-3xl mx-auto leading-relaxed font-normal">
+            Shewwina helps salons and clinics manage appointments and live queues digitally, reducing waiting time and improving customer experience.
+          </p>
+
+          <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-5">
+            <a href="#cta" class="w-full sm:w-auto px-8 py-4 text-base sm:text-lg font-semibold text-white bg-slate-950 hover:bg-slate-800 rounded-full shadow-xl shadow-slate-950/20 hover:shadow-2xl hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2.5 group">
+              <span>Get Started</span>
+              <svg class="w-5 h-5 text-slate-400 group-hover:text-white group-hover:translate-x-1 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+            </a>
+
+            <a href="#how-it-works" class="w-full sm:w-auto px-8 py-4 text-base sm:text-lg font-semibold text-slate-700 hover:text-slate-950 bg-white/80 hover:bg-slate-100/80 border border-slate-200 rounded-full shadow-sm hover:shadow transition-all flex items-center justify-center gap-2.5 backdrop-blur-sm">
+              <svg class="w-5 h-5 text-brand-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+              <span>Book Demo</span>
+            </a>
+          </div>
+
+          <div class="mt-10 flex flex-wrap items-center justify-center gap-6 sm:gap-8 text-xs sm:text-sm text-slate-500 font-medium">
+            <div class="flex items-center gap-2"><svg class="w-4 h-4 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg> No hardware setup required</div>
+            <div class="flex items-center gap-2"><svg class="w-4 h-4 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg> 14-Day Free Trial</div>
+            <div class="flex items-center gap-2"><svg class="w-4 h-4 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg> WhatsApp &amp; SMS Sync</div>
+          </div>
+
+        </div>
+
+        <!-- HERO GRAPHIC & 5-NODE ARCHITECTURE VISUALIZATION -->
+        <div class="mt-16 sm:mt-20 max-w-6xl mx-auto">
+          <div class="rounded-3xl p-3 sm:p-5 bg-gradient-to-b from-slate-200/80 via-slate-100/40 to-slate-200/60 shadow-2xl border border-slate-200/80">
+            <div class="bg-slate-950 rounded-2xl p-6 sm:p-10 text-white border border-slate-800">
+              
+              <div class="flex items-center justify-between pb-6 mb-8 border-b border-slate-800/80">
+                <div class="flex items-center gap-2">
+                  <span class="w-3 h-3 rounded-full bg-rose-500/80"></span>
+                  <span class="w-3 h-3 rounded-full bg-amber-500/80"></span>
+                  <span class="w-3 h-3 rounded-full bg-emerald-500/80"></span>
+                  <span class="text-xs font-mono text-slate-400 ml-3 hidden sm:inline-block">app.shewwina.com &mdash; Live Customer Flow Network</span>
+                </div>
+                <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-400 bg-emerald-950/80 border border-emerald-800/60 px-3 py-1 rounded-full">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                  Live Queue Engine Active
+                </span>
+              </div>
+
+              <!-- Node Cards Grid -->
+              <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch">
+                <!-- Node 1: Customer & App -->
+                <div class="md:col-span-4 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between">
+                  <div>
+                    <div class="flex items-center justify-between mb-4">
+                      <span class="text-xs font-bold uppercase tracking-wider text-brand-400">1. Customer &amp; Mobile App</span>
+                      <span class="text-[10px] bg-brand-950 text-brand-300 border border-brand-800 px-2 py-0.5 rounded-full font-mono">Mobile Pass</span>
+                    </div>
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
+                      <div class="flex justify-between text-xs text-slate-400"><span>Shewwina Pass</span><span class="text-emerald-400 font-mono">#Q-042</span></div>
+                      <div class="p-3 bg-brand-950/60 rounded-lg border border-brand-800/50">
+                        <div class="text-xs text-brand-300">Luxe Salon &amp; Spa</div>
+                        <div class="text-2xl font-black text-white mt-1">Position #2 in Line</div>
+                        <div class="text-xs text-slate-300 mt-1">Est. Wait: <span class="font-bold text-white">8 mins</span></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="mt-4 pt-3 border-t border-slate-800 text-[11px] text-slate-400 flex justify-between">
+                    <span>Joins via QR / SMS</span>
+                    <span class="text-brand-400 font-semibold">&rarr; Queue Node</span>
+                  </div>
+                </div>
+
+                <!-- Node 2: Queue Engine -->
+                <div class="md:col-span-4 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between">
+                  <div>
+                    <div class="flex items-center justify-between mb-4">
+                      <span class="text-xs font-bold uppercase tracking-wider text-purple-400">2. Live Queue Engine</span>
+                      <span class="text-[10px] bg-purple-950 text-purple-300 border border-purple-800 px-2 py-0.5 rounded-full font-mono">AI Queue</span>
+                    </div>
+                    <div class="space-y-2">
+                      <div class="p-2.5 rounded-lg bg-emerald-950/40 border border-emerald-800/50 flex justify-between text-xs">
+                        <span class="font-bold text-emerald-300">NOW SERVING: Rahul S.</span>
+                        <span class="text-emerald-400 font-mono">Chair #1</span>
+                      </div>
+                      <div class="p-2.5 rounded-lg bg-brand-950/40 border border-brand-800/50 flex justify-between text-xs">
+                        <span class="font-bold text-brand-300">#2 NEXT: Priya K.</span>
+                        <span class="text-brand-300 font-mono">~4 min</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="mt-4 pt-3 border-t border-slate-800 text-[11px] text-slate-400 flex justify-between">
+                    <span>Auto-balancing alerts</span>
+                    <span class="text-purple-400 font-semibold">&rarr; Salon &amp; Dashboard</span>
+                  </div>
+                </div>
+
+                <!-- Node 3: Salon & Dashboard -->
+                <div class="md:col-span-4 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between">
+                  <div>
+                    <div class="flex items-center justify-between mb-4">
+                      <span class="text-xs font-bold uppercase tracking-wider text-emerald-400">3. Salon &amp; Dashboard</span>
+                      <span class="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800 px-2 py-0.5 rounded-full font-mono">Owner Hub</span>
+                    </div>
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
+                      <div class="grid grid-cols-2 gap-2 text-left">
+                        <div class="p-2 bg-slate-900 rounded-lg border border-slate-800">
+                          <div class="text-[10px] text-slate-400">Daily Served</div>
+                          <div class="text-xl font-bold text-white">84 Clients</div>
+                        </div>
+                        <div class="p-2 bg-slate-900 rounded-lg border border-slate-800">
+                          <div class="text-[10px] text-slate-400">Avg Wait Time</div>
+                          <div class="text-xl font-bold text-emerald-400">3.8 mins</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="mt-4 pt-3 border-t border-slate-800 text-[11px] text-slate-400 flex justify-between">
+                    <span>Zero no-shows</span>
+                    <span class="text-emerald-400 font-semibold">100% Control</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- High Res SaaS Graphic Embed -->
+              <div class="mt-8 rounded-2xl overflow-hidden border border-slate-800 shadow-2xl relative">
+                <img src="shewwina_hero_illustration.jpg" alt="Shewwina SaaS Dashboard Visual" class="w-full h-auto max-h-[380px] object-cover rounded-2xl" />
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- 3. PROBLEM WE SOLVE SECTION -->
+    <!-- ========================================== -->
+    <section id="problems" class="py-24 bg-slate-900 text-white relative overflow-hidden">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        
+        <div class="max-w-3xl mx-auto text-center mb-16">
+          <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-semibold uppercase tracking-wider mb-4">
+            The Queue Crisis
+          </div>
+          <h2 class="font-display text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-tight">
+            Traditional Waiting is <span class="bg-clip-text text-transparent bg-gradient-to-r from-rose-400 via-amber-300 to-orange-400">Killing Business Growth</span>
+          </h2>
+          <p class="mt-4 text-base sm:text-xl text-slate-400 leading-relaxed">
+            Paper slips, overcrowded waiting rooms, and angry phone calls cost salons and clinics thousands in lost revenue and burnt-out staff.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+          <!-- Card 1 -->
+          <div class="p-7 rounded-3xl bg-slate-800/80 border border-slate-700/80 hover:border-rose-500/50 hover:-translate-y-1 transition-all duration-300 group flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-6">
+                <div class="w-13 h-13 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center p-3">
+                  <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                </div>
+                <span class="text-xs font-mono font-semibold text-rose-400 bg-rose-950/80 border border-rose-800 px-3 py-1 rounded-full">Friction #1</span>
+              </div>
+              <h3 class="text-xl font-bold text-white group-hover:text-rose-300">Unpredictable Long Waits</h3>
+              <p class="mt-3 text-sm text-slate-400 leading-relaxed">Clients wait 45+ minutes in crowded lobbies with zero visibility on when their turn will come.</p>
+            </div>
+            <div class="mt-6 pt-4 border-t border-slate-700/60 flex items-center justify-between text-xs text-slate-400">
+              <span>Customer Impact</span><span class="font-bold text-rose-400">68% abandon wait &gt; 20 min</span>
+            </div>
+          </div>
+
+          <!-- Card 2 -->
+          <div class="p-7 rounded-3xl bg-slate-800/80 border border-slate-700/80 hover:border-amber-500/50 hover:-translate-y-1 transition-all duration-300 group flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-6">
+                <div class="w-13 h-13 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center p-3">
+                  <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" /></svg>
+                </div>
+                <span class="text-xs font-mono font-semibold text-amber-400 bg-amber-950/80 border border-amber-800 px-3 py-1 rounded-full">Friction #2</span>
+              </div>
+              <h3 class="text-xl font-bold text-white group-hover:text-amber-300">Outdated Paper Tokens</h3>
+              <p class="mt-3 text-sm text-slate-400 leading-relaxed">Physical paper tickets get lost, crushed, or stolen. Staff struggle to call out numbers verbally over noise.</p>
+            </div>
+            <div class="mt-6 pt-4 border-t border-slate-700/60 flex items-center justify-between text-xs text-slate-400">
+              <span>Operational Risk</span><span class="font-bold text-amber-400">0% Digital tracking</span>
+            </div>
+          </div>
+
+          <!-- Card 3 -->
+          <div class="p-7 rounded-3xl bg-slate-800/80 border border-slate-700/80 hover:border-red-500/50 hover:-translate-y-1 transition-all duration-300 group flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-6">
+                <div class="w-13 h-13 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 flex items-center justify-center p-3">
+                  <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
+                </div>
+                <span class="text-xs font-mono font-semibold text-red-400 bg-red-950/80 border border-red-800 px-3 py-1 rounded-full">Friction #3</span>
+              </div>
+              <h3 class="text-xl font-bold text-white group-hover:text-red-300">Angry &amp; Frustrated Clients</h3>
+              <p class="mt-3 text-sm text-slate-400 leading-relaxed">Lack of transparency turns waiting rooms into hostile environments, leading to negative reviews.</p>
+            </div>
+            <div class="mt-6 pt-4 border-t border-slate-700/60 flex items-center justify-between text-xs text-slate-400">
+              <span>Brand Impact</span><span class="font-bold text-red-400">1-Star Google Reviews</span>
+            </div>
+          </div>
+
+          <!-- Card 4 -->
+          <div class="p-7 rounded-3xl bg-slate-800/80 border border-slate-700/80 hover:border-purple-500/50 hover:-translate-y-1 transition-all duration-300 group flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-6">
+                <div class="w-13 h-13 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center p-3">
+                  <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858-5.908a10.007 10.007 0 013.682-.763c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21M3 3l18 18" /></svg>
+                </div>
+                <span class="text-xs font-mono font-semibold text-purple-400 bg-purple-950/80 border border-purple-800 px-3 py-1 rounded-full">Friction #4</span>
+              </div>
+              <h3 class="text-xl font-bold text-white group-hover:text-purple-300">Zero Queue Visibility</h3>
+              <p class="mt-3 text-sm text-slate-400 leading-relaxed">Neither managers nor clients can see real-time queue length, average service speed, or bottlenecks.</p>
+            </div>
+            <div class="mt-6 pt-4 border-t border-slate-700/60 flex items-center justify-between text-xs text-slate-400">
+              <span>Management Risk</span><span class="font-bold text-purple-400">No Analytics</span>
+            </div>
+          </div>
+
+          <!-- Card 5 -->
+          <div class="p-7 rounded-3xl bg-slate-800/80 border border-slate-700/80 hover:border-orange-500/50 hover:-translate-y-1 transition-all duration-300 group flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-6">
+                <div class="w-13 h-13 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-orange-400 flex items-center justify-center p-3">
+                  <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                </div>
+                <span class="text-xs font-mono font-semibold text-orange-400 bg-orange-950/80 border border-orange-800 px-3 py-1 rounded-full">Friction #5</span>
+              </div>
+              <h3 class="text-xl font-bold text-white group-hover:text-orange-300">Staff Overwhelm &amp; Chaos</h3>
+              <p class="mt-3 text-sm text-slate-400 leading-relaxed">Receptionists waste up to 40% of their workday answering "When is my turn?" instead of assisting clients.</p>
+            </div>
+            <div class="mt-6 pt-4 border-t border-slate-700/60 flex items-center justify-between text-xs text-slate-400">
+              <span>Staff Productivity</span><span class="font-bold text-orange-400">-40% Productivity Lost</span>
+            </div>
+          </div>
+
+          <!-- Card 6 -->
+          <div class="p-7 rounded-3xl bg-slate-800/80 border border-slate-700/80 hover:border-pink-500/50 hover:-translate-y-1 transition-all duration-300 group flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-6">
+                <div class="w-13 h-13 rounded-2xl bg-pink-500/10 border border-pink-500/20 text-pink-400 flex items-center justify-center p-3">
+                  <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" /></svg>
+                </div>
+                <span class="text-xs font-mono font-semibold text-pink-400 bg-pink-950/80 border border-pink-800 px-3 py-1 rounded-full">Friction #6</span>
+              </div>
+              <h3 class="text-xl font-bold text-white group-hover:text-pink-300">Silent Revenue &amp; Client Loss</h3>
+              <p class="mt-3 text-sm text-slate-400 leading-relaxed">Impatient walk-in clients turn around and leave when they see a packed lobby.</p>
+            </div>
+            <div class="mt-6 pt-4 border-t border-slate-700/60 flex items-center justify-between text-xs text-slate-400">
+              <span>Financial Loss</span><span class="font-bold text-pink-400">Up to 30% Revenue Lost</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- 4. HOW SHEWWINA SOLVES IT (SOLUTIONS) -->
+    <!-- ========================================== -->
+    <section id="solutions" class="py-24 bg-slate-50/60 border-t border-b border-slate-200/80 relative">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        
+        <div class="max-w-3xl mx-auto text-center mb-16">
+          <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-50 border border-brand-200 text-brand-600 text-xs font-semibold uppercase tracking-wider mb-4">
+            The Complete Solution
+          </div>
+          <h2 class="font-display text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
+            How Shewwina <span class="bg-clip-text text-transparent bg-gradient-to-r from-brand-600 via-blue-600 to-indigo-600">Solves It</span>
+          </h2>
+          <p class="mt-4 text-base sm:text-xl text-slate-600 leading-relaxed">
+            Four powerful digital modules designed to turn waiting room friction into a smooth customer experience.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-10">
+          <!-- Solution 1 -->
+          <div class="bg-white rounded-3xl p-8 border border-slate-200 shadow-xl hover:shadow-2xl hover:border-brand-500/40 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group">
+            <div>
+              <div class="flex items-center justify-between mb-6">
+                <div class="w-14 h-14 rounded-2xl bg-brand-50 border border-brand-100 text-brand-600 flex items-center justify-center group-hover:bg-brand-600 group-hover:text-white transition-colors">
+                  <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 4v16m8-8H4" /><path d="M17 9l-5-5-5 5" /></svg>
+                </div>
+                <span class="text-xs font-mono font-bold text-brand-600 bg-brand-50 px-3 py-1 rounded-full border border-brand-100">01 &bull; DIGITAL QUEUE</span>
+              </div>
+              <h3 class="text-2xl font-bold text-slate-900 group-hover:text-brand-600 transition-colors">Virtual Digital Queueing</h3>
+              <p class="mt-3 text-slate-600 text-sm leading-relaxed">Customers scan a QR code or tap a link to join your live digital waitlist from anywhere.</p>
+            </div>
+            <div class="mt-8 bg-slate-950 rounded-2xl p-5 border border-slate-800 text-white">
+              <div class="flex justify-between text-xs text-slate-400 mb-2"><span>Live Queue Token</span><span class="font-mono text-emerald-400">#Q-048</span></div>
+              <div class="flex justify-between bg-slate-900 p-3.5 rounded-xl border border-slate-800">
+                <div><div class="text-xs text-slate-400">Position in Line</div><div class="text-2xl font-black text-white">#2 Next</div></div>
+                <div class="text-right"><div class="text-xs text-slate-400">Estimated Wait</div><div class="text-lg font-bold text-brand-400">6 Mins</div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Solution 2 -->
+          <div class="bg-white rounded-3xl p-8 border border-slate-200 shadow-xl hover:shadow-2xl hover:border-purple-500/40 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group">
+            <div>
+              <div class="flex items-center justify-between mb-6">
+                <div class="w-14 h-14 rounded-2xl bg-purple-50 border border-purple-100 text-purple-600 flex items-center justify-center group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                  <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                </div>
+                <span class="text-xs font-mono font-bold text-purple-600 bg-purple-50 px-3 py-1 rounded-full border border-purple-100">02 &bull; ONLINE APPOINTMENTS</span>
+              </div>
+              <h3 class="text-2xl font-bold text-slate-900 group-hover:text-purple-600 transition-colors">Smart Online Booking</h3>
+              <p class="mt-3 text-slate-600 text-sm leading-relaxed">24/7 self-service scheduling engine that automatically syncs staff calendars.</p>
+            </div>
+            <div class="mt-8 bg-slate-950 rounded-2xl p-5 border border-slate-800 text-white">
+              <div class="text-xs text-slate-400 mb-2 flex justify-between"><span>Select Time Slot</span><span class="text-purple-400 font-semibold">Staff: Sarah M.</span></div>
+              <div class="grid grid-cols-3 gap-2 mt-3 text-center text-xs">
+                <div class="p-2.5 bg-slate-900 text-slate-500 line-through rounded-lg">10:00 AM</div>
+                <div class="p-2.5 bg-purple-600 text-white font-bold rounded-lg shadow">11:30 AM</div>
+                <div class="p-2.5 bg-slate-900 text-purple-300 rounded-lg">02:15 PM</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Solution 3 -->
+          <div class="bg-white rounded-3xl p-8 border border-slate-200 shadow-xl hover:shadow-2xl hover:border-emerald-500/40 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group">
+            <div>
+              <div class="flex items-center justify-between mb-6">
+                <div class="w-14 h-14 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                  <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+                </div>
+                <span class="text-xs font-mono font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">03 &bull; REAL-TIME ALERTS</span>
+              </div>
+              <h3 class="text-2xl font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">Automated WhatsApp &amp; SMS</h3>
+              <p class="mt-3 text-slate-600 text-sm leading-relaxed">Automated turn alerts keep clients informed as their turn approaches.</p>
+            </div>
+            <div class="mt-8 bg-slate-950 rounded-2xl p-5 border border-slate-800 text-white">
+              <div class="p-3 bg-emerald-950/60 border border-emerald-800 rounded-xl text-xs space-y-1">
+                <div class="flex justify-between text-emerald-400 font-semibold"><span>WhatsApp Alert</span><span class="font-mono text-slate-400">11:28 AM</span></div>
+                <p class="text-slate-200 pt-1">&ldquo;Hi Priya! You're up next. Please head to Chair #1 in 3 mins.&rdquo;</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Solution 4 -->
+          <div class="bg-white rounded-3xl p-8 border border-slate-200 shadow-xl hover:shadow-2xl hover:border-amber-500/40 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group">
+            <div>
+              <div class="flex items-center justify-between mb-6">
+                <div class="w-14 h-14 rounded-2xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center group-hover:bg-amber-600 group-hover:text-white transition-colors">
+                  <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 00-2 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                </div>
+                <span class="text-xs font-mono font-bold text-amber-600 bg-amber-50 px-3 py-1 rounded-full border border-amber-100">04 &bull; BUSINESS DASHBOARD</span>
+              </div>
+              <h3 class="text-2xl font-bold text-slate-900 group-hover:text-amber-600 transition-colors">Intelligent Analytics Hub</h3>
+              <p class="mt-3 text-slate-600 text-sm leading-relaxed">Real-time control panel gives management full visibility over customer throughput.</p>
+            </div>
+            <div class="mt-8 bg-slate-950 rounded-2xl p-5 border border-slate-800 text-white">
+              <div class="grid grid-cols-2 gap-2 text-center">
+                <div class="p-2 bg-slate-900 rounded-lg border border-slate-800"><div class="text-[10px] text-slate-400">Total Served</div><div class="text-lg font-black text-white">142 Clients</div></div>
+                <div class="p-2 bg-slate-900 rounded-lg border border-slate-800"><div class="text-[10px] text-slate-400">Avg Wait Time</div><div class="text-lg font-black text-amber-400">3.2 Mins</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- 5. FEATURES SUITE SECTION -->
+    <!-- ========================================== -->
+    <section id="features" class="py-24 bg-white relative overflow-hidden">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        
+        <div class="max-w-3xl mx-auto text-center mb-16">
+          <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-50 border border-brand-200 text-brand-600 text-xs font-semibold uppercase tracking-wider mb-4">
+            Enterprise Feature Suite
+          </div>
+          <h2 class="font-display text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
+            Everything You Need to <span class="bg-clip-text text-transparent bg-gradient-to-r from-brand-600 via-indigo-600 to-purple-600">Master Customer Flow</span>
+          </h2>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+          <!-- Feat 1 -->
+          <div class="p-7 rounded-3xl bg-white border border-slate-200 hover:border-brand-500/50 shadow-lg hover:shadow-2xl hover:-translate-y-1.5 transition-all group flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-5">
+                <div class="w-12 h-12 p-2.5 rounded-2xl bg-brand-50 border border-brand-100 text-brand-600 flex items-center justify-center group-hover:bg-brand-600 group-hover:text-white transition-colors">
+                  <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                </div>
+                <span class="text-[10px] font-mono font-bold text-brand-600 bg-brand-50 px-2 py-0.5 rounded-full">LIVE SYNC</span>
+              </div>
+              <h3 class="text-lg font-bold text-slate-900">Live Queue Sync</h3>
+              <p class="mt-2 text-xs text-slate-600">Real-time digital waitlist synchronized across staff devices.</p>
+            </div>
+            <div class="mt-6 pt-3 border-t border-slate-100 flex justify-between text-[11px] text-slate-500"><span>Queue Management</span><span class="text-brand-600 font-bold">&rarr;</span></div>
+          </div>
+
+          <!-- Feat 2 -->
+          <div class="p-7 rounded-3xl bg-white border border-slate-200 hover:border-purple-500/50 shadow-lg hover:shadow-2xl hover:-translate-y-1.5 transition-all group flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-5">
+                <div class="w-12 h-12 p-2.5 rounded-2xl bg-purple-50 border border-purple-100 text-purple-600 flex items-center justify-center group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                  <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                </div>
+                <span class="text-[10px] font-mono font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">24/7 BOOKING</span>
+              </div>
+              <h3 class="text-lg font-bold text-slate-900">Smart Appointments</h3>
+              <p class="mt-2 text-xs text-slate-600">Self-service portal for 24/7 online scheduling.</p>
+            </div>
+            <div class="mt-6 pt-3 border-t border-slate-100 flex justify-between text-[11px] text-slate-500"><span>Scheduling Engine</span><span class="text-purple-600 font-bold">&rarr;</span></div>
+          </div>
+
+          <!-- Feat 3 -->
+          <div class="p-7 rounded-3xl bg-white border border-slate-200 hover:border-emerald-500/50 shadow-lg hover:shadow-2xl hover:-translate-y-1.5 transition-all group flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-5">
+                <div class="w-12 h-12 p-2.5 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                  <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg>
+                </div>
+                <span class="text-[10px] font-mono font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">PAPERLESS</span>
+              </div>
+              <h3 class="text-lg font-bold text-slate-900">Digital Token System</h3>
+              <p class="mt-2 text-xs text-slate-600">Instant QR-based digital token passes sent to phones.</p>
+            </div>
+            <div class="mt-6 pt-3 border-t border-slate-100 flex justify-between text-[11px] text-slate-500"><span>Pass Generation</span><span class="text-emerald-600 font-bold">&rarr;</span></div>
+          </div>
+
+          <!-- Feat 4 -->
+          <div class="p-7 rounded-3xl bg-white border border-slate-200 hover:border-amber-500/50 shadow-lg hover:shadow-2xl hover:-translate-y-1.5 transition-all group flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-5">
+                <div class="w-12 h-12 p-2.5 rounded-2xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center group-hover:bg-amber-600 group-hover:text-white transition-colors">
+                  <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                </div>
+                <span class="text-[10px] font-mono font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">AI CALCULATED</span>
+              </div>
+              <h3 class="text-lg font-bold text-slate-900">Real-Time ETA Engine</h3>
+              <p class="mt-2 text-xs text-slate-600">Predictive AI algorithms calculate accurate wait times.</p>
+            </div>
+            <div class="mt-6 pt-3 border-t border-slate-100 flex justify-between text-[11px] text-slate-500"><span>Wait Engine</span><span class="text-amber-600 font-bold">&rarr;</span></div>
+          </div>
+
+          <!-- Feat 5 -->
+          <div class="p-7 rounded-3xl bg-white border border-slate-200 hover:border-cyan-500/50 shadow-lg hover:shadow-2xl hover:-translate-y-1.5 transition-all group flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-5">
+                <div class="w-12 h-12 p-2.5 rounded-2xl bg-cyan-50 border border-cyan-100 text-cyan-600 flex items-center justify-center group-hover:bg-cyan-600 group-hover:text-white transition-colors">
+                  <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+                </div>
+                <span class="text-[10px] font-mono font-bold text-cyan-600 bg-cyan-50 px-2 py-0.5 rounded-full">WHATSAPP &amp; SMS</span>
+              </div>
+              <h3 class="text-lg font-bold text-slate-900">Automated Alerts</h3>
+              <p class="mt-2 text-xs text-slate-600">Automated SMS, WhatsApp, and push notifications.</p>
+            </div>
+            <div class="mt-6 pt-3 border-t border-slate-100 flex justify-between text-[11px] text-slate-500"><span>Turn Alerts</span><span class="text-cyan-600 font-bold">&rarr;</span></div>
+          </div>
+
+          <!-- Feat 6 -->
+          <div class="p-7 rounded-3xl bg-white border border-slate-200 hover:border-indigo-500/50 shadow-lg hover:shadow-2xl hover:-translate-y-1.5 transition-all group flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-5">
+                <div class="w-12 h-12 p-2.5 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                  <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                </div>
+                <span class="text-[10px] font-mono font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">EXPORT PDF/CSV</span>
+              </div>
+              <h3 class="text-lg font-bold text-slate-900">Automated Reports</h3>
+              <p class="mt-2 text-xs text-slate-600">Export daily, weekly, and monthly performance reports.</p>
+            </div>
+            <div class="mt-6 pt-3 border-t border-slate-100 flex justify-between text-[11px] text-slate-500"><span>Reports</span><span class="text-indigo-600 font-bold">&rarr;</span></div>
+          </div>
+
+          <!-- Feat 7 -->
+          <div class="p-7 rounded-3xl bg-white border border-slate-200 hover:border-pink-500/50 shadow-lg hover:shadow-2xl hover:-translate-y-1.5 transition-all group flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-5">
+                <div class="w-12 h-12 p-2.5 rounded-2xl bg-pink-50 border border-pink-100 text-pink-600 flex items-center justify-center group-hover:bg-pink-600 group-hover:text-white transition-colors">
+                  <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" /></svg>
+                </div>
+                <span class="text-[10px] font-mono font-bold text-pink-600 bg-pink-50 px-2 py-0.5 rounded-full">PREDICTIVE</span>
+              </div>
+              <h3 class="text-lg font-bold text-slate-900">Flow Analytics</h3>
+              <p class="mt-2 text-xs text-slate-600">Customer flow heatmaps and staff efficiency tracking.</p>
+            </div>
+            <div class="mt-6 pt-3 border-t border-slate-100 flex justify-between text-[11px] text-slate-500"><span>Heatmaps</span><span class="text-pink-600 font-bold">&rarr;</span></div>
+          </div>
+
+          <!-- Feat 8 -->
+          <div class="p-7 rounded-3xl bg-white border border-slate-200 hover:border-slate-950 shadow-lg hover:shadow-2xl hover:-translate-y-1.5 transition-all group flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-5">
+                <div class="w-12 h-12 p-2.5 rounded-2xl bg-slate-100 border border-slate-200 text-slate-900 flex items-center justify-center group-hover:bg-slate-950 group-hover:text-white transition-colors">
+                  <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" /></svg>
+                </div>
+                <span class="text-[10px] font-mono font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded-full">OWNER HUB</span>
+              </div>
+              <h3 class="text-lg font-bold text-slate-900">Business Dashboard</h3>
+              <p class="mt-2 text-xs text-slate-600">A sleek control panel to monitor all chairs and staff.</p>
+            </div>
+            <div class="mt-6 pt-3 border-t border-slate-100 flex justify-between text-[11px] text-slate-500"><span>Control Hub</span><span class="text-slate-950 font-bold">&rarr;</span></div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- 6. HOW SHEWWINA WORKS (TIMELINE SECTION) -->
+    <!-- ========================================== -->
+    <section id="how-it-works" class="py-24 bg-slate-50/70 border-t border-slate-200/80 relative overflow-hidden">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        
+        <div class="max-w-3xl mx-auto text-center mb-16">
+          <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-50 border border-brand-200 text-brand-600 text-xs font-semibold uppercase tracking-wider mb-4">
+            Simple 7-Step Workflow
+          </div>
+          <h2 class="font-display text-3xl sm:text-5xl font-extrabold text-slate-900">
+            How Shewwina <span class="bg-clip-text text-transparent bg-gradient-to-r from-brand-600 via-indigo-600 to-purple-600">Works</span>
+          </h2>
+          <p class="mt-4 text-base sm:text-xl text-slate-600">From business setup to completed service in 7 simple steps.</p>
+        </div>
+
+        <div class="mt-16 relative max-w-5xl mx-auto">
+          <div class="hidden lg:block absolute left-1/2 top-4 bottom-4 -translate-x-1/2 w-0.5 bg-gradient-to-b from-brand-500 via-indigo-500 to-emerald-500 opacity-30"></div>
+
+          <div class="space-y-8 lg:space-y-12">
+            <!-- Step 1 -->
+            <div class="flex flex-col lg:flex-row items-center gap-6 lg:gap-12 group">
+              <div class="w-full lg:w-1/2 lg:text-right order-2 lg:order-1">
+                <div class="p-6 rounded-3xl bg-white border border-slate-200 shadow-xl hover:border-brand-500/40 transition-all">
+                  <div class="text-xs font-mono font-bold text-brand-600 uppercase mb-2">STEP 01 &bull; SETUP</div>
+                  <h3 class="text-xl font-bold text-slate-900">1. Register Business</h3>
+                  <p class="mt-2 text-sm text-slate-600">Create your Shewwina account in 60 seconds. Set operating hours and capacity.</p>
+                </div>
+              </div>
+              <div class="order-1 lg:order-2 shrink-0 w-14 h-14 rounded-2xl bg-brand-600 text-white flex items-center justify-center shadow-lg border-4 border-white">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m3 0h1m-1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              </div>
+              <div class="hidden lg:block w-1/2 order-3"></div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="flex flex-col lg:flex-row items-center gap-6 lg:gap-12 group">
+              <div class="hidden lg:block w-1/2 order-1"></div>
+              <div class="order-1 lg:order-2 shrink-0 w-14 h-14 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-lg border-4 border-white">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
+              </div>
+              <div class="w-full lg:w-1/2 order-2 lg:order-3">
+                <div class="p-6 rounded-3xl bg-white border border-slate-200 shadow-xl hover:border-indigo-500/40 transition-all">
+                  <div class="text-xs font-mono font-bold text-indigo-600 uppercase mb-2">STEP 02 &bull; CONFIGURATION</div>
+                  <h3 class="text-xl font-bold text-slate-900">2. Add Services &amp; Staff</h3>
+                  <p class="mt-2 text-sm text-slate-600">Define your service menu, assign staff members, and set service durations.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="flex flex-col lg:flex-row items-center gap-6 lg:gap-12 group">
+              <div class="w-full lg:w-1/2 lg:text-right order-2 lg:order-1">
+                <div class="p-6 rounded-3xl bg-white border border-slate-200 shadow-xl hover:border-purple-500/40 transition-all">
+                  <div class="text-xs font-mono font-bold text-purple-600 uppercase mb-2">STEP 03 &bull; BOOKING</div>
+                  <h3 class="text-xl font-bold text-slate-900">3. Customer Books Appointment</h3>
+                  <p class="mt-2 text-sm text-slate-600">Clients schedule appointments 24/7 via your custom link or QR code.</p>
+                </div>
+              </div>
+              <div class="order-1 lg:order-2 shrink-0 w-14 h-14 rounded-2xl bg-purple-600 text-white flex items-center justify-center shadow-lg border-4 border-white">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+              </div>
+              <div class="hidden lg:block w-1/2 order-3"></div>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="flex flex-col lg:flex-row items-center gap-6 lg:gap-12 group">
+              <div class="hidden lg:block w-1/2 order-1"></div>
+              <div class="order-1 lg:order-2 shrink-0 w-14 h-14 rounded-2xl bg-cyan-600 text-white flex items-center justify-center shadow-lg border-4 border-white">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg>
+              </div>
+              <div class="w-full lg:w-1/2 order-2 lg:order-3">
+                <div class="p-6 rounded-3xl bg-white border border-slate-200 shadow-xl hover:border-cyan-500/40 transition-all">
+                  <div class="text-xs font-mono font-bold text-cyan-600 uppercase mb-2">STEP 04 &bull; ARRIVAL</div>
+                  <h3 class="text-xl font-bold text-slate-900">4. Customer Joins Queue</h3>
+                  <p class="mt-2 text-sm text-slate-600">Walk-in clients scan your lobby QR code to receive a digital pass.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 5 -->
+            <div class="flex flex-col lg:flex-row items-center gap-6 lg:gap-12 group">
+              <div class="w-full lg:w-1/2 lg:text-right order-2 lg:order-1">
+                <div class="p-6 rounded-3xl bg-white border border-slate-200 shadow-xl hover:border-amber-500/40 transition-all">
+                  <div class="text-xs font-mono font-bold text-amber-600 uppercase mb-2">STEP 05 &bull; ENGAGEMENT</div>
+                  <h3 class="text-xl font-bold text-slate-900">5. Live Waiting Updates</h3>
+                  <p class="mt-2 text-sm text-slate-600">Clients track live queue status with automated WhatsApp alerts.</p>
+                </div>
+              </div>
+              <div class="order-1 lg:order-2 shrink-0 w-14 h-14 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-lg border-4 border-white">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+              </div>
+              <div class="hidden lg:block w-1/2 order-3"></div>
+            </div>
+
+            <!-- Step 6 -->
+            <div class="flex flex-col lg:flex-row items-center gap-6 lg:gap-12 group">
+              <div class="hidden lg:block w-1/2 order-1"></div>
+              <div class="order-1 lg:order-2 shrink-0 w-14 h-14 rounded-2xl bg-rose-600 text-white flex items-center justify-center shadow-lg border-4 border-white">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>
+              </div>
+              <div class="w-full lg:w-1/2 order-2 lg:order-3">
+                <div class="p-6 rounded-3xl bg-white border border-slate-200 shadow-xl hover:border-rose-500/40 transition-all">
+                  <div class="text-xs font-mono font-bold text-rose-600 uppercase mb-2">STEP 06 &bull; SERVICE</div>
+                  <h3 class="text-xl font-bold text-slate-900">6. Business Calls Next Customer</h3>
+                  <p class="mt-2 text-sm text-slate-600">Staff taps "Call Next" and the client receives a mobile notification.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 7 -->
+            <div class="flex flex-col lg:flex-row items-center gap-6 lg:gap-12 group">
+              <div class="w-full lg:w-1/2 lg:text-right order-2 lg:order-1">
+                <div class="p-6 rounded-3xl bg-white border border-slate-200 shadow-xl hover:border-emerald-500/40 transition-all">
+                  <div class="text-xs font-mono font-bold text-emerald-600 uppercase mb-2">STEP 07 &bull; FULFILLMENT</div>
+                  <h3 class="text-xl font-bold text-slate-900">7. Service Complete &amp; Feedback</h3>
+                  <p class="mt-2 text-sm text-slate-600">Service completes. Client gets automated receipt &amp; CSAT review request.</p>
+                </div>
+              </div>
+              <div class="order-1 lg:order-2 shrink-0 w-14 h-14 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-lg border-4 border-white">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              </div>
+              <div class="hidden lg:block w-1/2 order-3"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- 7. INDUSTRIES WE SERVE SECTION -->
+    <!-- ========================================== -->
+    <section id="industries" class="py-24 bg-white relative overflow-hidden">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        
+        <div class="max-w-3xl mx-auto text-center mb-16">
+          <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-50 border border-brand-200 text-brand-600 text-xs font-semibold uppercase tracking-wider mb-4">
+            Tailored Flow Intelligence
+          </div>
+          <h2 class="font-display text-3xl sm:text-5xl font-extrabold text-slate-900">
+            Industries We <span class="bg-clip-text text-transparent bg-gradient-to-r from-brand-600 via-indigo-600 to-purple-600">Serve</span>
+          </h2>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 lg:gap-8">
+          <!-- Industry 1 -->
+          <div class="p-7 rounded-3xl bg-white border border-slate-200 hover:border-brand-500/50 shadow-lg hover:shadow-2xl hover:-translate-y-1.5 transition-all group flex flex-col justify-between">
+            <div>
+              <div class="flex justify-between items-center mb-5">
+                <div class="w-14 h-14 p-3 rounded-2xl bg-brand-50 border border-brand-100 text-brand-600 flex items-center justify-center group-hover:bg-brand-600 group-hover:text-white transition-colors">
+                  <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 0A3 3 0 104.879 4.879a3 3 0 004.242 4.242zm0 5.758a3 3 0 10-4.242 4.242 3 3 0 004.242-4.242z" /></svg>
+                </div>
+                <span class="text-[10px] font-mono font-bold text-brand-600 bg-brand-50 px-2.5 py-1 rounded-full border border-brand-100">HAIR &amp; BEAUTY</span>
+              </div>
+              <h3 class="text-xl font-bold text-slate-900">Salons &amp; Spas</h3>
+              <p class="mt-2 text-xs text-slate-600">Eliminate crowded waiting chairs. Allow clients to browse nearby shops.</p>
+            </div>
+            <div class="mt-6 pt-3.5 border-t border-slate-100 flex justify-between text-[11px] text-slate-500"><span>Stylist Flow Sync</span><span class="text-brand-600 font-bold">&rarr;</span></div>
+          </div>
+
+          <!-- Industry 2 -->
+          <div class="p-7 rounded-3xl bg-white border border-slate-200 hover:border-purple-500/50 shadow-lg hover:shadow-2xl hover:-translate-y-1.5 transition-all group flex flex-col justify-between">
+            <div>
+              <div class="flex justify-between items-center mb-5">
+                <div class="w-14 h-14 p-3 rounded-2xl bg-purple-50 border border-purple-100 text-purple-600 flex items-center justify-center group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                  <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                </div>
+                <span class="text-[10px] font-mono font-bold text-purple-600 bg-purple-50 px-2.5 py-1 rounded-full border border-purple-100">HEALTHCARE</span>
+              </div>
+              <h3 class="text-xl font-bold text-slate-900">Clinics &amp; OPDs</h3>
+              <p class="mt-2 text-xs text-slate-600">Reduce patient anxiety with live digital queue tracking &amp; SMS alerts.</p>
+            </div>
+            <div class="mt-6 pt-3.5 border-t border-slate-100 flex justify-between text-[11px] text-slate-500"><span>Doctor Queue Engine</span><span class="text-purple-600 font-bold">&rarr;</span></div>
+          </div>
+
+          <!-- Industry 3 -->
+          <div class="p-7 rounded-3xl bg-white border border-slate-200 hover:border-emerald-500/50 shadow-lg hover:shadow-2xl hover:-translate-y-1.5 transition-all group flex flex-col justify-between">
+            <div>
+              <div class="flex justify-between items-center mb-5">
+                <div class="w-14 h-14 p-3 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                  <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m3 0h1m-1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                </div>
+                <span class="text-[10px] font-mono font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">HIGH VOLUME</span>
+              </div>
+              <h3 class="text-xl font-bold text-slate-900">Hospitals &amp; Labs</h3>
+              <p class="mt-2 text-xs text-slate-600">Streamline high-volume patient flow across lab tests &amp; specialist visits.</p>
+            </div>
+            <div class="mt-6 pt-3.5 border-t border-slate-100 flex justify-between text-[11px] text-slate-500"><span>Multi-Dept Routing</span><span class="text-emerald-600 font-bold">&rarr;</span></div>
+          </div>
+
+          <!-- Industry 4 -->
+          <div class="p-7 rounded-3xl bg-white border border-slate-200 hover:border-amber-500/50 shadow-lg hover:shadow-2xl hover:-translate-y-1.5 transition-all group flex flex-col justify-between">
+            <div>
+              <div class="flex justify-between items-center mb-5">
+                <div class="w-14 h-14 p-3 rounded-2xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center group-hover:bg-amber-600 group-hover:text-white transition-colors">
+                  <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                </div>
+                <span class="text-[10px] font-mono font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-100">HOSPITALITY</span>
+              </div>
+              <h3 class="text-xl font-bold text-slate-900">Restaurants &amp; Cafes</h3>
+              <p class="mt-2 text-xs text-slate-600">Replace hardware pagers with direct WhatsApp waitlist notifications.</p>
+            </div>
+            <div class="mt-6 pt-3.5 border-t border-slate-100 flex justify-between text-[11px] text-slate-500"><span>Table Seating Sync</span><span class="text-amber-600 font-bold">&rarr;</span></div>
+          </div>
+
+          <!-- Industry 5 -->
+          <div class="p-7 rounded-3xl bg-white border border-slate-200 hover:border-cyan-500/50 shadow-lg hover:shadow-2xl hover:-translate-y-1.5 transition-all group flex flex-col justify-between">
+            <div>
+              <div class="flex justify-between items-center mb-5">
+                <div class="w-14 h-14 p-3 rounded-2xl bg-cyan-50 border border-cyan-100 text-cyan-600 flex items-center justify-center group-hover:bg-cyan-600 group-hover:text-white transition-colors">
+                  <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" /></svg>
+                </div>
+                <span class="text-[10px] font-mono font-bold text-cyan-600 bg-cyan-50 px-2.5 py-1 rounded-full border border-cyan-100">FINANCE</span>
+              </div>
+              <h3 class="text-xl font-bold text-slate-900">Banks &amp; Financial</h3>
+              <p class="mt-2 text-xs text-slate-600">Manage counter queues &amp; teller routing with real-time wait analytics.</p>
+            </div>
+            <div class="mt-6 pt-3.5 border-t border-slate-100 flex justify-between text-[11px] text-slate-500"><span>Teller Routing</span><span class="text-cyan-600 font-bold">&rarr;</span></div>
+          </div>
+
+          <!-- Industry 6 -->
+          <div class="p-7 rounded-3xl bg-white border border-slate-200 hover:border-indigo-500/50 shadow-lg hover:shadow-2xl hover:-translate-y-1.5 transition-all group flex flex-col justify-between">
+            <div>
+              <div class="flex justify-between items-center mb-5">
+                <div class="w-14 h-14 p-3 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                  <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 14l9-5-9-5-9 5 9 5z" /></svg>
+                </div>
+                <span class="text-[10px] font-mono font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full border border-indigo-100">PUBLIC SECTOR</span>
+              </div>
+              <h3 class="text-xl font-bold text-slate-900">Government Offices</h3>
+              <p class="mt-2 text-xs text-slate-600">Organize public queue lines for documentation counters with precision.</p>
+            </div>
+            <div class="mt-6 pt-3.5 border-t border-slate-100 flex justify-between text-[11px] text-slate-500"><span>Counter Engine</span><span class="text-indigo-600 font-bold">&rarr;</span></div>
+          </div>
+
+          <!-- Industry 7 -->
+          <div class="p-7 rounded-3xl bg-white border border-slate-200 hover:border-slate-950 shadow-lg hover:shadow-2xl hover:-translate-y-1.5 transition-all group flex flex-col justify-between sm:col-span-2 lg:col-span-1">
+            <div>
+              <div class="flex justify-between items-center mb-5">
+                <div class="w-14 h-14 p-3 rounded-2xl bg-slate-100 border border-slate-200 text-slate-900 flex items-center justify-center group-hover:bg-slate-950 group-hover:text-white transition-colors">
+                  <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /></svg>
+                </div>
+                <span class="text-[10px] font-mono font-bold text-slate-900 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200">ELECTRONICS &amp; AUTO</span>
+              </div>
+              <h3 class="text-xl font-bold text-slate-900">Service Centers</h3>
+              <p class="mt-2 text-xs text-slate-600">Notify customers instantly when their item is ready for pickup.</p>
+            </div>
+            <div class="mt-6 pt-3.5 border-t border-slate-100 flex justify-between text-[11px] text-slate-500"><span>Pickup Status</span><span class="text-slate-950 font-bold">&rarr;</span></div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- 8. STATISTICS SECTION (ANIMATED COUNTERS) -->
+    <!-- ========================================== -->
+    <section id="stats" class="py-24 bg-slate-950 text-white relative overflow-hidden">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        
+        <div class="max-w-3xl mx-auto text-center mb-16">
+          <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 text-xs font-semibold uppercase tracking-wider mb-4">
+            Proven Enterprise Scale
+          </div>
+          <h2 class="font-display text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-tight">
+            Transforming Customer Flow <span class="bg-clip-text text-transparent bg-gradient-to-r from-brand-400 via-indigo-300 to-purple-400">At Massive Scale</span>
+          </h2>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+          <!-- Stat 1 -->
+          <div class="p-8 rounded-3xl bg-slate-900/90 border border-slate-800 hover:border-brand-500/50 shadow-xl hover:-translate-y-1.5 transition-all text-center flex flex-col justify-between group">
+            <div>
+              <div class="w-14 h-14 mx-auto mb-6 rounded-2xl bg-brand-500/10 border border-brand-500/20 text-brand-400 flex items-center justify-center group-hover:bg-brand-600 group-hover:text-white transition-colors">
+                <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m3 0h1m-1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              </div>
+              <div class="font-display text-5xl sm:text-6xl font-black text-white group-hover:text-brand-400 transition-colors flex justify-center">
+                <span class="stat-counter" data-target="1000">0</span><span class="text-brand-500">+</span>
+              </div>
+              <h3 class="mt-3 text-lg font-bold text-slate-200">Businesses</h3>
+              <p class="mt-2 text-xs text-slate-400">Active salons, clinics, and service centers.</p>
+            </div>
+            <div class="mt-6 pt-4 border-t border-slate-800 text-[11px] font-mono text-brand-400 font-semibold uppercase">ACTIVE PARTNERS</div>
+          </div>
+
+          <!-- Stat 2 -->
+          <div class="p-8 rounded-3xl bg-slate-900/90 border border-slate-800 hover:border-purple-500/50 shadow-xl hover:-translate-y-1.5 transition-all text-center flex flex-col justify-between group">
+            <div>
+              <div class="w-14 h-14 mx-auto mb-6 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+              </div>
+              <div class="font-display text-5xl sm:text-6xl font-black text-white group-hover:text-purple-400 transition-colors flex justify-center">
+                <span class="stat-counter" data-target="50000" data-format="comma">0</span><span class="text-purple-400">+</span>
+              </div>
+              <h3 class="mt-3 text-lg font-bold text-slate-200">Customers Served</h3>
+              <p class="mt-2 text-xs text-slate-400">Virtual queue tokens issued seamlessly.</p>
+            </div>
+            <div class="mt-6 pt-4 border-t border-slate-800 text-[11px] font-mono text-purple-400 font-semibold uppercase">TOTAL QUEUE TOKENS</div>
+          </div>
+
+          <!-- Stat 3 -->
+          <div class="p-8 rounded-3xl bg-slate-900/90 border border-slate-800 hover:border-emerald-500/50 shadow-xl hover:-translate-y-1.5 transition-all text-center flex flex-col justify-between group">
+            <div>
+              <div class="w-14 h-14 mx-auto mb-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              </div>
+              <div class="font-display text-5xl sm:text-6xl font-black text-white group-hover:text-emerald-400 transition-colors flex justify-center">
+                <span class="stat-counter" data-target="30">0</span><span class="text-emerald-400">%</span>
+              </div>
+              <h3 class="mt-3 text-lg font-bold text-slate-200">Reduced Waiting Time</h3>
+              <p class="mt-2 text-xs text-slate-400">Average reduction in lobby wait times.</p>
+            </div>
+            <div class="mt-6 pt-4 border-t border-slate-800 text-[11px] font-mono text-emerald-400 font-semibold uppercase">EFFICIENCY BOOST</div>
+          </div>
+
+          <!-- Stat 4 -->
+          <div class="p-8 rounded-3xl bg-slate-900/90 border border-slate-800 hover:border-amber-500/50 shadow-xl hover:-translate-y-1.5 transition-all text-center flex flex-col justify-between group">
+            <div>
+              <div class="w-14 h-14 mx-auto mb-6 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center group-hover:bg-amber-600 group-hover:text-white transition-colors">
+                <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
+              </div>
+              <div class="font-display text-5xl sm:text-6xl font-black text-white group-hover:text-amber-400 transition-colors flex justify-center">
+                <span class="stat-counter" data-target="99">0</span><span class="text-amber-400">%</span>
+              </div>
+              <h3 class="mt-3 text-lg font-bold text-slate-200">Customer Satisfaction</h3>
+              <p class="mt-2 text-xs text-slate-400">CSAT score based on SMS feedback loops.</p>
+            </div>
+            <div class="mt-6 pt-4 border-t border-slate-800 text-[11px] font-mono text-amber-400 font-semibold uppercase">CSAT SCORE</div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- 9. TESTIMONIALS SECTION -->
+    <!-- ========================================== -->
+    <section id="testimonials" class="py-24 bg-slate-50/60 border-t border-b border-slate-200/80 relative overflow-hidden">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        
+        <div class="max-w-3xl mx-auto text-center mb-16">
+          <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-50 border border-brand-200 text-brand-600 text-xs font-semibold uppercase tracking-wider mb-4">
+            Loved by 1,000+ Business Owners
+          </div>
+          <h2 class="font-display text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
+            What Our Partners Say About <span class="bg-clip-text text-transparent bg-gradient-to-r from-brand-600 via-indigo-600 to-purple-600">Shewwina OS</span>
+          </h2>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <!-- Testimonial 1 -->
+          <div class="p-8 rounded-3xl bg-white border border-slate-200 shadow-xl hover:shadow-2xl hover:border-brand-500/50 hover:-translate-y-1.5 transition-all flex flex-col justify-between group">
+            <div>
+              <div class="flex items-center justify-between mb-6">
+                <div class="flex gap-1 text-amber-400">
+                  <svg class="w-5 h-5 fill-current" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/></svg>
+                  <svg class="w-5 h-5 fill-current" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/></svg>
+                  <svg class="w-5 h-5 fill-current" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/></svg>
+                  <svg class="w-5 h-5 fill-current" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/></svg>
+                  <svg class="w-5 h-5 fill-current" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/></svg>
+                </div>
+                <span class="text-[10px] font-mono font-bold text-brand-600 bg-brand-50 px-2.5 py-1 rounded-full border border-brand-100">+35% REPEAT BOOKINGS</span>
+              </div>
+              <p class="text-slate-700 text-sm sm:text-base leading-relaxed italic">&ldquo;Shewwina completely eliminated our Saturday afternoon waiting room chaos. Our clients now join the queue from home or nearby coffee shops. We saw a 35% increase in repeat bookings!&rdquo;</p>
+            </div>
+            <div class="mt-8 pt-6 border-t border-slate-100 flex items-center gap-4">
+              <img src="avatar1.jpg" alt="Ananya Sharma" class="w-13 h-13 rounded-full object-cover border-2 border-brand-500/30 shrink-0" />
+              <div>
+                <h4 class="text-base font-bold text-slate-900 group-hover:text-brand-600 transition-colors">Ananya Sharma</h4>
+                <p class="text-xs font-semibold text-slate-500">Founder, Luxe Hair &amp; Spa</p>
+                <p class="text-[11px] text-slate-400 font-mono">Mumbai &bull; 4 Chairs</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Testimonial 2 -->
+          <div class="p-8 rounded-3xl bg-white border border-slate-200 shadow-xl hover:shadow-2xl hover:border-purple-500/50 hover:-translate-y-1.5 transition-all flex flex-col justify-between group">
+            <div>
+              <div class="flex items-center justify-between mb-6">
+                <div class="flex gap-1 text-amber-400">
+                  <svg class="w-5 h-5 fill-current" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/></svg>
+                  <svg class="w-5 h-5 fill-current" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/></svg>
+                  <svg class="w-5 h-5 fill-current" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/></svg>
+                  <svg class="w-5 h-5 fill-current" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/></svg>
+                  <svg class="w-5 h-5 fill-current" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/></svg>
+                </div>
+                <span class="text-[10px] font-mono font-bold text-purple-600 bg-purple-50 px-2.5 py-1 rounded-full border border-purple-100">0 LOBBY COMPLAINTS</span>
+              </div>
+              <p class="text-slate-700 text-sm sm:text-base leading-relaxed italic">&ldquo;Before Shewwina, our clinic reception was overwhelmed with patients asking 'How much longer?'. Now, automated WhatsApp updates handle 100% of patient notifications.&rdquo;</p>
+            </div>
+            <div class="mt-8 pt-6 border-t border-slate-100 flex items-center gap-4">
+              <img src="avatar2.jpg" alt="Dr. Vikram Mehta" class="w-13 h-13 rounded-full object-cover border-2 border-purple-500/30 shrink-0" />
+              <div>
+                <h4 class="text-base font-bold text-slate-900 group-hover:text-purple-600 transition-colors">Dr. Vikram Mehta</h4>
+                <p class="text-xs font-semibold text-slate-500">Medical Director, Apex Health</p>
+                <p class="text-[11px] text-slate-400 font-mono">Bengaluru &bull; OPD &amp; Dental</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Testimonial 3 -->
+          <div class="p-8 rounded-3xl bg-white border border-slate-200 shadow-xl hover:shadow-2xl hover:border-emerald-500/50 hover:-translate-y-1.5 transition-all flex flex-col justify-between group">
+            <div>
+              <div class="flex items-center justify-between mb-6">
+                <div class="flex gap-1 text-amber-400">
+                  <svg class="w-5 h-5 fill-current" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/></svg>
+                  <svg class="w-5 h-5 fill-current" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/></svg>
+                  <svg class="w-5 h-5 fill-current" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/></svg>
+                  <svg class="w-5 h-5 fill-current" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/></svg>
+                  <svg class="w-5 h-5 fill-current" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/></svg>
+                </div>
+                <span class="text-[10px] font-mono font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">+28% WALK-IN RETENTION</span>
+              </div>
+              <p class="text-slate-700 text-sm sm:text-base leading-relaxed italic">&ldquo;We replaced our hardware buzzer pagers with Shewwina's QR waitlist. Walk-in retention went up by 28% because diners don't mind waiting with live SMS tracking.&rdquo;</p>
+            </div>
+            <div class="mt-8 pt-6 border-t border-slate-100 flex items-center gap-4">
+              <img src="avatar3.jpg" alt="Rohan Kapoor" class="w-13 h-13 rounded-full object-cover border-2 border-emerald-500/30 shrink-0" />
+              <div>
+                <h4 class="text-base font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">Rohan Kapoor</h4>
+                <p class="text-xs font-semibold text-slate-500">Operations Head, Artisan Bistro</p>
+                <p class="text-[11px] text-slate-400 font-mono">Delhi NCR &bull; Hospitality</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- 10. FAQ ACCORDION SECTION -->
+    <!-- ========================================== -->
+    <section id="faq" class="py-24 bg-white relative overflow-hidden">
+      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        
+        <div class="text-center mb-14">
+          <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-50 border border-brand-200 text-brand-600 text-xs font-semibold uppercase tracking-wider mb-4">
+            Got Questions? We Have Answers.
+          </div>
+          <h2 class="font-display text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
+            Frequently Asked <span class="bg-clip-text text-transparent bg-gradient-to-r from-brand-600 via-indigo-600 to-purple-600">Questions</span>
+          </h2>
+        </div>
+
+        <div class="space-y-4">
+          <!-- Q1 -->
+          <div class="bg-slate-50/80 border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+            <button type="button" class="faq-btn w-full px-6 py-5 text-left font-display text-lg font-bold text-slate-900 flex justify-between items-center" aria-expanded="false">
+              <span>What is Shewwina?</span>
+              <div class="w-8 h-8 rounded-full bg-white border text-slate-500 flex items-center justify-center shrink-0 faq-icon transition-transform"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M19 9l-7 7-7-7" /></svg></div>
+            </button>
+            <div class="accordion-content px-6 pb-6 text-sm sm:text-base text-slate-600 leading-relaxed">
+              <p class="pt-2 border-t border-slate-200/60">Shewwina is an all-in-one Operating System for Customer Flow. It helps salons, healthcare clinics, restaurants, and service centers manage digital waitlists, online appointment scheduling, and automated customer notifications.</p>
+            </div>
+          </div>
+
+          <!-- Q2 -->
+          <div class="bg-slate-50/80 border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+            <button type="button" class="faq-btn w-full px-6 py-5 text-left font-display text-lg font-bold text-slate-900 flex justify-between items-center" aria-expanded="false">
+              <span>How does the queue work?</span>
+              <div class="w-8 h-8 rounded-full bg-white border text-slate-500 flex items-center justify-center shrink-0 faq-icon transition-transform"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M19 9l-7 7-7-7" /></svg></div>
+            </button>
+            <div class="accordion-content px-6 pb-6 text-sm sm:text-base text-slate-600 leading-relaxed">
+              <p class="pt-2 border-t border-slate-200/60">When a customer arrives or visits your booking link, they receive a digital queue token with a real-time estimated wait time. Automated WhatsApp &amp; SMS alerts notify them when it's their turn.</p>
+            </div>
+          </div>
+
+          <!-- Q3 -->
+          <div class="bg-slate-50/80 border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+            <button type="button" class="faq-btn w-full px-6 py-5 text-left font-display text-lg font-bold text-slate-900 flex justify-between items-center" aria-expanded="false">
+              <span>Can customers join remotely?</span>
+              <div class="w-8 h-8 rounded-full bg-white border text-slate-500 flex items-center justify-center shrink-0 faq-icon transition-transform"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M19 9l-7 7-7-7" /></svg></div>
+            </button>
+            <div class="accordion-content px-6 pb-6 text-sm sm:text-base text-slate-600 leading-relaxed">
+              <p class="pt-2 border-t border-slate-200/60">Yes! Customers can join your digital queue remotely by scanning a QR code on your storefront, clicking a link on your website or social media profiles, or receiving an SMS link.</p>
+            </div>
+          </div>
+
+          <!-- Q4 -->
+          <div class="bg-slate-50/80 border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+            <button type="button" class="faq-btn w-full px-6 py-5 text-left font-display text-lg font-bold text-slate-900 flex justify-between items-center" aria-expanded="false">
+              <span>Can I manage multiple branches?</span>
+              <div class="w-8 h-8 rounded-full bg-white border text-slate-500 flex items-center justify-center shrink-0 faq-icon transition-transform"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M19 9l-7 7-7-7" /></svg></div>
+            </button>
+            <div class="accordion-content px-6 pb-6 text-sm sm:text-base text-slate-600 leading-relaxed">
+              <p class="pt-2 border-t border-slate-200/60">Absolutely. Shewwina is built with multi-location enterprise support. Business owners and managers can switch between branches and monitor centralized queue dashboards.</p>
+            </div>
+          </div>
+
+          <!-- Q5 -->
+          <div class="bg-slate-50/80 border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+            <button type="button" class="faq-btn w-full px-6 py-5 text-left font-display text-lg font-bold text-slate-900 flex justify-between items-center" aria-expanded="false">
+              <span>Is payment supported?</span>
+              <div class="w-8 h-8 rounded-full bg-white border text-slate-500 flex items-center justify-center shrink-0 faq-icon transition-transform"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M19 9l-7 7-7-7" /></svg></div>
+            </button>
+            <div class="accordion-content px-6 pb-6 text-sm sm:text-base text-slate-600 leading-relaxed">
+              <p class="pt-2 border-t border-slate-200/60">Yes! Shewwina integrates with popular payment gateways (UPI, Credit/Debit cards, Razorpay, Stripe, and Apple Pay) to collect booking deposits or service pre-payments.</p>
+            </div>
+          </div>
+
+          <!-- Q6 -->
+          <div class="bg-slate-50/80 border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+            <button type="button" class="faq-btn w-full px-6 py-5 text-left font-display text-lg font-bold text-slate-900 flex justify-between items-center" aria-expanded="false">
+              <span>Is it mobile friendly?</span>
+              <div class="w-8 h-8 rounded-full bg-white border text-slate-500 flex items-center justify-center shrink-0 faq-icon transition-transform"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M19 9l-7 7-7-7" /></svg></div>
+            </button>
+            <div class="accordion-content px-6 pb-6 text-sm sm:text-base text-slate-600 leading-relaxed">
+              <p class="pt-2 border-t border-slate-200/60">100% mobile responsive. No customer app download is required—clients access their live queue pass directly in any mobile web browser.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- 11. CALL TO ACTION (CTA) BANNER SECTION -->
+    <!-- ========================================== -->
+    <section id="cta" class="py-24 bg-white relative overflow-hidden">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        
+        <div class="relative rounded-3xl p-8 sm:p-14 lg:p-20 bg-gradient-to-br from-slate-950 via-brand-950 to-indigo-950 text-white shadow-2xl overflow-hidden border border-slate-800">
+          <div class="relative z-10 max-w-3xl mx-auto text-center">
+            
+            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur border border-white/20 text-white text-xs sm:text-sm font-medium mb-8 shadow-sm">
+              <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              Transform Your Customer Lobby Today
+            </div>
+
+            <h2 class="font-display text-4xl sm:text-6xl lg:text-7xl font-black text-white tracking-tight leading-[1.08]">
+              Ready to Eliminate <br class="hidden sm:block" />
+              <span class="bg-clip-text text-transparent bg-gradient-to-r from-brand-400 via-blue-200 to-purple-300">
+                Waiting?
+              </span>
+            </h2>
+
+            <p class="mt-6 text-lg sm:text-2xl text-slate-300 leading-relaxed max-w-2xl mx-auto font-normal">
+              Join hundreds of businesses improving customer experience with Shewwina.
+            </p>
+
+            <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-5">
+              <a href="#get-started" class="w-full sm:w-auto px-9 py-4 text-base sm:text-lg font-bold text-slate-950 bg-white hover:bg-slate-100 rounded-full shadow-2xl hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2.5 group">
+                <span>Start Free</span>
+                <svg class="w-5 h-5 text-brand-600 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+              </a>
+
+              <a href="#how-it-works" class="w-full sm:w-auto px-9 py-4 text-base sm:text-lg font-semibold text-white bg-white/10 hover:bg-white/20 border border-white/20 rounded-full shadow-sm flex items-center justify-center gap-2.5 backdrop-blur">
+                <svg class="w-5 h-5 text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                <span>Book Demo</span>
+              </a>
+            </div>
+
+            <div class="mt-12 pt-8 border-t border-white/10 flex flex-wrap items-center justify-center gap-6 sm:gap-10 text-xs sm:text-sm text-slate-400 font-medium">
+              <div class="flex items-center gap-2"><svg class="w-4 h-4 text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg> 14-Day Free Trial</div>
+              <div class="flex items-center gap-2"><svg class="w-4 h-4 text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg> No Credit Card Required</div>
+              <div class="flex items-center gap-2"><svg class="w-4 h-4 text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg> Setup in 60 Seconds</div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+
+  <!-- ========================================== -->
+  <!-- 12. FOOTER SECTION -->
+  <!-- ========================================== -->
+  <footer class="bg-slate-950 text-white border-t border-slate-800 pt-16 pb-12 relative overflow-hidden">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12 border-b border-slate-800/80">
+        
+        <!-- Brand Info -->
+        <div class="lg:col-span-2 space-y-4">
+          <a href="#top" class="flex items-center gap-2.5 group inline-flex">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 via-blue-600 to-indigo-600 p-0.5 shadow-md shadow-brand-500/20">
+              <div class="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
+                <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" /></svg>
+              </div>
+            </div>
+            <span class="font-display font-extrabold text-2xl tracking-tight text-white">Shewwina<span class="text-brand-500">.</span></span>
+          </a>
+
+          <p class="text-sm text-slate-400 max-w-sm leading-relaxed">
+            The Operating System for Customer Flow. Making waiting rooms invisible for salons, clinics, restaurants, and service businesses worldwide.
+          </p>
+
+          <div class="pt-2">
+            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-800/60 text-emerald-400 text-xs font-mono font-medium">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              All Systems Operational &bull; 99.99% Uptime
+            </span>
+          </div>
+        </div>
+
+        <!-- Company Links -->
+        <div class="space-y-3">
+          <h4 class="text-xs font-mono font-bold uppercase tracking-wider text-slate-300">Company</h4>
+          <ul class="space-y-2.5 text-sm font-medium text-slate-400">
+            <li><a href="#home" class="hover:text-white transition-colors">About Us</a></li>
+            <li><a href="#features" class="hover:text-white transition-colors">Features</a></li>
+            <li><a href="#pricing" class="hover:text-white transition-colors">Pricing</a></li>
+            <li><a href="#how-it-works" class="hover:text-white transition-colors">How it Works</a></li>
+            <li><a href="#industries" class="hover:text-white transition-colors">Industries</a></li>
+          </ul>
+        </div>
+
+        <!-- Legal Links -->
+        <div class="space-y-3">
+          <h4 class="text-xs font-mono font-bold uppercase tracking-wider text-slate-300">Legal &amp; Trust</h4>
+          <ul class="space-y-2.5 text-sm font-medium text-slate-400">
+            <li><a href="#privacy" class="hover:text-white transition-colors">Privacy Policy</a></li>
+            <li><a href="#terms" class="hover:text-white transition-colors">Terms of Service</a></li>
+            <li><a href="#security" class="hover:text-white transition-colors">Security &amp; HIPAA</a></li>
+            <li><a href="#cookies" class="hover:text-white transition-colors">Cookie Preferences</a></li>
+          </ul>
+        </div>
+
+        <!-- Connect Links -->
+        <div class="space-y-3">
+          <h4 class="text-xs font-mono font-bold uppercase tracking-wider text-slate-300">Connect</h4>
+          <ul class="space-y-2.5 text-sm font-medium text-slate-400">
+            <li><a href="mailto:hello@shewwina.com" class="hover:text-white transition-colors flex items-center gap-2"><svg class="w-4 h-4 text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg> Email Support</a></li>
+            <li><a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors flex items-center gap-2"><svg class="w-4 h-4 text-brand-400 fill-current" viewBox="0 0 24 24"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg> LinkedIn</a></li>
+            <li><a href="https://github.com" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors flex items-center gap-2"><svg class="w-4 h-4 text-brand-400 fill-current" viewBox="0 0 24 24"><path d="M12 2A10 10 0 0 0 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.1-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2z"/></svg> GitHub</a></li>
+            <li><a href="#contact" class="hover:text-white transition-colors">Contact Support</a></li>
+          </ul>
+        </div>
+
+      </div>
+
+      <!-- Copyright Bar -->
+      <div class="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
+        <p>&copy; 2026 Shewwina Technologies Inc. All rights reserved.</p>
+        <div class="flex items-center gap-6">
+          <span>Designed with precision for modern startups</span>
+          <span>&bull;</span>
+          <a href="#top" class="hover:text-white transition-colors">Back to Top &uarr;</a>
+        </div>
+      </div>
+
+    </div>
+  </footer>
+
+  <!-- MASTER INTERACTIVE SCRIPTS -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // 1. Header scroll detection
+      const header = document.getElementById('main-header');
+      window.addEventListener('scroll', () => {
+        if (window.scrollY > 20) {
+          header.classList.add('scrolled');
+        } else {
+          header.classList.remove('scrolled');
+        }
+      });
+
+      // 2. Mobile Menu Toggle
+      const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+      const mobileMenu = document.getElementById('mobile-menu');
+      const hamburgerIcon = document.getElementById('hamburger-icon');
+      const closeIcon = document.getElementById('close-icon');
+      const mobileLinks = document.querySelectorAll('.mobile-link');
+
+      if (mobileMenuToggle) {
+        mobileMenuToggle.addEventListener('click', () => {
+          const isOpen = mobileMenu.classList.contains('hidden');
+          if (isOpen) {
+            mobileMenu.classList.remove('hidden');
+            mobileMenu.classList.add('animate-slide-down');
+            hamburgerIcon.classList.add('hidden');
+            closeIcon.classList.remove('hidden');
+            mobileMenuToggle.setAttribute('aria-expanded', 'true');
+          } else {
+            mobileMenu.classList.add('hidden');
+            hamburgerIcon.classList.remove('hidden');
+            closeIcon.classList.add('hidden');
+            mobileMenuToggle.setAttribute('aria-expanded', 'false');
+          }
+        });
+      }
+
+      mobileLinks.forEach(link => {
+        link.addEventListener('click', () => {
+          mobileMenu.classList.add('hidden');
+          hamburgerIcon.classList.remove('hidden');
+          closeIcon.classList.add('hidden');
+          if (mobileMenuToggle) mobileMenuToggle.setAttribute('aria-expanded', 'false');
+        });
+      });
+
+      // 3. FAQ Accordion Logic
+      const faqBtns = document.querySelectorAll('.faq-btn');
+      faqBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const content = btn.nextElementSibling;
+          const icon = btn.querySelector('.faq-icon');
+          const isOpen = content.classList.contains('open');
+
+          document.querySelectorAll('.accordion-content').forEach(c => c.classList.remove('open'));
+          document.querySelectorAll('.faq-icon').forEach(i => i.classList.remove('rotate-180'));
+          document.querySelectorAll('.faq-btn').forEach(b => b.setAttribute('aria-expanded', 'false'));
+
+          if (!isOpen) {
+            content.classList.add('open');
+            icon.classList.add('rotate-180');
+            btn.setAttribute('aria-expanded', 'true');
+          }
+        });
+      });
+
+      // 4. Animated Stats Counter Logic
+      const counters = document.querySelectorAll('.stat-counter');
+      let animated = false;
+
+      const animateCounters = () => {
+        counters.forEach(counter => {
+          const target = +counter.getAttribute('data-target');
+          const isComma = counter.getAttribute('data-format') === 'comma';
+          let step = 0;
+          const totalSteps = 50;
+
+          const timer = setInterval(() => {
+            step++;
+            const progress = step / totalSteps;
+            const current = Math.floor(target * (1 - Math.pow(1 - progress, 3)));
+            counter.innerText = isComma ? current.toLocaleString() : current;
+            if (step >= totalSteps) {
+              counter.innerText = isComma ? target.toLocaleString() : target;
+              clearInterval(timer);
+            }
+          }, 30);
+        });
+      };
+
+      const observer = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && !animated) {
+          animated = true;
+          animateCounters();
+        }
+      }, { threshold: 0.3 });
+
+      const statsSection = document.getElementById('stats');
+      if (statsSection) observer.observe(statsSection);
+    });
+  </script>
+</body>
+</html>

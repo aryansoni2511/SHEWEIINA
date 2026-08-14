@@ -29,5 +29,4 @@ Most waiting systems are still manual, inefficient, and frustrating.
 ## Market Opportunity
 
 Every service-based business where customers wait can benefit from a smarter customer flow platform.
-
 This creates a large opportunity to build a unified waiting management solution across multiple industries.
