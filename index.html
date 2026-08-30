@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <!-- SEO & Meta Tags -->
+  <title>Shewwina — The Operating System for Customer Flow</title>
+  <meta name="description" content="Shewwina helps salons, clinics, restaurants, and service centers manage digital waitlists, online appointment booking, and automated WhatsApp queue alerts to eliminate waiting times." />
+  <meta name="keywords" content="digital queue, smart waiting list, salon appointment booking, clinic OPD queue management, customer flow OS, Shewwina" />
+  <meta name="author" content="Shewwina Technologies Inc." />
+
+  <!-- Open Graph / Social Meta -->
+  <meta property="og:title" content="Shewwina — Stop Waiting. Start Living." />
+  <meta property="og:description" content="Manage appointments and live queues digitally. Reduce waiting time by 30% and boost customer satisfaction." />
+  <meta property="og:type" content="website" />
+
+  <!-- Google Fonts: Plus Jakarta Sans & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Plus Jakarta Sans', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#f0f7ff',
+              100: '#e0effe',
+              200: '#bae0ff',
+              500: '#0066ff',
+              600: '#0052cc',
+              700: '#003d99',
+              900: '#091e42',
+              950: '#030c1d',
+            }
+          },
+          animation: {
+            'fade-in': 'fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+            'slide-down': 'slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+          },
+          keyframes: {
+            fadeIn: {
+              '0%': { opacity: '0', transform: 'translateY(-6px) scale(0.98)' },
+              '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+            },
+            slideDown: {
+              '0%': { opacity: '0', transform: 'translateY(-12px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Design System Utilities */
+    .glass-nav {
+      transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    .glass-nav.scrolled {
+      background-color: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+      box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05);
+    }
+    .bg-grid-pattern {
+      background-size: 40px 40px;
+      background-image: 
+        linear-gradient(to right, rgba(226, 232, 240, 0.4) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(226, 232, 240, 0.4) 1px, transparent 1px);
+    }
+    .glow-radial {
+      background: radial-gradient(circle 600px at 50% 150px, rgba(0, 102, 255, 0.12), transparent 70%);
+    }
+    .accordion-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+      opacity: 0;
+    }
+    .accordion-content.open {
+      max-height: 250px;
+      opacity: 1;
+    }
+  </style>
+</head>
+<body id="top" class="bg-white text-slate-900 font-sans antialiased min-h-screen relative selection:bg-brand-500 selection:text-white">
+  <div id="root"></div>
+  <script type="module" src="/frontend/main.jsx"></script>
+</body>
+</html>

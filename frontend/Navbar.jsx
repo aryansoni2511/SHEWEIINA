@@ -1,19 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from './context/AuthContext';
 
-/**
- * Shewwina Premium SaaS Navbar Component
- * 
- * Design Philosophy:
- * - Apple: Minimalist precision, frosted glass backdrop-blur, sub-pixel borders, smooth transitions.
- * - Stripe: Rich interactive mega-menu dropdowns, crisp micro-badges, tactile CTA buttons.
- * 
- * Features:
- * - Sticky positioning with scroll-aware glassmorphism elevation
- * - Mega-menu dropdown for "Features" with icon badges & descriptions
- * - Fully responsive mobile drawer with collapsible sub-sections
- * - Clean white theme matching startup aesthetics
- */
 export default function Navbar() {
+  const { user, isAuthenticated, isBusiness, logout } = useAuth();
+  const navigate = useNavigate();
+
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isFeaturesOpen, setIsFeaturesOpen] = useState(false);
@@ -248,31 +240,53 @@ export default function Navbar() {
 
           {/* CTA BUTTONS (RIGHT - DESKTOP) */}
           <div className="hidden md:flex items-center space-x-3">
-            <a
-              href="#login"
-              className="text-sm font-medium text-slate-700 hover:text-slate-950 px-4 py-2 rounded-full hover:bg-slate-100/80 transition-all duration-200 focus:outline-none"
-            >
-              Login
-            </a>
-
-            <a
-              href="#get-started"
-              className="relative inline-flex items-center justify-center px-5 py-2.5 text-sm font-semibold text-white bg-slate-950 hover:bg-slate-800 rounded-full shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:scale-95 transition-all duration-200 group overflow-hidden focus:outline-none"
-            >
-              <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-              <span className="relative flex items-center gap-1.5">
-                Get Started
-                <svg
-                  className="w-4 h-4 text-slate-300 group-hover:text-white group-hover:translate-x-0.5 transition-all duration-200"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
+            {isAuthenticated ? (
+              <>
+                <Link
+                  to={isBusiness ? "/dashboard" : "/customer/dashboard"}
+                  className="text-sm font-semibold text-blue-600 hover:text-blue-700 px-4 py-2 rounded-full hover:bg-blue-50 transition-all"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                </svg>
-              </span>
-            </a>
+                  My Dashboard
+                </Link>
+                <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full">
+                  👤 {user?.name}
+                </span>
+                <button
+                  onClick={logout}
+                  className="text-sm font-medium text-slate-600 hover:text-rose-600 px-3 py-2 transition-colors"
+                >
+                  Logout
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  className="text-sm font-medium text-slate-700 hover:text-slate-950 px-4 py-2 rounded-full hover:bg-slate-100/80 transition-all duration-200 focus:outline-none"
+                >
+                  Login
+                </Link>
+
+                <Link
+                  to="/register-business"
+                  className="relative inline-flex items-center justify-center px-5 py-2.5 text-sm font-semibold text-white bg-slate-950 hover:bg-slate-800 rounded-full shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:scale-95 transition-all duration-200 group overflow-hidden focus:outline-none"
+                >
+                  <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+                  <span className="relative flex items-center gap-1.5">
+                    Register Business
+                    <svg
+                      className="w-4 h-4 text-slate-300 group-hover:text-white group-hover:translate-x-0.5 transition-all duration-200"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                    </svg>
+                  </span>
+                </Link>
+              </>
+            )}
           </div>
 
           {/* MOBILE HAMBURGER BUTTON */}
@@ -395,15 +409,15 @@ export default function Navbar() {
 
             {/* Mobile Actions */}
             <div className="pt-4 mt-4 border-t border-slate-100 flex flex-col gap-2.5">
-              <a
-                href="#login"
+              <Link
+                to="/dashboard"
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="w-full text-center px-4 py-3 text-base font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
               >
                 Login
-              </a>
-              <a
-                href="#get-started"
+              </Link>
+              <Link
+                to="/join/demo"
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="w-full text-center px-4 py-3.5 text-base font-semibold text-white bg-slate-950 hover:bg-slate-900 rounded-xl shadow-md transition-colors flex items-center justify-center gap-2"
               >
@@ -411,7 +425,7 @@ export default function Navbar() {
                 <svg className="w-4 h-4 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                 </svg>
-              </a>
+              </Link>
             </div>
           </div>
         </div>

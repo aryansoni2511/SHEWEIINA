@@ -1,6 +1,8 @@
 import React from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
 
-// Import All Individual Modular Landing Page Section Components
+// Landing Page Modular Components
 import Navbar from './Navbar';
 import Hero from './Hero';
 import ProblemSection from './ProblemSection';
@@ -14,60 +16,117 @@ import FAQSection from './FAQSection';
 import CTASection from './CTASection';
 import FooterSection from './FooterSection';
 
+// Application Route Pages
+import CustomerQueuePage from './pages/CustomerQueuePage';
+import TokenStatusPage from './pages/TokenStatusPage';
+import BusinessDashboardPage from './pages/BusinessDashboardPage';
+import CustomerDashboardPage from './pages/CustomerDashboardPage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import BusinessRegisterPage from './pages/BusinessRegisterPage';
+
 /**
- * Shewwina Production-Ready Master Landing Page Component
- * 
- * Combines all 12 modular sections into a single, cohesive, highly-optimized React application.
- * 
- * Features:
- * - 100% Responsive & Mobile-First layout
- * - Unified Tailwind CSS Design System (Apple + Stripe + Linear caliber)
- * - Accessible ARIA attributes & semantic HTML tags
- * - Smooth scroll anchor navigation
+ * Protected Route Wrapper for Authenticated Business Access
+ */
+function ProtectedBusinessRoute({ children }) {
+  const { isAuthenticated, isBusiness, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-4">
+        <div className="text-center space-y-3">
+          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-sm font-semibold text-slate-400">Verifying Business Credentials...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated || !isBusiness) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+}
+
+/**
+ * Protected Route Wrapper for Authenticated Customer Access
+ */
+function ProtectedCustomerRoute({ children }) {
+  const { isAuthenticated, isCustomer, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-4">
+        <div className="text-center space-y-3">
+          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-sm font-semibold text-slate-400">Verifying Customer Account...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated || !isCustomer) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+}
+
+/**
+ * Landing Page Assembly Component
+ */
+function LandingPage() {
+  return (
+    <div id="top" className="bg-white text-slate-900 font-sans antialiased min-h-screen relative selection:bg-blue-600 selection:text-white">
+      <Navbar />
+      <main id="main-content">
+        <Hero />
+        <ProblemSection />
+        <SolutionSection />
+        <FeaturesSection />
+        <TimelineSection />
+        <IndustriesSection />
+        <StatsSection />
+        <TestimonialsSection />
+        <FAQSection />
+        <CTASection />
+      </main>
+      <FooterSection />
+    </div>
+  );
+}
+
+/**
+ * Main Application Component with React Router Navigation & AuthProvider
  */
 export default function App() {
   return (
-    <div id="top" className="bg-white text-slate-900 font-sans antialiased min-h-screen relative selection:bg-blue-600 selection:text-white">
-      
-      {/* 1. Sticky Navigation Header */}
-      <Navbar />
-
-      {/* Main Content Flow */}
-      <main id="main-content">
-        {/* 2. Hero Showcase */}
-        <Hero />
-
-        {/* 3. Problem We Solve */}
-        <ProblemSection />
-
-        {/* 4. How Shewwina Solves It (Solutions) */}
-        <SolutionSection />
-
-        {/* 5. Enterprise Feature Suite */}
-        <FeaturesSection />
-
-        {/* 6. Timeline (How Shewwina Works) */}
-        <TimelineSection />
-
-        {/* 7. Industries We Serve */}
-        <IndustriesSection />
-
-        {/* 8. Impact Statistics with Animated Counters */}
-        <StatsSection />
-
-        {/* 9. Testimonials & Reviews */}
-        <TestimonialsSection />
-
-        {/* 10. Frequently Asked Questions Accordion */}
-        <FAQSection />
-
-        {/* 11. High-Impact Call To Action Banner */}
-        <CTASection />
-      </main>
-
-      {/* 12. Startup Footer */}
-      <FooterSection />
-
-    </div>
+    <AuthProvider>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/register-business" element={<BusinessRegisterPage />} />
+        <Route path="/join/:businessId" element={<CustomerQueuePage />} />
+        <Route path="/token/:tokenId" element={<TokenStatusPage />} />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedBusinessRoute>
+              <BusinessDashboardPage />
+            </ProtectedBusinessRoute>
+          }
+        />
+        <Route
+          path="/customer/dashboard"
+          element={
+            <ProtectedCustomerRoute>
+              <CustomerDashboardPage />
+            </ProtectedCustomerRoute>
+          }
+        />
+      </Routes>
+    </AuthProvider>
   );
 }
