@@ -12,9 +12,11 @@ import {
   toggleServiceStatusApi,
   getQueueSettingsApi,
   updateQueueSettingsApi,
+  testMessagingAlertApi,
 } from '../services/api';
 import { subscribeQueueRealtime } from '../services/realtime';
 import { useAuth } from '../context/AuthContext';
+import QRPanel from '../components/QRPanel';
 
 export default function BusinessDashboardPage() {
   const { user, logout } = useAuth();
@@ -55,6 +57,9 @@ export default function BusinessDashboardPage() {
   const [svcSuccess, setSvcSuccess] = useState(null);
   const [svcError, setSvcError] = useState(null);
 
+  // QR Panel State
+  const [showQRPanel, setShowQRPanel] = useState(false);
+
   // Queue Configuration State
   const [showQueueSettingsModal, setShowQueueSettingsModal] = useState(false);
   const [qName, setQName] = useState('Main Queue');
@@ -62,6 +67,12 @@ export default function BusinessDashboardPage() {
   const [qTokenPrefix, setQTokenPrefix] = useState('S');
   const [qMaxCapacity, setQMaxCapacity] = useState('200');
   const [qAvgDuration, setQAvgDuration] = useState('15');
+  const [qSmsEnabled, setQSmsEnabled] = useState(true);
+  const [qWaEnabled, setQWaEnabled] = useState(false);
+  const [qAlertThreshold, setQAlertThreshold] = useState('2');
+  const [testAlertPhone, setTestAlertPhone] = useState('');
+  const [testAlertSending, setTestAlertSending] = useState(false);
+  const [testAlertFeedback, setTestAlertFeedback] = useState(null);
   const [savingQSettings, setSavingQSettings] = useState(false);
   const [qSuccess, setQSuccess] = useState(null);
   const [qError, setQError] = useState(null);
@@ -75,6 +86,9 @@ export default function BusinessDashboardPage() {
         setQTokenPrefix(res.data.tokenPrefix || 'S');
         setQMaxCapacity(String(res.data.maxDailyCapacity || 200));
         setQAvgDuration(String(res.data.avgServiceDuration || 15));
+        setQSmsEnabled(res.data.smsNotificationsEnabled !== false);
+        setQWaEnabled(Boolean(res.data.whatsappNotificationsEnabled));
+        setQAlertThreshold(String(res.data.turnAlertThreshold || 2));
       }
     } catch (err) {}
   };
@@ -92,14 +106,36 @@ export default function BusinessDashboardPage() {
         tokenPrefix: qTokenPrefix,
         maxDailyCapacity: Number(qMaxCapacity),
         avgServiceDuration: Number(qAvgDuration),
+        smsNotificationsEnabled: qSmsEnabled,
+        whatsappNotificationsEnabled: qWaEnabled,
+        turnAlertThreshold: Number(qAlertThreshold),
       });
 
-      setQSuccess('Queue configuration updated successfully!');
+      setQSuccess('Queue configuration & notification settings updated successfully!');
       setSavingQSettings(false);
       fetchQueue(true);
     } catch (err) {
       setQError(err.message || 'Failed to update queue settings.');
       setSavingQSettings(false);
+    }
+  };
+
+  const handleSendTestAlert = async (channel) => {
+    if (!testAlertPhone || testAlertPhone.trim().length < 8) {
+      setTestAlertFeedback({ error: 'Please enter a valid phone number (minimum 8 digits).' });
+      return;
+    }
+    setTestAlertSending(true);
+    setTestAlertFeedback(null);
+    try {
+      const res = await testMessagingAlertApi({ channel, testPhone: testAlertPhone.trim() });
+      setTestAlertFeedback({
+        success: `Test ${channel} alert sent via ${res.data?.provider || 'mock'}! Status: ${res.data?.status || 'DISPATCHED'}`,
+      });
+      setTestAlertSending(false);
+    } catch (err) {
+      setTestAlertFeedback({ error: err.message || 'Failed to dispatch test alert.' });
+      setTestAlertSending(false);
     }
   };
 
@@ -359,7 +395,14 @@ export default function BusinessDashboardPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
+            <button
+              id="open-customer-qr"
+              onClick={() => setShowQRPanel(true)}
+              className="px-3.5 py-2 bg-violet-950/80 hover:bg-violet-900 border border-violet-800 text-xs font-semibold rounded-xl transition-colors text-violet-300 flex items-center gap-1.5"
+            >
+              📱 Customer QR
+            </button>
             <button
               onClick={() => { setShowQueueSettingsModal(true); fetchQueueSettings(); }}
               className="px-3.5 py-2 bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-800 text-xs font-semibold rounded-xl transition-colors text-emerald-300 flex items-center gap-1.5"
@@ -951,6 +994,83 @@ export default function BusinessDashboardPage() {
                   </div>
                 </div>
 
+                {/* Customer Alert Preferences (Phase 11) */}
+                <div className="pt-2 border-t border-slate-800">
+                  <div className="text-xs uppercase font-bold text-slate-400 tracking-wider mb-2">
+                    Customer Alert Channels & Timing
+                  </div>
+                  <div className="space-y-2.5 bg-slate-950/60 p-3.5 rounded-xl border border-slate-800">
+                    <label className="flex items-center gap-2.5 cursor-pointer text-slate-200 font-semibold">
+                      <input
+                        type="checkbox"
+                        checked={qSmsEnabled}
+                        onChange={(e) => setQSmsEnabled(e.target.checked)}
+                        className="w-4 h-4 rounded text-blue-600 focus:ring-0 focus:ring-offset-0 bg-slate-900 border-slate-700"
+                      />
+                      <span>SMS Alerts (Fast2SMS / Twilio)</span>
+                    </label>
+                    <label className="flex items-center gap-2.5 cursor-pointer text-slate-200 font-semibold">
+                      <input
+                        type="checkbox"
+                        checked={qWaEnabled}
+                        onChange={(e) => setQWaEnabled(e.target.checked)}
+                        className="w-4 h-4 rounded text-emerald-500 focus:ring-0 focus:ring-offset-0 bg-slate-900 border-slate-700"
+                      />
+                      <span>WhatsApp Alerts (Meta Cloud API / Twilio)</span>
+                    </label>
+                    <div className="pt-1.5">
+                      <label className="block text-slate-400 font-medium mb-1">
+                        Alert Customer When Ahead:
+                      </label>
+                      <select
+                        value={qAlertThreshold}
+                        onChange={(e) => setQAlertThreshold(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white font-medium focus:outline-none focus:border-blue-500"
+                      >
+                        <option value="1">1 customer ahead (approx 10-15 mins)</option>
+                        <option value="2">2 customers ahead (Recommended)</option>
+                        <option value="3">3 customers ahead (approx 30-45 mins)</option>
+                        <option value="4">4 customers ahead</option>
+                        <option value="5">5 customers ahead</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Test Gateway Trigger (Phase 11) */}
+                <div className="pt-1">
+                  <div className="text-[11px] text-slate-400 font-medium mb-1.5">
+                    Test Gateway Alerts (MOCK by default without keys)
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="tel"
+                      placeholder="Enter phone: e.g. 9876543210"
+                      value={testAlertPhone}
+                      onChange={(e) => setTestAlertPhone(e.target.value)}
+                      className="w-2/3 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500 font-mono"
+                    />
+                    <button
+                      type="button"
+                      disabled={testAlertSending}
+                      onClick={() => handleSendTestAlert('SMS')}
+                      className="w-1/3 py-1.5 bg-blue-950/80 hover:bg-blue-900 border border-blue-800 text-blue-300 text-[11px] font-bold rounded-lg transition-colors"
+                    >
+                      {testAlertSending ? 'Sending...' : 'Test SMS'}
+                    </button>
+                  </div>
+                  {testAlertFeedback?.success && (
+                    <div className="mt-1.5 text-[11px] text-emerald-400 font-medium">
+                      ✅ {testAlertFeedback.success}
+                    </div>
+                  )}
+                  {testAlertFeedback?.error && (
+                    <div className="mt-1.5 text-[11px] text-rose-400 font-medium">
+                      ⚠️ {testAlertFeedback.error}
+                    </div>
+                  )}
+                </div>
+
                 <div className="pt-4 flex gap-3">
                   <button
                     type="button"
@@ -973,6 +1093,15 @@ export default function BusinessDashboardPage() {
         )}
 
       </div>
+
+      {/* Customer QR Code Panel (Phase 10) */}
+      {showQRPanel && (
+        <QRPanel
+          onClose={() => setShowQRPanel(false)}
+          businessDisplayName={queueData?.business?.name}
+        />
+      )}
+
     </div>
   );
 }

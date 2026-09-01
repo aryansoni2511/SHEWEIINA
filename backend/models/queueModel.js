@@ -44,6 +44,9 @@ const mockStore = {
       name: 'Main Express Queue',
       is_open: true,
       current_sequence: 2,
+      sms_notifications_enabled: true,
+      whatsapp_notifications_enabled: false,
+      turn_alert_threshold: 2,
     },
     {
       id: 'd3eebc99-closed-queue-id',
@@ -51,6 +54,9 @@ const mockStore = {
       name: 'Closed Evening Queue',
       is_open: false,
       current_sequence: 0,
+      sms_notifications_enabled: true,
+      whatsapp_notifications_enabled: false,
+      turn_alert_threshold: 2,
     },
   ],
   tokens: [
@@ -543,6 +549,9 @@ export async function createBusinessWithOwner({
       name: `${businessName.trim()} Express Queue`,
       is_open: true,
       current_sequence: 0,
+      sms_notifications_enabled: true,
+      whatsapp_notifications_enabled: false,
+      turn_alert_threshold: 2,
     };
     mockStore.queues.push(queue);
   }
@@ -665,7 +674,16 @@ export async function updateBusiness(businessId, { name, category, phone, addres
   return biz;
 }
 
-export async function updateQueueConfig(queueId, businessId, { name, isOpen, tokenPrefix, maxDailyCapacity, avgServiceDuration }) {
+export async function updateQueueConfig(queueId, businessId, {
+  name,
+  isOpen,
+  tokenPrefix,
+  maxDailyCapacity,
+  avgServiceDuration,
+  smsNotificationsEnabled,
+  whatsappNotificationsEnabled,
+  turnAlertThreshold,
+}) {
   const res = await query(
     `UPDATE queues
      SET name = COALESCE($3, name),
@@ -673,10 +691,24 @@ export async function updateQueueConfig(queueId, businessId, { name, isOpen, tok
          token_prefix = COALESCE($5, token_prefix),
          max_daily_capacity = COALESCE($6, max_daily_capacity),
          avg_service_duration = COALESCE($7, avg_service_duration),
+         sms_notifications_enabled = COALESCE($8, sms_notifications_enabled),
+         whatsapp_notifications_enabled = COALESCE($9, whatsapp_notifications_enabled),
+         turn_alert_threshold = COALESCE($10, turn_alert_threshold),
          updated_at = CURRENT_TIMESTAMP
      WHERE id = $1 AND business_id = $2
      RETURNING *;`,
-    [queueId, businessId, name, isOpen, tokenPrefix, maxDailyCapacity, avgServiceDuration]
+    [
+      queueId,
+      businessId,
+      name,
+      isOpen,
+      tokenPrefix,
+      maxDailyCapacity,
+      avgServiceDuration,
+      smsNotificationsEnabled,
+      whatsappNotificationsEnabled,
+      turnAlertThreshold,
+    ]
   );
 
   if (res && res.rows.length > 0) {
@@ -691,6 +723,9 @@ export async function updateQueueConfig(queueId, businessId, { name, isOpen, tok
   if (tokenPrefix !== undefined) q.token_prefix = tokenPrefix;
   if (maxDailyCapacity !== undefined) q.max_daily_capacity = Number(maxDailyCapacity);
   if (avgServiceDuration !== undefined) q.avg_service_duration = Number(avgServiceDuration);
+  if (smsNotificationsEnabled !== undefined) q.sms_notifications_enabled = Boolean(smsNotificationsEnabled);
+  if (whatsappNotificationsEnabled !== undefined) q.whatsapp_notifications_enabled = Boolean(whatsappNotificationsEnabled);
+  if (turnAlertThreshold !== undefined) q.turn_alert_threshold = Number(turnAlertThreshold);
   q.updated_at = new Date().toISOString();
 
   return q;

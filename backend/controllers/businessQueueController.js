@@ -12,6 +12,7 @@ import {
   processGetQueueSettings,
   processUpdateQueueSettings,
   processSkipToken,
+  processTestMessagingAlert,
 } from '../services/queueService.js';
 
 export async function handleGetBusinessQueue(req, res, next) {
@@ -155,7 +156,17 @@ export async function handleGetQueueSettings(req, res, next) {
 export async function handleUpdateQueueSettings(req, res, next) {
   try {
     const businessId = req.user.businessId;
-    const { queueId, name, isOpen, tokenPrefix, maxDailyCapacity, avgServiceDuration } = req.body;
+    const {
+      queueId,
+      name,
+      isOpen,
+      tokenPrefix,
+      maxDailyCapacity,
+      avgServiceDuration,
+      smsNotificationsEnabled,
+      whatsappNotificationsEnabled,
+      turnAlertThreshold,
+    } = req.body;
     const updatedQueue = await processUpdateQueueSettings({
       businessId,
       queueId,
@@ -164,6 +175,9 @@ export async function handleUpdateQueueSettings(req, res, next) {
       tokenPrefix,
       maxDailyCapacity,
       avgServiceDuration,
+      smsNotificationsEnabled,
+      whatsappNotificationsEnabled,
+      turnAlertThreshold,
     });
     return successResponse(res, 'Queue configuration updated successfully', updatedQueue, 200);
   } catch (error) {
@@ -176,6 +190,17 @@ export async function handleSkipToken(req, res, next) {
     const { queueId, tokenId } = req.body;
     const skippedData = await processSkipToken({ businessId, queueId, tokenId });
     return successResponse(res, 'Token skipped successfully', skippedData, 200);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function handleTestAlert(req, res, next) {
+  try {
+    const businessId = req.user.businessId;
+    const { channel, testPhone } = req.body;
+    const result = await processTestMessagingAlert({ businessId, channel, testPhone });
+    return successResponse(res, 'Test alert processed successfully', result, 200);
   } catch (error) {
     next(error);
   }

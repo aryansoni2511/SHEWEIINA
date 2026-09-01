@@ -29,6 +29,7 @@ import {
 } from './notificationService.js';
 import realtimeService from './realtimeService.js';
 import aiService from './aiService.js';
+import messagingService from './messagingService.js';
 
 class ValidationError extends Error {
   constructor(message, statusCode = 400) {
@@ -132,6 +133,11 @@ export async function processCustomerJoinQueue({ businessId, queueId, serviceId,
   });
 
   // Fire-and-forget: notify customer they have joined the queue
+  const preferences = {
+    smsEnabled: queue.sms_notifications_enabled !== false,
+    whatsappEnabled: Boolean(queue.whatsapp_notifications_enabled),
+  };
+
   notifyCustomerJoinedQueue({
     userId,
     tokenNumber: token.token_number,
@@ -139,6 +145,7 @@ export async function processCustomerJoinQueue({ businessId, queueId, serviceId,
     estimatedWaitMinutes,
     businessName: business.name,
     customerPhone: token.customer_phone,
+    preferences,
   });
 
   // Realtime Broadcast: Notify business dashboard and any active listeners
@@ -310,12 +317,18 @@ export async function processCallNextCustomer({ businessId, queueId }) {
     throw new NotFoundError('No waiting customers in the queue.');
   }
 
-  // Fire-and-forget: notify the called customer it's their turn
+  const preferences = {
+    smsEnabled: queue.sms_notifications_enabled !== false,
+    whatsappEnabled: Boolean(queue.whatsapp_notifications_enabled),
+  };
+
+  // Fire-and-forget: notify customer they have been called
   notifyCustomerCalled({
     userId: calledToken.user_id || null,
     tokenNumber: calledToken.token_number,
     businessName: business.name,
     customerPhone: calledToken.customer_phone,
+    preferences,
   });
 
   // Fire-and-forget: notify the next WAITING customer their turn is approaching
@@ -325,12 +338,15 @@ export async function processCallNextCustomer({ businessId, queueId }) {
     const nextWaiting = remaining.find((t) => t.status === 'WAITING');
     if (nextWaiting && (nextWaiting.user_id || nextWaiting.customer_phone)) {
       const peopleAhead = await getPeopleAheadCount(queue.id, nextWaiting.sequence_number);
+      const threshold = queue.turn_alert_threshold !== undefined ? queue.turn_alert_threshold : 2;
       notifyTurnApproaching({
         userId: nextWaiting.user_id || null,
         tokenNumber: nextWaiting.token_number,
         peopleAhead,
+        threshold,
         businessName: business.name,
         customerPhone: nextWaiting.customer_phone,
+        preferences,
       });
     }
   } catch (_) { /* non-critical */ }
@@ -418,11 +434,17 @@ export async function processCompleteService({ businessId, queueId }) {
   }
 
   // Fire-and-forget: notify customer their service has been completed
+  const completePrefs = {
+    smsEnabled: queue.sms_notifications_enabled !== false,
+    whatsappEnabled: Boolean(queue.whatsapp_notifications_enabled),
+  };
+
   notifyServiceCompleted({
     userId: completedToken.user_id || null,
     tokenNumber: completedToken.token_number,
     businessName: business.name,
     customerPhone: completedToken.customer_phone,
+    preferences: completePrefs,
   });
 
   // Realtime Broadcast: Notify customer and business dashboard
@@ -704,12 +726,26 @@ export async function processGetQueueSettings({ businessId, queueId }) {
     tokenPrefix: queue.token_prefix || queue.tokenPrefix || 'S',
     maxDailyCapacity: queue.max_daily_capacity || queue.maxDailyCapacity || 200,
     avgServiceDuration: queue.avg_service_duration || queue.avgServiceDuration || 15,
+    smsNotificationsEnabled: queue.sms_notifications_enabled !== undefined ? Boolean(queue.sms_notifications_enabled) : true,
+    whatsappNotificationsEnabled: Boolean(queue.whatsapp_notifications_enabled),
+    turnAlertThreshold: queue.turn_alert_threshold !== undefined ? Number(queue.turn_alert_threshold) : 2,
     currentSequence: queue.current_sequence || 0,
     updatedAt: queue.updated_at || new Date().toISOString(),
   };
 }
 
-export async function processUpdateQueueSettings({ businessId, queueId, name, isOpen, tokenPrefix, maxDailyCapacity, avgServiceDuration }) {
+export async function processUpdateQueueSettings({
+  businessId,
+  queueId,
+  name,
+  isOpen,
+  tokenPrefix,
+  maxDailyCapacity,
+  avgServiceDuration,
+  smsNotificationsEnabled,
+  whatsappNotificationsEnabled,
+  turnAlertThreshold,
+}) {
   if (!businessId) throw new ValidationError('businessId is required');
 
   const business = (await findBusinessById(businessId)) || (await findBusinessBySlug(businessId));
@@ -736,12 +772,22 @@ export async function processUpdateQueueSettings({ businessId, queueId, name, is
     if (isNaN(dur) || dur <= 0) throw new ValidationError('Average service duration must be a positive number of minutes');
   }
 
+  if (turnAlertThreshold !== undefined) {
+    const thresh = Number(turnAlertThreshold);
+    if (isNaN(thresh) || thresh < 1 || thresh > 5) {
+      throw new ValidationError('Turn alert threshold must be an integer between 1 and 5');
+    }
+  }
+
   const updated = await updateQueueConfig(queue.id, business.id, {
     name: name ? name.trim() : undefined,
     isOpen: isOpen !== undefined ? Boolean(isOpen) : undefined,
     tokenPrefix: tokenPrefix ? tokenPrefix.trim().toUpperCase() : undefined,
     maxDailyCapacity: maxDailyCapacity !== undefined ? Number(maxDailyCapacity) : undefined,
     avgServiceDuration: avgServiceDuration !== undefined ? Number(avgServiceDuration) : undefined,
+    smsNotificationsEnabled: smsNotificationsEnabled !== undefined ? Boolean(smsNotificationsEnabled) : undefined,
+    whatsappNotificationsEnabled: whatsappNotificationsEnabled !== undefined ? Boolean(whatsappNotificationsEnabled) : undefined,
+    turnAlertThreshold: turnAlertThreshold !== undefined ? Number(turnAlertThreshold) : undefined,
   });
 
   // Realtime Broadcast: Notify all subscribers of queue configuration / open/close changes.
@@ -754,6 +800,9 @@ export async function processUpdateQueueSettings({ businessId, queueId, name, is
       isOpen: Boolean(updated.is_open),
       name: updated.name,
       tokenPrefix: updated.token_prefix || updated.tokenPrefix || 'S',
+      smsNotificationsEnabled: updated.sms_notifications_enabled !== undefined ? Boolean(updated.sms_notifications_enabled) : true,
+      whatsappNotificationsEnabled: Boolean(updated.whatsapp_notifications_enabled),
+      turnAlertThreshold: updated.turn_alert_threshold !== undefined ? Number(updated.turn_alert_threshold) : 2,
     },
   });
 
@@ -765,7 +814,49 @@ export async function processUpdateQueueSettings({ businessId, queueId, name, is
     tokenPrefix: updated.token_prefix || updated.tokenPrefix || 'S',
     maxDailyCapacity: updated.max_daily_capacity || updated.maxDailyCapacity || 200,
     avgServiceDuration: updated.avg_service_duration || updated.avgServiceDuration || 15,
+    smsNotificationsEnabled: updated.sms_notifications_enabled !== undefined ? Boolean(updated.sms_notifications_enabled) : true,
+    whatsappNotificationsEnabled: Boolean(updated.whatsapp_notifications_enabled),
+    turnAlertThreshold: updated.turn_alert_threshold !== undefined ? Number(updated.turn_alert_threshold) : 2,
     updatedAt: updated.updated_at || new Date().toISOString(),
+  };
+}
+
+export async function processTestMessagingAlert({ businessId, channel = 'SMS', testPhone }) {
+  if (!businessId) throw new ValidationError('businessId is required');
+  if (!testPhone || testPhone.trim() === '') throw new ValidationError('testPhone is required');
+
+  const business = (await findBusinessById(businessId)) || (await findBusinessBySlug(businessId));
+  if (!business) throw new NotFoundError(`Business not found: ${businessId}`);
+
+  const cleanChannel = (channel || 'SMS').toUpperCase();
+  const testMessage = `Shewwina: Test alert for ${business.name}. Your messaging gateway is active and working properly!`;
+
+  if (cleanChannel === 'WHATSAPP') {
+    const result = await messagingService.sendWhatsApp({
+      to: testPhone.trim(),
+      message: testMessage,
+      metadata: { type: 'TEST_ALERT', businessId: business.id },
+    });
+    return {
+      channel: 'WHATSAPP',
+      recipient: testPhone.trim(),
+      status: result.success ? 'DISPATCHED' : (result.throttled ? 'THROTTLED' : 'FAILED'),
+      provider: result.provider || 'mock',
+      result,
+    };
+  }
+
+  const result = await messagingService.sendSMS({
+    to: testPhone.trim(),
+    message: testMessage,
+    metadata: { type: 'TEST_ALERT', businessId: business.id },
+  });
+  return {
+    channel: 'SMS',
+    recipient: testPhone.trim(),
+    status: result.success ? 'DISPATCHED' : (result.throttled ? 'THROTTLED' : 'FAILED'),
+    provider: result.provider || 'mock',
+    result,
   };
 }
 

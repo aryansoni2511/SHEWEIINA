@@ -12,6 +12,7 @@ import {
   handleGetQueueSettings,
   handleUpdateQueueSettings,
   handleSkipToken,
+  handleTestAlert,
 } from '../controllers/businessQueueController.js';
 import { authenticateToken, requireRole, requireBusinessTenant } from '../middleware/authMiddleware.js';
 
@@ -38,5 +39,8 @@ router.get('/queue', authenticateToken, requireRole('BUSINESS'), requireBusiness
 router.post('/queue/next', authenticateToken, requireRole('BUSINESS'), requireBusinessTenant, handleCallNextCustomer);
 router.post('/queue/complete', authenticateToken, requireRole('BUSINESS'), requireBusinessTenant, handleCompleteService);
 router.post('/queue/skip', authenticateToken, requireRole('BUSINESS'), requireBusinessTenant, handleSkipToken);
+
+// Protected Merchant Messaging Test Alert Endpoint (Requires BUSINESS role)
+router.post('/messaging/test', authenticateToken, requireRole('BUSINESS'), requireBusinessTenant, handleTestAlert);
 
 export default router;

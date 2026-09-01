@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 /**
  * Shewwina SaaS Hero Section Component
@@ -63,27 +64,29 @@ export default function Hero() {
 
           {/* CTA Buttons */}
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-5">
-            {/* Primary Button */}
-            <a
-              href="#get-started"
+            {/* Primary Button — Business Sign Up */}
+            <Link
+              to="/register-business"
+              id="hero-get-started"
               className="w-full sm:w-auto px-8 py-4 text-base sm:text-lg font-semibold text-white bg-slate-950 hover:bg-slate-800 rounded-full shadow-xl shadow-slate-950/20 hover:shadow-2xl hover:shadow-slate-950/30 hover:-translate-y-0.5 active:translate-y-0 active:scale-98 transition-all duration-200 flex items-center justify-center gap-2.5 group"
             >
               <span>Get Started</span>
               <svg className="w-5 h-5 text-slate-400 group-hover:text-white group-hover:translate-x-1 transition-all duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
               </svg>
-            </a>
+            </Link>
 
-            {/* Secondary Button */}
-            <a
-              href="#book-demo"
+            {/* Secondary Button — Live Demo Queue */}
+            <Link
+              to="/join/demo"
+              id="hero-book-demo"
               className="w-full sm:w-auto px-8 py-4 text-base sm:text-lg font-semibold text-slate-700 hover:text-slate-950 bg-white/80 hover:bg-slate-100/80 border border-slate-200/90 rounded-full shadow-sm hover:shadow transition-all duration-200 flex items-center justify-center gap-2.5 backdrop-blur-sm"
             >
               <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
               </svg>
               <span>Book Demo</span>
-            </a>
+            </Link>
           </div>
 
           {/* Social Proof */}

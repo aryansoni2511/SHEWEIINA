@@ -39,13 +39,21 @@ const APPROACHING_THRESHOLD = 2; // Notify when <= 2 people ahead
 
 // ─── EXTERNAL MESSAGING DISPATCHER ───────────────────────────────────────────
 
-function logNotification(userId, type, message, customerPhone = null, metadata = {}) {
+function logNotification(
+  userId,
+  type,
+  message,
+  customerPhone = null,
+  metadata = {},
+  preferences = { smsEnabled: true, whatsappEnabled: false }
+) {
   console.log(`[NOTIFICATION][${type}] userId=${userId} → "${message}"`);
   if (customerPhone) {
     dispatchCustomerAlert({
       phone: customerPhone,
       message,
       metadata: { type, userId, ...metadata },
+      preferences,
     });
   }
 }
@@ -80,7 +88,15 @@ class ValidationError extends Error {
  * Only fires in-app notification when a userId is linked (authenticated customer).
  * Dispatches external SMS/WhatsApp if customerPhone is available.
  */
-export async function notifyCustomerJoinedQueue({ userId, tokenNumber, position, estimatedWaitMinutes, businessName, customerPhone = null }) {
+export async function notifyCustomerJoinedQueue({
+  userId,
+  tokenNumber,
+  position,
+  estimatedWaitMinutes,
+  businessName,
+  customerPhone = null,
+  preferences = { smsEnabled: true, whatsappEnabled: false },
+}) {
   try {
     const title = 'You have joined the queue';
     const message = `Your token ${tokenNumber} is confirmed. You are #${position} in line. Estimated wait: ${estimatedWaitMinutes} min.`;
@@ -98,12 +114,19 @@ export async function notifyCustomerJoinedQueue({ userId, tokenNumber, position,
       }
     }
 
-    logNotification(userId, NOTIFICATION_TYPES.CUSTOMER_JOINED_QUEUE, message, customerPhone, {
-      tokenNumber,
-      position,
-      estimatedWaitMinutes,
-      businessName,
-    });
+    logNotification(
+      userId,
+      NOTIFICATION_TYPES.CUSTOMER_JOINED_QUEUE,
+      message,
+      customerPhone,
+      {
+        tokenNumber,
+        position,
+        estimatedWaitMinutes,
+        businessName,
+      },
+      preferences
+    );
   } catch (err) {
     console.error('[NOTIFICATION] Failed to create CUSTOMER_JOINED_QUEUE notification:', err.message);
   }
@@ -115,8 +138,17 @@ export async function notifyCustomerJoinedQueue({ userId, tokenNumber, position,
  * Fire-and-forget. Called when a customer's position drops to or below
  * the APPROACHING_THRESHOLD after "call next" advances the queue.
  */
-export async function notifyTurnApproaching({ userId, tokenNumber, peopleAhead, businessName, customerPhone = null }) {
-  if (peopleAhead > APPROACHING_THRESHOLD) return;
+export async function notifyTurnApproaching({
+  userId,
+  tokenNumber,
+  peopleAhead,
+  businessName,
+  customerPhone = null,
+  threshold = APPROACHING_THRESHOLD,
+  preferences = { smsEnabled: true, whatsappEnabled: false },
+}) {
+  const activeThreshold = Number(threshold) || APPROACHING_THRESHOLD;
+  if (peopleAhead > activeThreshold) return;
 
   try {
     const title = 'Your turn is approaching';
@@ -137,11 +169,18 @@ export async function notifyTurnApproaching({ userId, tokenNumber, peopleAhead, 
       }
     }
 
-    logNotification(userId, NOTIFICATION_TYPES.YOUR_TURN_APPROACHING, message, customerPhone, {
-      tokenNumber,
-      peopleAhead,
-      businessName,
-    });
+    logNotification(
+      userId,
+      NOTIFICATION_TYPES.YOUR_TURN_APPROACHING,
+      message,
+      customerPhone,
+      {
+        tokenNumber,
+        peopleAhead,
+        businessName,
+      },
+      preferences
+    );
   } catch (err) {
     console.error('[NOTIFICATION] Failed to create YOUR_TURN_APPROACHING notification:', err.message);
   }
@@ -152,7 +191,13 @@ export async function notifyTurnApproaching({ userId, tokenNumber, peopleAhead, 
 /**
  * Fire-and-forget. Called when a token transitions WAITING → SERVING.
  */
-export async function notifyCustomerCalled({ userId, tokenNumber, businessName, customerPhone = null }) {
+export async function notifyCustomerCalled({
+  userId,
+  tokenNumber,
+  businessName,
+  customerPhone = null,
+  preferences = { smsEnabled: true, whatsappEnabled: false },
+}) {
   try {
     const title = "It's your turn!";
     const message = `Token ${tokenNumber} has been called. Please proceed to the service counter now.`;
@@ -170,10 +215,17 @@ export async function notifyCustomerCalled({ userId, tokenNumber, businessName, 
       }
     }
 
-    logNotification(userId, NOTIFICATION_TYPES.CUSTOMER_CALLED, message, customerPhone, {
-      tokenNumber,
-      businessName,
-    });
+    logNotification(
+      userId,
+      NOTIFICATION_TYPES.CUSTOMER_CALLED,
+      message,
+      customerPhone,
+      {
+        tokenNumber,
+        businessName,
+      },
+      preferences
+    );
   } catch (err) {
     console.error('[NOTIFICATION] Failed to create CUSTOMER_CALLED notification:', err.message);
   }
@@ -184,7 +236,13 @@ export async function notifyCustomerCalled({ userId, tokenNumber, businessName, 
 /**
  * Fire-and-forget. Called when a token transitions SERVING → SERVED.
  */
-export async function notifyServiceCompleted({ userId, tokenNumber, businessName, customerPhone = null }) {
+export async function notifyServiceCompleted({
+  userId,
+  tokenNumber,
+  businessName,
+  customerPhone = null,
+  preferences = { smsEnabled: true, whatsappEnabled: false },
+}) {
   try {
     const title = 'Service completed';
     const message = `Your service for token ${tokenNumber} has been completed. Thank you for your visit.`;
@@ -202,10 +260,17 @@ export async function notifyServiceCompleted({ userId, tokenNumber, businessName
       }
     }
 
-    logNotification(userId, NOTIFICATION_TYPES.SERVICE_COMPLETED, message, customerPhone, {
-      tokenNumber,
-      businessName,
-    });
+    logNotification(
+      userId,
+      NOTIFICATION_TYPES.SERVICE_COMPLETED,
+      message,
+      customerPhone,
+      {
+        tokenNumber,
+        businessName,
+      },
+      preferences
+    );
   } catch (err) {
     console.error('[NOTIFICATION] Failed to create SERVICE_COMPLETED notification:', err.message);
   }
@@ -216,7 +281,12 @@ export async function notifyServiceCompleted({ userId, tokenNumber, businessName
 /**
  * Fire-and-forget. Called when a customer cancels their own token.
  */
-export async function notifyQueueCancelled({ userId, tokenNumber, customerPhone = null }) {
+export async function notifyQueueCancelled({
+  userId,
+  tokenNumber,
+  customerPhone = null,
+  preferences = { smsEnabled: true, whatsappEnabled: false },
+}) {
   try {
     const title = 'Queue token cancelled';
     const message = `Your token ${tokenNumber} has been cancelled. You have left the queue.`;
@@ -234,9 +304,14 @@ export async function notifyQueueCancelled({ userId, tokenNumber, customerPhone 
       }
     }
 
-    logNotification(userId, NOTIFICATION_TYPES.QUEUE_CANCELLED, message, customerPhone, {
-      tokenNumber,
-    });
+    logNotification(
+      userId,
+      NOTIFICATION_TYPES.QUEUE_CANCELLED,
+      message,
+      customerPhone,
+      { tokenNumber },
+      preferences
+    );
   } catch (err) {
     console.error('[NOTIFICATION] Failed to create QUEUE_CANCELLED notification:', err.message);
   }

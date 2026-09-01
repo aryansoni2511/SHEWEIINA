@@ -252,10 +252,35 @@ export async function getQueueSettingsApi() {
   return request('/api/v1/business/queue/settings', { method: 'GET' });
 }
 
-export async function updateQueueSettingsApi({ name, isOpen, tokenPrefix, maxDailyCapacity, avgServiceDuration }) {
+export async function updateQueueSettingsApi({
+  name,
+  isOpen,
+  tokenPrefix,
+  maxDailyCapacity,
+  avgServiceDuration,
+  smsNotificationsEnabled,
+  whatsappNotificationsEnabled,
+  turnAlertThreshold,
+}) {
   return request('/api/v1/business/queue/settings', {
     method: 'PUT',
-    body: JSON.stringify({ name, isOpen, tokenPrefix, maxDailyCapacity, avgServiceDuration }),
+    body: JSON.stringify({
+      name,
+      isOpen,
+      tokenPrefix,
+      maxDailyCapacity,
+      avgServiceDuration,
+      smsNotificationsEnabled,
+      whatsappNotificationsEnabled,
+      turnAlertThreshold,
+    }),
+  });
+}
+
+export async function testMessagingAlertApi({ channel = 'SMS', testPhone }) {
+  return request('/api/v1/business/messaging/test', {
+    method: 'POST',
+    body: JSON.stringify({ channel, testPhone }),
   });
 }
 
@@ -279,6 +304,7 @@ export default {
   toggleServiceStatusApi,
   getQueueSettingsApi,
   updateQueueSettingsApi,
+  testMessagingAlertApi,
   checkHealth,
   getBusinessServices,
   joinQueue,

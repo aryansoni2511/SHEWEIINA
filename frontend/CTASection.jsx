@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 /**
  * Shewwina Call To Action (CTA) Section Component
@@ -56,27 +57,29 @@ export default function CTASection() {
 
             {/* CTA Buttons */}
             <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-5">
-              {/* Primary Button: Start Free */}
-              <a
-                href="#start-free"
+              {/* Primary Button: Start Free — Business Sign Up */}
+              <Link
+                to="/register-business"
+                id="cta-start-free"
                 className="w-full sm:w-auto px-9 py-4 text-base sm:text-lg font-bold text-slate-950 bg-white hover:bg-slate-100 rounded-full shadow-2xl hover:shadow-blue-500/25 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 transition-all duration-200 flex items-center justify-center gap-2.5 group"
               >
                 <span>Start Free</span>
                 <svg className="w-5 h-5 text-blue-600 group-hover:translate-x-1 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                 </svg>
-              </a>
+              </Link>
 
-              {/* Secondary Button: Book Demo */}
-              <a
-                href="#book-demo"
+              {/* Secondary Button: Book Demo — Live Demo Queue */}
+              <Link
+                to="/join/demo"
+                id="cta-book-demo"
                 className="w-full sm:w-auto px-9 py-4 text-base sm:text-lg font-semibold text-white bg-white/10 hover:bg-white/20 border border-white/20 rounded-full shadow-sm hover:shadow transition-all duration-200 flex items-center justify-center gap-2.5 backdrop-blur"
               >
                 <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
                 <span>Book Demo</span>
-              </a>
+              </Link>
             </div>
 
             {/* Trust Highlights */}
