@@ -24,6 +24,7 @@ import CustomerDashboardPage from './pages/CustomerDashboardPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import BusinessRegisterPage from './pages/BusinessRegisterPage';
+import PublicDisplayPage from './pages/PublicDisplayPage';
 
 /**
  * Protected Route Wrapper for Authenticated Business Access
@@ -109,6 +110,8 @@ export default function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/register-business" element={<BusinessRegisterPage />} />
         <Route path="/join/:businessId" element={<CustomerQueuePage />} />
+        <Route path="/display/:businessId" element={<PublicDisplayPage />} />
+        <Route path="/live/:businessId" element={<PublicDisplayPage />} />
         <Route path="/token/:tokenId" element={<TokenStatusPage />} />
         <Route
           path="/dashboard"

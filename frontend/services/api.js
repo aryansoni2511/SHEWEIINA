@@ -284,6 +284,16 @@ export async function testMessagingAlertApi({ channel = 'SMS', testPhone }) {
   });
 }
 
+/**
+ * Public Waiting Room Display API (Phase 12)
+ * Read-only, unauthenticated endpoint with strict customer PII masking.
+ */
+export async function getPublicQueueDisplayApi(businessId) {
+  return request(`/api/v1/queue/display/${encodeURIComponent(businessId)}`, {
+    method: 'GET',
+  });
+}
+
 export default {
   getStoredToken,
   setStoredToken,
@@ -305,6 +315,7 @@ export default {
   getQueueSettingsApi,
   updateQueueSettingsApi,
   testMessagingAlertApi,
+  getPublicQueueDisplayApi,
   checkHealth,
   getBusinessServices,
   joinQueue,

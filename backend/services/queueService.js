@@ -30,6 +30,7 @@ import {
 import realtimeService from './realtimeService.js';
 import aiService from './aiService.js';
 import messagingService from './messagingService.js';
+import { maskCustomerName } from '../utils/mask.js';
 
 class ValidationError extends Error {
   constructor(message, statusCode = 400) {
@@ -929,6 +930,83 @@ export async function processSkipToken({ businessId, queueId, tokenId }) {
   };
 }
 
+export async function processGetPublicQueueDisplay(businessId) {
+  if (!businessId) {
+    throw new ValidationError('businessId parameter is required');
+  }
+
+  const business = (await findBusinessById(businessId)) || (await findBusinessBySlug(businessId));
+  if (!business) {
+    throw new NotFoundError(`Business not found with ID/Slug: ${businessId}`);
+  }
+
+  const queue = await findQueueByBusinessId(business.id);
+  if (!queue) {
+    throw new NotFoundError(`Queue not found for business: ${business.name}`);
+  }
+
+  const tokens = await findTokensByQueueId(queue.id);
+
+  // Active serving token with masked customer name
+  const servingToken = tokens.find((t) => t.status === 'SERVING');
+  const serving = servingToken ? {
+    tokenId: servingToken.id,
+    tokenNumber: servingToken.token_number,
+    customerName: maskCustomerName(servingToken.customer_name),
+    service: servingToken.service_name || 'General Service',
+    calledAt: servingToken.called_at || null,
+  } : null;
+
+  // Waiting tokens in order with masked customer names
+  const waitingTokens = tokens.filter((t) => t.status === 'WAITING');
+  const waiting = waitingTokens.map((t, idx) => ({
+    tokenId: t.id,
+    position: idx + 1,
+    tokenNumber: t.token_number,
+    customerName: maskCustomerName(t.customer_name),
+    service: t.service_name || 'General Service',
+    estimatedWaitMinutes: t.estimated_wait_minutes || (idx * (queue.avg_service_duration || 15)),
+    createdAt: t.created_at,
+  }));
+
+  // Realtime AI queue forecast
+  const recentThroughput = await getRecentThroughput(queue.id);
+  const queueInsights = aiService.analyzeQueueInsights({
+    waitingCount: waiting.length,
+    servingCount: serving ? 1 : 0,
+    totalTokens: tokens.length,
+    avgServiceDurationMinutes: queue.avg_service_duration || queue.avgServiceDuration || 15,
+    recentAvgActualMinutes: recentThroughput,
+  });
+
+  return {
+    business: {
+      id: business.id,
+      name: business.name,
+      slug: business.slug,
+      category: business.category,
+      city: business.city,
+      address: business.address,
+    },
+    queue: {
+      id: queue.id,
+      name: queue.name,
+      isOpen: Boolean(queue.is_open),
+      tokenPrefix: queue.token_prefix || 'S',
+      avgServiceDuration: queue.avg_service_duration || 15,
+    },
+    serving,
+    waiting,
+    stats: {
+      waitingCount: waiting.length,
+      servingCount: serving ? 1 : 0,
+      totalTokensToday: tokens.length,
+      loadLevel: queueInsights?.loadLevel || 'OPTIMAL',
+      estimatedClearTimeMinutes: queueInsights?.aiAdjustedClearTimeMinutes || queueInsights?.estimatedClearTimeMinutes || 0,
+    },
+  };
+}
+
 export default {
   processCustomerJoinQueue,
   processGetTokenStatus,
@@ -945,4 +1023,6 @@ export default {
   processGetQueueSettings,
   processUpdateQueueSettings,
   processSkipToken,
+  processTestMessagingAlert,
+  processGetPublicQueueDisplay,
 };

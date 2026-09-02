@@ -403,6 +403,16 @@ export default function BusinessDashboardPage() {
             >
               📱 Customer QR
             </button>
+            <a
+              id="open-tv-display"
+              href={`/display/${activeBusinessId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3.5 py-2 bg-amber-950/80 hover:bg-amber-900 border border-amber-800 text-xs font-semibold rounded-xl transition-colors text-amber-300 flex items-center gap-1.5 shadow-sm"
+              title="Open full-screen Waiting Room TV Display in a new tab"
+            >
+              📺 TV Display
+            </a>
             <button
               onClick={() => { setShowQueueSettingsModal(true); fetchQueueSettings(); }}
               className="px-3.5 py-2 bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-800 text-xs font-semibold rounded-xl transition-colors text-emerald-300 flex items-center gap-1.5"

@@ -3,6 +3,7 @@ import {
   processCustomerJoinQueue,
   processGetTokenStatus,
   processCancelToken,
+  processGetPublicQueueDisplay,
 } from '../services/queueService.js';
 
 import jwt from 'jsonwebtoken';
@@ -57,6 +58,16 @@ export async function handleCancelToken(req, res, next) {
 
     const cancelData = await processCancelToken({ tokenId, userId, userPhone });
     return successResponse(res, 'Token cancelled successfully', cancelData, 200);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function handleGetPublicQueueDisplay(req, res, next) {
+  try {
+    const { businessId } = req.params;
+    const displayData = await processGetPublicQueueDisplay(businessId);
+    return successResponse(res, 'Public queue display retrieved successfully', displayData, 200);
   } catch (error) {
     next(error);
   }
