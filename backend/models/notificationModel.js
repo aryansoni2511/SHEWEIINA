@@ -12,21 +12,28 @@ function guardProduction() {
   }
 }
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function isValidUuid(val) {
+  return typeof val === 'string' && UUID_REGEX.test(val);
+}
+
 // In-Memory Fallback Store
 const mockNotifications = [];
 
 // ─── CREATE ──────────────────────────────────────────────────────────────────
 
 export async function createNotification({ userId, type, title, message, metadata = null }) {
-  const res = await query(
-    `INSERT INTO notifications (user_id, type, title, message, is_read, metadata)
-     VALUES ($1, $2, $3, $4, FALSE, $5)
-     RETURNING *;`,
-    [userId, type, title, message, metadata ? JSON.stringify(metadata) : null]
-  );
+  if (isValidUuid(userId)) {
+    const res = await query(
+      `INSERT INTO notifications (user_id, type, title, message, is_read, metadata)
+       VALUES ($1, $2, $3, $4, FALSE, $5)
+       RETURNING *;`,
+      [userId, type, title, message, metadata ? JSON.stringify(metadata) : null]
+    );
 
-  if (res) {
-    return res.rows[0] || null;
+    if (res) {
+      return res.rows[0] || null;
+    }
   }
   guardProduction();
 
@@ -48,15 +55,17 @@ export async function createNotification({ userId, type, title, message, metadat
 // ─── READ ─────────────────────────────────────────────────────────────────────
 
 export async function findNotificationsByUserId(userId, limit = 50) {
-  const res = await query(
-    `SELECT * FROM notifications
-     WHERE user_id = $1
-     ORDER BY created_at DESC
-     LIMIT $2;`,
-    [userId, limit]
-  );
+  if (isValidUuid(userId)) {
+    const res = await query(
+      `SELECT * FROM notifications
+       WHERE user_id = $1
+       ORDER BY created_at DESC
+       LIMIT $2;`,
+      [userId, limit]
+    );
 
-  if (res) return res.rows;
+    if (res) return res.rows;
+  }
   guardProduction();
 
   return [...mockNotifications]
@@ -66,24 +75,28 @@ export async function findNotificationsByUserId(userId, limit = 50) {
 }
 
 export async function findNotificationById(notificationId) {
-  const res = await query(
-    'SELECT * FROM notifications WHERE id = $1;',
-    [notificationId]
-  );
+  if (isValidUuid(notificationId)) {
+    const res = await query(
+      'SELECT * FROM notifications WHERE id = $1;',
+      [notificationId]
+    );
 
-  if (res) return res.rows[0] || null;
+    if (res) return res.rows[0] || null;
+  }
   guardProduction();
 
   return mockNotifications.find((n) => n.id === notificationId) || null;
 }
 
 export async function countUnreadNotifications(userId) {
-  const res = await query(
-    'SELECT COUNT(*)::int as count FROM notifications WHERE user_id = $1 AND is_read = FALSE;',
-    [userId]
-  );
+  if (isValidUuid(userId)) {
+    const res = await query(
+      'SELECT COUNT(*)::int as count FROM notifications WHERE user_id = $1 AND is_read = FALSE;',
+      [userId]
+    );
 
-  if (res) return res.rows[0] ? res.rows[0].count : 0;
+    if (res) return res.rows[0] ? res.rows[0].count : 0;
+  }
   guardProduction();
 
   return mockNotifications.filter((n) => n.user_id === userId && !n.is_read).length;
@@ -92,15 +105,17 @@ export async function countUnreadNotifications(userId) {
 // ─── UPDATE ───────────────────────────────────────────────────────────────────
 
 export async function markNotificationRead(notificationId, userId) {
-  const res = await query(
-    `UPDATE notifications
-     SET is_read = TRUE
-     WHERE id = $1 AND user_id = $2
-     RETURNING *;`,
-    [notificationId, userId]
-  );
+  if (isValidUuid(notificationId) && isValidUuid(userId)) {
+    const res = await query(
+      `UPDATE notifications
+       SET is_read = TRUE
+       WHERE id = $1 AND user_id = $2
+       RETURNING *;`,
+      [notificationId, userId]
+    );
 
-  if (res) return res.rows[0] || null;
+    if (res) return res.rows[0] || null;
+  }
   guardProduction();
 
   // Fallback — enforces ownership: only update if user_id matches
@@ -114,15 +129,17 @@ export async function markNotificationRead(notificationId, userId) {
 }
 
 export async function markAllNotificationsRead(userId) {
-  const res = await query(
-    `UPDATE notifications
-     SET is_read = TRUE
-     WHERE user_id = $1 AND is_read = FALSE
-     RETURNING *;`,
-    [userId]
-  );
+  if (isValidUuid(userId)) {
+    const res = await query(
+      `UPDATE notifications
+       SET is_read = TRUE
+       WHERE user_id = $1 AND is_read = FALSE
+       RETURNING *;`,
+      [userId]
+    );
 
-  if (res) return res.rows;
+    if (res) return res.rows;
+  }
   guardProduction();
 
   const updated = [];
@@ -136,22 +153,24 @@ export async function markAllNotificationsRead(userId) {
 }
 
 export async function findExistingNotification(userId, type, tokenNumber = null) {
-  if (!tokenNumber) {
-    const res = await query(
-      `SELECT * FROM notifications
-       WHERE user_id = $1 AND type = $2
-       LIMIT 1;`,
-      [userId, type]
-    );
-    if (res) return res.rows[0] || null;
-  } else {
-    const res = await query(
-      `SELECT * FROM notifications
-       WHERE user_id = $1 AND type = $2 AND (metadata->>'tokenNumber' = $3 OR metadata->>'token_number' = $3)
-       LIMIT 1;`,
-      [userId, type, String(tokenNumber)]
-    );
-    if (res) return res.rows[0] || null;
+  if (isValidUuid(userId)) {
+    if (!tokenNumber) {
+      const res = await query(
+        `SELECT * FROM notifications
+         WHERE user_id = $1 AND type = $2
+         LIMIT 1;`,
+        [userId, type]
+      );
+      if (res) return res.rows[0] || null;
+    } else {
+      const res = await query(
+        `SELECT * FROM notifications
+         WHERE user_id = $1 AND type = $2 AND (metadata->>'tokenNumber' = $3 OR metadata->>'token_number' = $3)
+         LIMIT 1;`,
+        [userId, type, String(tokenNumber)]
+      );
+      if (res) return res.rows[0] || null;
+    }
   }
   guardProduction();
 

@@ -11,6 +11,7 @@
     "backend": "node backend/server.js",
     "dev:backend": "node --watch backend/server.js",
     "db:migrate": "node backend/scripts/runMigrations.js",
+    "db:seed": "node backend/scripts/runSeeds.js",
     "test": "node --test backend/tests/*.test.js"
   },
   "keywords": [

@@ -434,13 +434,13 @@ export async function processCompleteService({ businessId, queueId }) {
     throw new NotFoundError('No active serving customer to complete.');
   }
 
-  // Fire-and-forget: notify customer their service has been completed
+  // Notify customer their service has been completed
   const completePrefs = {
     smsEnabled: queue.sms_notifications_enabled !== false,
     whatsappEnabled: Boolean(queue.whatsapp_notifications_enabled),
   };
 
-  notifyServiceCompleted({
+  await notifyServiceCompleted({
     userId: completedToken.user_id || null,
     tokenNumber: completedToken.token_number,
     businessName: business.name,
@@ -509,8 +509,8 @@ export async function processCancelToken({ tokenId, userId, userPhone }) {
 
   const cancelledToken = await cancelToken(token.id);
 
-  // Fire-and-forget: notify customer their token has been cancelled
-  notifyQueueCancelled({
+  // Notify customer their token has been cancelled
+  await notifyQueueCancelled({
     userId: token.user_id || null,
     tokenNumber: cancelledToken.token_number,
     customerPhone: token.customer_phone,
@@ -634,7 +634,7 @@ export async function processCreateBusinessService({ businessId, name, durationM
     businessId: service.business_id,
     name: service.name,
     durationMinutes: service.duration_minutes,
-    price: service.price,
+    price: parseFloat(service.price ?? 0),
     description: service.description || '',
     isActive: Boolean(service.is_active),
     createdAt: service.created_at,
@@ -677,7 +677,7 @@ export async function processUpdateBusinessService({ serviceId, businessId, name
     businessId: updated.business_id,
     name: updated.name,
     durationMinutes: updated.duration_minutes,
-    price: updated.price,
+    price: parseFloat(updated.price ?? 0),
     description: updated.description || '',
     isActive: Boolean(updated.is_active),
     updatedAt: updated.updated_at || new Date().toISOString(),

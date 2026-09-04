@@ -4,6 +4,12 @@ import { query } from '../config/db.js';
  * Queue Model — Data Access Layer for Shewwina Core Queue System
  */
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function isValidUuid(val) {
+  return typeof val === 'string' && UUID_REGEX.test(val);
+}
+
 function guardProduction() {
   if (process.env.NODE_ENV === 'production') {
     throw new Error('Database error: PostgreSQL connection is required in production mode. MockStore fallback is disabled.');
@@ -114,61 +120,90 @@ const mockStore = {
 };
 
 export async function findBusinessById(businessId) {
-  const res = await query('SELECT * FROM businesses WHERE id = $1 AND is_active = TRUE;', [businessId]);
-  if (res) return res.rows[0] || null;
+  if (!businessId) return null;
+  if (isValidUuid(businessId)) {
+    const res = await query('SELECT * FROM businesses WHERE (id = $1::uuid OR slug = $1::text) AND is_active = TRUE;', [businessId]);
+    if (res) return res.rows[0] || null;
+  } else {
+    const res = await query('SELECT * FROM businesses WHERE slug = $1 AND is_active = TRUE;', [businessId]);
+    if (res) return res.rows[0] || null;
+  }
   guardProduction();
   return mockStore.businesses.find((b) => b.id === businessId || b.slug === businessId) || null;
 }
 
 export async function findBusinessBySlug(slug) {
   if (!slug) return null;
-  const res = await query('SELECT * FROM businesses WHERE (slug = $1 OR id = $1) AND is_active = TRUE;', [slug]);
-  if (res) return res.rows[0] || null;
+  if (isValidUuid(slug)) {
+    const res = await query('SELECT * FROM businesses WHERE (id = $1::uuid OR slug = $1::text) AND is_active = TRUE;', [slug]);
+    if (res) return res.rows[0] || null;
+  } else {
+    const res = await query('SELECT * FROM businesses WHERE slug = $1 AND is_active = TRUE;', [slug]);
+    if (res) return res.rows[0] || null;
+  }
   guardProduction();
   return mockStore.businesses.find((b) => b.slug === slug || b.id === slug) || null;
 }
 
 export async function findQueueById(queueId) {
-  const res = await query('SELECT * FROM queues WHERE id = $1;', [queueId]);
-  if (res) return res.rows[0] || null;
+  if (!queueId) return null;
+  if (isValidUuid(queueId)) {
+    const res = await query('SELECT * FROM queues WHERE id = $1;', [queueId]);
+    if (res) return res.rows[0] || null;
+  }
   guardProduction();
   return mockStore.queues.find((q) => q.id === queueId) || null;
 }
 
 export async function findQueueByBusinessId(businessId) {
-  const res = await query('SELECT * FROM queues WHERE business_id = $1 ORDER BY is_open DESC LIMIT 1;', [businessId]);
-  if (res) return res.rows[0] || null;
+  if (!businessId) return null;
+  if (isValidUuid(businessId)) {
+    const res = await query('SELECT * FROM queues WHERE business_id = $1 ORDER BY is_open DESC LIMIT 1;', [businessId]);
+    if (res) return res.rows[0] || null;
+  }
   guardProduction();
   return mockStore.queues.find((q) => q.business_id === businessId) || mockStore.queues[0];
 }
 
 export async function findServiceById(serviceId) {
-  const res = await query('SELECT * FROM services WHERE id = $1;', [serviceId]);
-  if (res) return res.rows[0] || null;
+  if (!serviceId) return null;
+  if (isValidUuid(serviceId)) {
+    const res = await query('SELECT * FROM services WHERE id = $1;', [serviceId]);
+    if (res && res.rows[0]) {
+      const row = res.rows[0];
+      return { ...row, price: parseFloat(row.price || 0) };
+    }
+    return null;
+  }
   guardProduction();
   return mockStore.services.find((s) => s.id === serviceId) || null;
 }
 
 export async function findServicesByBusinessId(businessId, includeInactive = false) {
-  const sql = includeInactive
-    ? 'SELECT * FROM services WHERE business_id = $1 ORDER BY created_at ASC;'
-    : 'SELECT * FROM services WHERE business_id = $1 AND is_active = TRUE ORDER BY created_at ASC;';
-  const res = await query(sql, [businessId]);
-  if (res) return res.rows;
+  if (isValidUuid(businessId)) {
+    const sql = includeInactive
+      ? 'SELECT * FROM services WHERE business_id = $1 ORDER BY created_at ASC;'
+      : 'SELECT * FROM services WHERE business_id = $1 AND is_active = TRUE ORDER BY created_at ASC;';
+    const res = await query(sql, [businessId]);
+    if (res) return res.rows.map((row) => ({ ...row, price: parseFloat(row.price || 0) }));
+  }
   guardProduction();
   return mockStore.services.filter((s) => (s.business_id === businessId || s.business_id === 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11') && (includeInactive || s.is_active));
 }
 
 export async function createService({ businessId, name, durationMinutes = 15, price = 0, description = '' }) {
-  const res = await query(
-    `INSERT INTO services (business_id, name, duration_minutes, price, description, is_active)
-     VALUES ($1, $2, $3, $4, $5, TRUE)
-     RETURNING *;`,
-    [businessId, name, durationMinutes, price, description]
-  );
+  if (isValidUuid(businessId)) {
+    const res = await query(
+      `INSERT INTO services (business_id, name, duration_minutes, price, description, is_active)
+       VALUES ($1, $2, $3, $4, $5, TRUE)
+       RETURNING *;`,
+      [businessId, name, durationMinutes, price, description]
+    );
 
-  if (res) {
-    return res.rows[0] || null;
+    if (res && res.rows[0]) {
+      const row = res.rows[0];
+      return { ...row, price: parseFloat(row.price || 0) };
+    }
   }
   guardProduction();
 
@@ -189,21 +224,24 @@ export async function createService({ businessId, name, durationMinutes = 15, pr
 }
 
 export async function updateService(serviceId, businessId, { name, durationMinutes, price, description, isActive }) {
-  const res = await query(
-    `UPDATE services
-     SET name = COALESCE($3, name),
-         duration_minutes = COALESCE($4, duration_minutes),
-         price = COALESCE($5, price),
-         description = COALESCE($6, description),
-         is_active = COALESCE($7, is_active),
-         updated_at = CURRENT_TIMESTAMP
-     WHERE id = $1 AND business_id = $2
-     RETURNING *;`,
-    [serviceId, businessId, name, durationMinutes, price, description, isActive]
-  );
+  if (isValidUuid(serviceId) && isValidUuid(businessId)) {
+    const res = await query(
+      `UPDATE services
+       SET name = COALESCE($3, name),
+           duration_minutes = COALESCE($4, duration_minutes),
+           price = COALESCE($5, price),
+           description = COALESCE($6, description),
+           is_active = COALESCE($7, is_active),
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1 AND business_id = $2
+       RETURNING *;`,
+      [serviceId, businessId, name, durationMinutes, price, description, isActive]
+    );
 
-  if (res) {
-    return res.rows[0] || null;
+    if (res && res.rows[0]) {
+      const row = res.rows[0];
+      return { ...row, price: parseFloat(row.price || 0) };
+    }
   }
   guardProduction();
 
@@ -221,16 +259,18 @@ export async function updateService(serviceId, businessId, { name, durationMinut
 }
 
 export async function toggleServiceStatus(serviceId, businessId, isActive) {
-  const res = await query(
-    `UPDATE services
-     SET is_active = $3, updated_at = CURRENT_TIMESTAMP
-     WHERE id = $1 AND business_id = $2
-     RETURNING *;`,
-    [serviceId, businessId, Boolean(isActive)]
-  );
+  if (isValidUuid(serviceId) && isValidUuid(businessId)) {
+    const res = await query(
+      `UPDATE services
+       SET is_active = $3, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1 AND business_id = $2
+       RETURNING *;`,
+      [serviceId, businessId, Boolean(isActive)]
+    );
 
-  if (res) {
-    return res.rows[0] || null;
+    if (res) {
+      return res.rows[0] || null;
+    }
   }
   guardProduction();
 
@@ -244,15 +284,19 @@ export async function toggleServiceStatus(serviceId, businessId, isActive) {
 }
 
 export async function createToken({ queueId, businessId, serviceId, customerName, customerPhone, estimatedWaitMinutes = 15, userId = null }) {
-  const seqRes = await query(
-    'UPDATE queues SET current_sequence = current_sequence + 1 WHERE id = $1 RETURNING current_sequence;',
-    [queueId]
-  );
-  
+  const isDbEligible = isValidUuid(queueId) && isValidUuid(businessId) && (!serviceId || isValidUuid(serviceId)) && (!userId || isValidUuid(userId));
+
   let sequenceNumber;
-  if (seqRes && seqRes.rows.length > 0) {
-    sequenceNumber = seqRes.rows[0].current_sequence;
-  } else {
+  if (isDbEligible) {
+    const seqRes = await query(
+      'UPDATE queues SET current_sequence = current_sequence + 1 WHERE id = $1 RETURNING current_sequence;',
+      [queueId]
+    );
+    if (seqRes && seqRes.rows.length > 0) {
+      sequenceNumber = seqRes.rows[0].current_sequence;
+    }
+  }
+  if (!sequenceNumber) {
     guardProduction();
     const queue = mockStore.queues.find((q) => q.id === queueId);
     if (queue) {
@@ -267,29 +311,32 @@ export async function createToken({ queueId, businessId, serviceId, customerName
   const prefix = queueObj?.token_prefix || queueObj?.tokenPrefix || 'S';
   const tokenNumber = `${prefix}-${100 + sequenceNumber}`;
 
-  // Calculate current waiting position
-  const countRes = await query(
-    "SELECT COUNT(*)::int as waiting_count FROM tokens WHERE queue_id = $1 AND status = 'WAITING';",
-    [queueId]
-  );
-
   let position;
-  if (countRes && countRes.rows.length > 0) {
-    position = countRes.rows[0].waiting_count + 1;
-  } else {
+  if (isDbEligible) {
+    const countRes = await query(
+      "SELECT COUNT(*)::int as waiting_count FROM tokens WHERE queue_id = $1 AND status = 'WAITING';",
+      [queueId]
+    );
+    if (countRes && countRes.rows.length > 0) {
+      position = countRes.rows[0].waiting_count + 1;
+    }
+  }
+  if (position === undefined) {
     guardProduction();
     position = mockStore.tokens.filter((t) => (t.queue_id === queueId || t.business_id === businessId) && t.status === 'WAITING').length + 1;
   }
 
-  const insertRes = await query(
-    `INSERT INTO tokens (queue_id, business_id, service_id, customer_name, customer_phone, token_number, sequence_number, status, position, estimated_wait_minutes, user_id)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, 'WAITING', $8, $9, $10)
-     RETURNING *;`,
-    [queueId, businessId, serviceId, customerName, customerPhone, tokenNumber, sequenceNumber, position, estimatedWaitMinutes, userId]
-  );
+  if (isDbEligible) {
+    const insertRes = await query(
+      `INSERT INTO tokens (queue_id, business_id, service_id, customer_name, customer_phone, token_number, sequence_number, status, position, estimated_wait_minutes, user_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'WAITING', $8, $9, $10)
+       RETURNING *;`,
+      [queueId, businessId, serviceId, customerName, customerPhone, tokenNumber, sequenceNumber, position, estimatedWaitMinutes, userId]
+    );
 
-  if (insertRes) {
-    return insertRes.rows[0] || null;
+    if (insertRes && insertRes.rows.length > 0) {
+      return insertRes.rows[0];
+    }
   }
   guardProduction();
 
@@ -316,15 +363,26 @@ export async function createToken({ queueId, businessId, serviceId, customerName
 }
 
 export async function findTokenById(tokenId) {
-  const res = await query(
-    `SELECT t.*, s.name as service_name, s.duration_minutes as service_duration
-     FROM tokens t
-     LEFT JOIN services s ON t.service_id = s.id
-     WHERE t.id = $1 OR t.token_number = $2;`,
-    [tokenId, tokenId]
-  );
-  
-  if (res) return res.rows[0] || null;
+  if (!tokenId) return null;
+  if (isValidUuid(tokenId)) {
+    const res = await query(
+      `SELECT t.*, s.name as service_name, s.duration_minutes as service_duration
+       FROM tokens t
+       LEFT JOIN services s ON t.service_id = s.id
+       WHERE t.id = $1::uuid OR t.token_number = $2::text;`,
+      [tokenId, tokenId]
+    );
+    if (res) return res.rows[0] || null;
+  } else {
+    const res = await query(
+      `SELECT t.*, s.name as service_name, s.duration_minutes as service_duration
+       FROM tokens t
+       LEFT JOIN services s ON t.service_id = s.id
+       WHERE t.token_number = $1;`,
+      [tokenId]
+    );
+    if (res) return res.rows[0] || null;
+  }
   guardProduction();
   
   const token = mockStore.tokens.find((t) => t.id === tokenId || t.token_number === tokenId);
@@ -338,22 +396,24 @@ export async function findTokenById(tokenId) {
 }
 
 export async function findTokensByQueueId(queueId) {
-  const res = await query(
-    `SELECT t.*, s.name as service_name
-     FROM tokens t
-     LEFT JOIN services s ON t.service_id = s.id
-     WHERE t.queue_id = $1
-     ORDER BY 
-       CASE status
+  if (isValidUuid(queueId)) {
+    const res = await query(
+      `SELECT t.*, s.name as service_name
+       FROM tokens t
+       LEFT JOIN services s ON t.service_id = s.id
+       WHERE t.queue_id = $1
+       ORDER BY
+         CASE status
          WHEN 'SERVING' THEN 1
          WHEN 'WAITING' THEN 2
          WHEN 'SKIPPED' THEN 3
          ELSE 4
        END,
        sequence_number ASC;`,
-    [queueId]
-  );
-  if (res) return res.rows;
+      [queueId]
+    );
+    if (res) return res.rows;
+  }
   guardProduction();
   return mockStore.tokens
     .filter((t) => t.queue_id === queueId)
@@ -361,11 +421,13 @@ export async function findTokensByQueueId(queueId) {
 }
 
 export async function getPeopleAheadCount(queueId, tokenSequenceNumber) {
-  const res = await query(
-    "SELECT COUNT(*)::int as count FROM tokens WHERE queue_id = $1 AND status = 'WAITING' AND sequence_number < $2;",
-    [queueId, tokenSequenceNumber]
-  );
-  if (res) return res.rows[0] ? res.rows[0].count : 0;
+  if (isValidUuid(queueId)) {
+    const res = await query(
+      "SELECT COUNT(*)::int as count FROM tokens WHERE queue_id = $1 AND status = 'WAITING' AND sequence_number < $2;",
+      [queueId, tokenSequenceNumber]
+    );
+    if (res) return res.rows[0] ? res.rows[0].count : 0;
+  }
   guardProduction();
   return mockStore.tokens.filter(
     (t) => t.queue_id === queueId && t.status === 'WAITING' && t.sequence_number < tokenSequenceNumber
@@ -377,31 +439,33 @@ export async function getPeopleAheadCount(queueId, tokenSequenceNumber) {
  * Ensures only ONE token is active SERVING at a time per queue.
  */
 export async function callNextWaitingToken(queueId, businessId) {
-  // 1. Mark any existing SERVING token as SERVED
-  await query(
-    `UPDATE tokens 
-     SET status = 'SERVED', served_at = CURRENT_TIMESTAMP 
-     WHERE queue_id = $1 AND status = 'SERVING';`,
-    [queueId]
-  );
+  if (isValidUuid(queueId)) {
+    // 1. Mark any existing SERVING token as SERVED
+    await query(
+      `UPDATE tokens
+       SET status = 'SERVED', served_at = CURRENT_TIMESTAMP
+       WHERE queue_id = $1 AND status = 'SERVING';`,
+      [queueId]
+    );
 
-  // 2. Atomically pick & update the next WAITING token to SERVING
-  const nextRes = await query(
-    `UPDATE tokens 
-     SET status = 'SERVING', called_at = CURRENT_TIMESTAMP, position = 0, estimated_wait_minutes = 0
-     WHERE id = (
-       SELECT id FROM tokens 
-       WHERE queue_id = $1 AND status = 'WAITING' 
-       ORDER BY sequence_number ASC 
-       FOR UPDATE SKIP LOCKED 
-       LIMIT 1
-     )
-     RETURNING *;`,
-    [queueId]
-  );
+    // 2. Atomically pick & update the next WAITING token to SERVING
+    const nextRes = await query(
+      `UPDATE tokens
+       SET status = 'SERVING', called_at = CURRENT_TIMESTAMP, position = 0, estimated_wait_minutes = 0
+       WHERE id = (
+         SELECT id FROM tokens
+         WHERE queue_id = $1 AND status = 'WAITING'
+         ORDER BY sequence_number ASC
+         FOR UPDATE SKIP LOCKED
+         LIMIT 1
+       )
+       RETURNING *;`,
+      [queueId]
+    );
 
-  if (nextRes) {
-    return nextRes.rows[0] || null;
+    if (nextRes) {
+      return nextRes.rows[0] || null;
+    }
   }
   guardProduction();
 
@@ -440,16 +504,18 @@ export async function callNextWaitingToken(queueId, businessId) {
  * Marks currently SERVING token as SERVED (Completed Service).
  */
 export async function completeServingToken(queueId, businessId) {
-  const completeRes = await query(
-    `UPDATE tokens 
-     SET status = 'SERVED', served_at = CURRENT_TIMESTAMP 
-     WHERE queue_id = $1 AND status = 'SERVING'
-     RETURNING *;`,
-    [queueId]
-  );
+  if (isValidUuid(queueId)) {
+    const completeRes = await query(
+      `UPDATE tokens
+       SET status = 'SERVED', served_at = CURRENT_TIMESTAMP
+       WHERE queue_id = $1 AND status = 'SERVING'
+       RETURNING *;`,
+      [queueId]
+    );
 
-  if (completeRes) {
-    return completeRes.rows[0] || null;
+    if (completeRes) {
+      return completeRes.rows[0] || null;
+    }
   }
   guardProduction();
 
@@ -478,19 +544,22 @@ export async function findUserByEmail(email) {
 
 export async function findUserById(userId) {
   if (!userId) return null;
-  const res = await query('SELECT * FROM users WHERE id = $1;', [userId]);
-  if (res) return res.rows[0] || null;
+  if (isValidUuid(userId)) {
+    const res = await query('SELECT * FROM users WHERE id = $1;', [userId]);
+    if (res) return res.rows[0] || null;
+  }
   guardProduction();
   return mockStore.users.find((u) => u.id === userId) || null;
 }
 
 export async function createUser({ name, email, phone, passwordHash, role = 'CUSTOMER', businessId = null }) {
   const cleanEmail = email.trim().toLowerCase();
+  const dbBusinessId = isValidUuid(businessId) ? businessId : null;
   const insertRes = await query(
     `INSERT INTO users (name, email, phone, password_hash, role, business_id)
      VALUES ($1, $2, $3, $4, $5, $6)
      RETURNING *;`,
-    [name.trim(), cleanEmail, phone || null, passwordHash, role, businessId]
+    [name.trim(), cleanEmail, phone || null, passwordHash, role, dbBusinessId]
   );
 
   if (insertRes) {
@@ -524,25 +593,46 @@ export async function createBusinessWithOwner({
   city = '',
 }) {
   const cleanEmail = email.trim().toLowerCase();
-  const slug = businessName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || `biz-${Date.now()}`;
+  const baseSlug = businessName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || `biz-${Date.now()}`;
+  let slug = baseSlug;
 
-  // 1. Create Business
+  // 1. Create Business with collision-safe retry
   let business;
-  const bizRes = await query(
-    `INSERT INTO businesses (name, slug, category, phone, email, address, city, is_active)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, TRUE)
-     RETURNING *;`,
-    [businessName.trim(), slug, category, phone, cleanEmail, address, city]
-  );
+  let attempts = 0;
+  while (attempts < 10) {
+    try {
+      const bizRes = await query(
+        `INSERT INTO businesses (name, slug, category, phone, email, address, city, is_active)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, TRUE)
+         RETURNING *;`,
+        [businessName.trim(), slug, category, phone, cleanEmail, address, city]
+      );
 
-  if (bizRes && bizRes.rows.length > 0) {
-    business = bizRes.rows[0];
-  } else {
+      if (bizRes && bizRes.rows.length > 0) {
+        business = bizRes.rows[0];
+        break;
+      }
+      break;
+    } catch (err) {
+      if (err.code === '23505' && (err.constraint === 'businesses_slug_key' || (err.message && err.message.includes('businesses_slug_key')))) {
+        attempts++;
+        slug = `${baseSlug}-${Date.now().toString(36)}-${attempts}`;
+        continue;
+      }
+      throw err;
+    }
+  }
+
+  if (!business) {
     guardProduction();
+    let mockSlug = baseSlug;
+    if (mockStore.businesses.some((b) => b.slug === mockSlug)) {
+      mockSlug = `${baseSlug}-${Date.now()}`;
+    }
     business = {
       id: `biz-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       name: businessName.trim(),
-      slug,
+      slug: mockSlug,
       category,
       phone,
       email: cleanEmail,
@@ -555,16 +645,19 @@ export async function createBusinessWithOwner({
 
   // 2. Create Default Main Queue for Business
   let queue;
-  const queueRes = await query(
-    `INSERT INTO queues (business_id, name, is_open, current_sequence)
-     VALUES ($1, $2, TRUE, 0)
-     RETURNING *;`,
-    [business.id, `${businessName.trim()} Express Queue`]
-  );
+  if (isValidUuid(business.id)) {
+    const queueRes = await query(
+      `INSERT INTO queues (business_id, name, is_open, current_sequence)
+       VALUES ($1, $2, TRUE, 0)
+       RETURNING *;`,
+      [business.id, `${businessName.trim()} Express Queue`]
+    );
 
-  if (queueRes && queueRes.rows.length > 0) {
-    queue = queueRes.rows[0];
-  } else {
+    if (queueRes && queueRes.rows.length > 0) {
+      queue = queueRes.rows[0];
+    }
+  }
+  if (!queue) {
     guardProduction();
     queue = {
       id: `queue-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
@@ -580,24 +673,23 @@ export async function createBusinessWithOwner({
   }
 
   // 3. Create Default Service
-  const serviceRes = await query(
-    `INSERT INTO services (business_id, name, duration_minutes, price, is_active)
-     VALUES ($1, 'General Service', 15, 300.0, TRUE)
-     RETURNING *;`,
-    [business.id]
-  );
-
-  if (!serviceRes || serviceRes.rows.length === 0) {
-    if (process.env.NODE_ENV !== 'production') {
-      mockStore.services.push({
-        id: `svc-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-        business_id: business.id,
-        name: 'General Service',
-        duration_minutes: 15,
-        price: 300.0,
-        is_active: true,
-      });
-    }
+  if (isValidUuid(business.id)) {
+    await query(
+      `INSERT INTO services (business_id, name, duration_minutes, price, is_active)
+       VALUES ($1, 'General Service', 15, 300.0, TRUE)
+       RETURNING *;`,
+      [business.id]
+    );
+  } else {
+    guardProduction();
+    mockStore.services.push({
+      id: `svc-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      business_id: business.id,
+      name: 'General Service',
+      duration_minutes: 15,
+      price: 300.0,
+      is_active: true,
+    });
   }
 
   // 4. Create User linked to Business with role = 'BUSINESS'
@@ -615,21 +707,33 @@ export async function createBusinessWithOwner({
 
 export async function findTokensByUserId(userId, userPhone = null) {
   const cleanPhone = userPhone ? userPhone.trim() : null;
-  const res = await query(
-    `SELECT t.*, b.name as business_name, s.name as service_name
-     FROM tokens t
-     LEFT JOIN businesses b ON t.business_id = b.id
-     LEFT JOIN services s ON t.service_id = s.id
-     WHERE t.user_id = $1 OR ($2::text IS NOT NULL AND $2::text != '' AND t.customer_phone = $2)
-     ORDER BY t.created_at DESC;`,
-    [userId, cleanPhone]
-  );
-
-  if (res) return res.rows;
+  if (isValidUuid(userId)) {
+    const res = await query(
+      `SELECT t.*, b.name as business_name, s.name as service_name
+       FROM tokens t
+       LEFT JOIN businesses b ON t.business_id = b.id
+       LEFT JOIN services s ON t.service_id = s.id
+       WHERE t.user_id = $1 OR (t.user_id IS NULL AND $2::text IS NOT NULL AND $2::text != '' AND t.customer_phone = $2)
+       ORDER BY t.created_at DESC;`,
+      [userId, cleanPhone]
+    );
+    if (res) return res.rows;
+  } else if (cleanPhone) {
+    const res = await query(
+      `SELECT t.*, b.name as business_name, s.name as service_name
+       FROM tokens t
+       LEFT JOIN businesses b ON t.business_id = b.id
+       LEFT JOIN services s ON t.service_id = s.id
+       WHERE t.user_id IS NULL AND t.customer_phone = $1
+       ORDER BY t.created_at DESC;`,
+      [cleanPhone]
+    );
+    if (res) return res.rows;
+  }
   guardProduction();
 
   return mockStore.tokens
-    .filter((t) => t.user_id === userId || (cleanPhone && t.customer_phone === cleanPhone))
+    .filter((t) => t.user_id === userId || (!t.user_id && cleanPhone && t.customer_phone === cleanPhone))
     .map((t) => {
       const biz = mockStore.businesses.find((b) => b.id === t.business_id);
       const svc = mockStore.services.find((s) => s.id === t.service_id);
@@ -648,16 +752,24 @@ export async function findActiveTokenByUserId(userId, userPhone = null) {
 }
 
 export async function cancelToken(tokenId) {
-  const res = await query(
-    `UPDATE tokens
-     SET status = 'CANCELLED', cancelled_at = CURRENT_TIMESTAMP
-     WHERE id = $1 OR token_number = $2
-     RETURNING *;`,
-    [tokenId, tokenId]
-  );
-
-  if (res) {
-    return res.rows[0] || null;
+  if (!tokenId) return null;
+  if (isValidUuid(tokenId)) {
+    const res = await query(
+      `UPDATE tokens
+       SET status = 'CANCELLED', cancelled_at = CURRENT_TIMESTAMP
+       WHERE id = $1::uuid OR token_number = $2::text
+       RETURNING *;`,
+      [tokenId, tokenId]
+    );
+    if (res) return res.rows[0] || null;
+  } else {
+    const res = await query(
+      `UPDATE tokens
+       SET status = 'CANCELLED', cancelled_at = CURRENT_TIMESTAMP
+       WHERE token_number = $1;`,
+      [tokenId]
+    );
+    if (res) return res.rows[0] || null;
   }
   guardProduction();
 
@@ -670,22 +782,36 @@ export async function cancelToken(tokenId) {
 }
 
 export async function updateBusiness(businessId, { name, category, phone, address, city, description }) {
-  const res = await query(
-    `UPDATE businesses
-     SET name = COALESCE($2, name),
-         category = COALESCE($3, category),
-         phone = COALESCE($4, phone),
-         address = COALESCE($5, address),
-         city = COALESCE($6, city),
-         description = COALESCE($7, description),
-         updated_at = CURRENT_TIMESTAMP
-     WHERE id = $1 OR slug = $1
-     RETURNING *;`,
-    [businessId, name, category, phone, address, city, description]
-  );
-
-  if (res) {
-    return res.rows[0] || null;
+  if (isValidUuid(businessId)) {
+    const res = await query(
+      `UPDATE businesses
+       SET name = COALESCE($2, name),
+           category = COALESCE($3, category),
+           phone = COALESCE($4, phone),
+           address = COALESCE($5, address),
+           city = COALESCE($6, city),
+           description = COALESCE($7, description),
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1::uuid OR slug = $1::text
+       RETURNING *;`,
+      [businessId, name, category, phone, address, city, description]
+    );
+    if (res) return res.rows[0] || null;
+  } else {
+    const res = await query(
+      `UPDATE businesses
+       SET name = COALESCE($2, name),
+           category = COALESCE($3, category),
+           phone = COALESCE($4, phone),
+           address = COALESCE($5, address),
+           city = COALESCE($6, city),
+           description = COALESCE($7, description),
+           updated_at = CURRENT_TIMESTAMP
+       WHERE slug = $1
+       RETURNING *;`,
+      [businessId, name, category, phone, address, city, description]
+    );
+    if (res) return res.rows[0] || null;
   }
   guardProduction();
 
@@ -712,35 +838,37 @@ export async function updateQueueConfig(queueId, businessId, {
   whatsappNotificationsEnabled,
   turnAlertThreshold,
 }) {
-  const res = await query(
-    `UPDATE queues
-     SET name = COALESCE($3, name),
-         is_open = COALESCE($4, is_open),
-         token_prefix = COALESCE($5, token_prefix),
-         max_daily_capacity = COALESCE($6, max_daily_capacity),
-         avg_service_duration = COALESCE($7, avg_service_duration),
-         sms_notifications_enabled = COALESCE($8, sms_notifications_enabled),
-         whatsapp_notifications_enabled = COALESCE($9, whatsapp_notifications_enabled),
-         turn_alert_threshold = COALESCE($10, turn_alert_threshold),
-         updated_at = CURRENT_TIMESTAMP
-     WHERE id = $1 AND business_id = $2
-     RETURNING *;`,
-    [
-      queueId,
-      businessId,
-      name,
-      isOpen,
-      tokenPrefix,
-      maxDailyCapacity,
-      avgServiceDuration,
-      smsNotificationsEnabled,
-      whatsappNotificationsEnabled,
-      turnAlertThreshold,
-    ]
-  );
+  if (isValidUuid(queueId) && isValidUuid(businessId)) {
+    const res = await query(
+      `UPDATE queues
+       SET name = COALESCE($3, name),
+           is_open = COALESCE($4, is_open),
+           token_prefix = COALESCE($5, token_prefix),
+           max_daily_capacity = COALESCE($6, max_daily_capacity),
+           avg_service_duration = COALESCE($7, avg_service_duration),
+           sms_notifications_enabled = COALESCE($8, sms_notifications_enabled),
+           whatsapp_notifications_enabled = COALESCE($9, whatsapp_notifications_enabled),
+           turn_alert_threshold = COALESCE($10, turn_alert_threshold),
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1 AND business_id = $2
+       RETURNING *;`,
+      [
+        queueId,
+        businessId,
+        name,
+        isOpen,
+        tokenPrefix,
+        maxDailyCapacity,
+        avgServiceDuration,
+        smsNotificationsEnabled,
+        whatsappNotificationsEnabled,
+        turnAlertThreshold,
+      ]
+    );
 
-  if (res) {
-    return res.rows[0] || null;
+    if (res) {
+      return res.rows[0] || null;
+    }
   }
   guardProduction();
 
@@ -761,37 +889,36 @@ export async function updateQueueConfig(queueId, businessId, {
 }
 
 export async function skipToken(tokenId, queueId, businessId) {
-  // 1. Mark the token as SKIPPED in PostgreSQL
-  const skipRes = await query(
-    `UPDATE tokens
-     SET status = 'SKIPPED', updated_at = CURRENT_TIMESTAMP
-     WHERE id = $1 AND queue_id = $2 AND business_id = $3 AND status = 'WAITING'
-     RETURNING *;`,
-    [tokenId, queueId, businessId]
-  );
-
-  if (skipRes && skipRes.rows.length > 0) {
-    // 2. Recalculate positions of remaining WAITING tokens (PostgreSQL path)
-    await query(
+  if (isValidUuid(tokenId) && isValidUuid(queueId) && isValidUuid(businessId)) {
+    const skipRes = await query(
       `UPDATE tokens
-       SET position = subq.new_pos
-       FROM (
-         SELECT id, ROW_NUMBER() OVER (ORDER BY sequence_number ASC) AS new_pos
-         FROM tokens
-         WHERE queue_id = $1 AND status = 'WAITING'
-       ) subq
-       WHERE tokens.id = subq.id;`,
-      [queueId]
+       SET status = 'SKIPPED', updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1 AND queue_id = $2 AND business_id = $3 AND status = 'WAITING'
+       RETURNING *;`,
+      [tokenId, queueId, businessId]
     );
-    return skipRes.rows[0];
-  }
 
-  if (skipRes && skipRes.rows.length === 0) {
-    return null;
+    if (skipRes && skipRes.rows.length > 0) {
+      await query(
+        `UPDATE tokens
+         SET position = subq.new_pos
+         FROM (
+           SELECT id, ROW_NUMBER() OVER (ORDER BY sequence_number ASC) AS new_pos
+           FROM tokens
+           WHERE queue_id = $1 AND status = 'WAITING'
+         ) subq
+         WHERE tokens.id = subq.id;`,
+        [queueId]
+      );
+      return skipRes.rows[0];
+    }
+
+    if (skipRes && skipRes.rows.length === 0) {
+      return null;
+    }
   }
   guardProduction();
 
-  // Fallback for mockStore
   const token = mockStore.tokens.find(
     (t) =>
       t.id === tokenId &&
@@ -819,33 +946,32 @@ export async function skipToken(tokenId, queueId, businessId) {
   return token;
 }
 
-/**
- * Returns the average actual service time (in minutes) for the last `limit` SERVED tokens
- */
 export async function getRecentThroughput(queueId, limit = 10) {
-  const res = await query(
-    `SELECT ROUND(
-       AVG(EXTRACT(EPOCH FROM (served_at - called_at)) / 60)::numeric,
-       1
-     )::float AS avg_minutes
-     FROM (
-       SELECT served_at, called_at
-       FROM tokens
-       WHERE queue_id = $1
-         AND status = 'SERVED'
-         AND served_at IS NOT NULL
-         AND called_at IS NOT NULL
-       ORDER BY served_at DESC
-       LIMIT $2
-     ) recent;`,
-    [queueId, limit]
-  );
+  if (isValidUuid(queueId)) {
+    const res = await query(
+      `SELECT ROUND(
+         AVG(EXTRACT(EPOCH FROM (served_at - called_at)) / 60)::numeric,
+         1
+       )::float AS avg_minutes
+       FROM (
+         SELECT served_at, called_at
+         FROM tokens
+         WHERE queue_id = $1
+           AND status = 'SERVED'
+           AND served_at IS NOT NULL
+           AND called_at IS NOT NULL
+         ORDER BY served_at DESC
+         LIMIT $2
+       ) recent;`,
+      [queueId, limit]
+    );
 
-  if (res) {
-    if (res.rows.length > 0 && res.rows[0].avg_minutes != null) {
-      return parseFloat(res.rows[0].avg_minutes);
+    if (res) {
+      if (res.rows.length > 0 && res.rows[0].avg_minutes != null) {
+        return parseFloat(res.rows[0].avg_minutes);
+      }
+      return null;
     }
-    return null;
   }
   guardProduction();
 
