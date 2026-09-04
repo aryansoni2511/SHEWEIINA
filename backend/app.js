@@ -14,11 +14,43 @@ dotenv.config();
 
 const app = express();
 
-// CORS Configuration
-const allowedOrigins = process.env.FRONTEND_URL ? [process.env.FRONTEND_URL, 'http://localhost:5173'] : '*';
+// Production-Ready CORS Configuration
+const frontendUrl = process.env.FRONTEND_URL;
+let allowedOrigins;
+
+if (process.env.NODE_ENV === 'production') {
+  if (frontendUrl) {
+    // Support single or comma-separated origins, stripping trailing slashes
+    allowedOrigins = frontendUrl
+      .split(',')
+      .map((url) => url.trim().replace(/\/+$/, ''))
+      .filter(Boolean);
+  } else {
+    // In production, FRONTEND_URL is strictly required; never allow '*'
+    allowedOrigins = [];
+  }
+} else {
+  // Development / Test mode
+  allowedOrigins = frontendUrl
+    ? [frontendUrl.trim().replace(/\/+$/, ''), 'http://localhost:5173', 'http://127.0.0.1:5173']
+    : '*';
+}
 
 app.use(cors({
-  origin: allowedOrigins,
+  origin: (origin, callback) => {
+    // Allow non-browser requests (Postman, curl, test runners, server-to-server without Origin header)
+    if (!origin) {
+      return callback(null, true);
+    }
+    if (allowedOrigins === '*') {
+      return callback(null, true);
+    }
+    const cleanOrigin = origin.replace(/\/+$/, '');
+    if (Array.isArray(allowedOrigins) && allowedOrigins.includes(cleanOrigin)) {
+      return callback(null, true);
+    }
+    return callback(new Error(`CORS Policy: Access denied for origin ${origin}.`));
+  },
   credentials: true,
 }));
 

@@ -2,7 +2,7 @@
  * Frontend Realtime Subscription Service
  *
  * Connects to Shewwina's Server-Sent Events (SSE) stream endpoint:
- * GET /api/v1/queue/stream?businessId=...&tokenId=...
+ * GET /api/v1/queue/stream?businessId=...&tokenId=...&public=true
  *
  * Resilient Architecture:
  * - Uses browser native EventSource. Zero extra client libraries.
@@ -27,12 +27,13 @@ const SSE_BASE_URL = '';
  *
  * @param {Object} options
  * @param {string} [options.tokenId] - Token ID to track (for customer)
- * @param {string} [options.businessId] - Business ID to track (for business dashboard)
+ * @param {string} [options.businessId] - Business ID to track (for business dashboard or public display)
+ * @param {boolean} [options.isPublic] - True for unauthenticated public waiting room display
  * @param {Function} options.onUpdate - Callback invoked when a queue event arrives: (eventData) => void
  * @param {Function} [options.onError] - Callback invoked on connection error
  * @returns {Function} unsubscribe function to close the connection cleanly
  */
-export function subscribeQueueRealtime({ tokenId, businessId, onUpdate, onError }) {
+export function subscribeQueueRealtime({ tokenId, businessId, isPublic = false, onUpdate, onError }) {
   if (typeof window === 'undefined' || !window.EventSource) {
     return () => {};
   }
@@ -45,14 +46,15 @@ export function subscribeQueueRealtime({ tokenId, businessId, onUpdate, onError 
   if (tokenId) params.push(`tokenId=${encodeURIComponent(tokenId)}`);
   if (businessId) params.push(`businessId=${encodeURIComponent(businessId)}`);
 
-  // If businessId is provided, attach the stored token so server can verify tenant ownership
+  // Attach stored token if business dashboard (not public display)
   const token = getStoredToken();
-  if (businessId && token) {
+  if (businessId && token && !isPublic) {
     params.push(`token=${encodeURIComponent(token)}`);
+  } else if (isPublic || (businessId && !token)) {
+    params.push('public=true');
   }
 
   const url = `${SSE_BASE_URL}/api/v1/queue/stream?${params.join('&')}`;
-
 
   let eventSource = null;
   let isClosed = false;

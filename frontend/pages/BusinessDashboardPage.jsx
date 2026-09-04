@@ -13,6 +13,7 @@ import {
   getQueueSettingsApi,
   updateQueueSettingsApi,
   testMessagingAlertApi,
+  skipTokenApi,
 } from '../services/api';
 import { subscribeQueueRealtime } from '../services/realtime';
 import { useAuth } from '../context/AuthContext';
@@ -344,6 +345,35 @@ export default function BusinessDashboardPage() {
     }
   };
 
+  // Handle Skip Token (Only WAITING tokens can be skipped)
+  const [skippingTokenId, setSkippingTokenId] = useState(null);
+
+  const handleSkipToken = async (targetTokenId = null) => {
+    const tokToSkip = targetTokenId || (waitingTokens.length > 0 ? (waitingTokens[0]?.tokenId || waitingTokens[0]?.id) : null);
+    if (!tokToSkip) {
+      setErrorMessage('No waiting customer to skip.');
+      return;
+    }
+
+    setSkippingTokenId(tokToSkip);
+    setErrorMessage(null);
+    setInfoMessage(null);
+
+    try {
+      const res = await skipTokenApi({
+        businessId: activeBusinessId,
+        queueId: queueData?.queue?.id,
+        tokenId: tokToSkip,
+      });
+      setInfoMessage(`Token #${res.data?.tokenNumber || ''} skipped.`);
+      await fetchQueue(true);
+      setSkippingTokenId(null);
+    } catch (err) {
+      setErrorMessage(err.message || 'Failed to skip token.');
+      setSkippingTokenId(null);
+    }
+  };
+
   const handleLogout = () => {
     logout();
     navigate('/login');
@@ -529,20 +559,37 @@ export default function BusinessDashboardPage() {
 
           <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
             {servingToken && (
-              <button
-                onClick={handleCompleteService}
-                disabled={completingServiceState}
-                className="w-full sm:w-auto px-6 py-4 bg-slate-800 hover:bg-slate-700 disabled:bg-slate-800/50 text-slate-200 font-semibold text-sm rounded-2xl border border-slate-700 transition-all flex items-center justify-center gap-2"
-              >
-                {completingServiceState ? (
-                  <>
-                    <span className="w-4 h-4 border-2 border-slate-300 border-t-transparent rounded-full animate-spin" />
-                    <span>Completing...</span>
-                  </>
-                ) : (
-                  <span>✅ Complete Service</span>
-                )}
-              </button>
+              <>
+                <button
+                  onClick={handleCompleteService}
+                  disabled={completingServiceState}
+                  className="w-full sm:w-auto px-6 py-4 bg-slate-800 hover:bg-slate-700 disabled:bg-slate-800/50 text-slate-200 font-semibold text-sm rounded-2xl border border-slate-700 transition-all flex items-center justify-center gap-2"
+                >
+                  {completingServiceState ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-slate-300 border-t-transparent rounded-full animate-spin" />
+                      <span>Completing...</span>
+                    </>
+                  ) : (
+                    <span>✅ Complete Service</span>
+                  )}
+                </button>
+                <button
+                  onClick={() => handleSkipToken()}
+                  disabled={Boolean(skippingTokenId) || waitingTokens.length === 0}
+                  className="w-full sm:w-auto px-5 py-4 bg-amber-950/60 hover:bg-amber-900/80 disabled:opacity-40 disabled:cursor-not-allowed text-amber-300 font-semibold text-sm rounded-2xl border border-amber-800/80 transition-all flex items-center justify-center gap-2"
+                  title={waitingTokens.length > 0 ? "Skip next waiting token in line" : "No waiting tokens to skip"}
+                >
+                  {skippingTokenId ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-amber-300 border-t-transparent rounded-full animate-spin" />
+                      <span>Skipping...</span>
+                    </>
+                  ) : (
+                    <span>⏭️ Skip Next Waiting</span>
+                  )}
+                </button>
+              </>
             )}
 
             <button
@@ -587,18 +634,28 @@ export default function BusinessDashboardPage() {
                     <th className="p-3">Customer</th>
                     <th className="p-3">Phone</th>
                     <th className="p-3">Service</th>
-                    <th className="p-3 rounded-r-xl">Est. Wait</th>
+                    <th className="p-3">Est. Wait</th>
+                    <th className="p-3 rounded-r-xl text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60 font-medium">
                   {waitingTokens.map((tok, idx) => (
-                    <tr key={tok.tokenId} className="hover:bg-slate-800/40 transition-colors">
+                    <tr key={tok.tokenId || tok.id} className="hover:bg-slate-800/40 transition-colors">
                       <td className="p-3.5 font-bold text-amber-400">#{idx + 1}</td>
                       <td className="p-3.5 font-mono font-bold text-white text-sm">#{tok.tokenNumber}</td>
                       <td className="p-3.5 text-slate-200 font-semibold">{tok.customerName}</td>
                       <td className="p-3.5 font-mono text-slate-400">{tok.customerPhone}</td>
                       <td className="p-3.5 text-slate-300">{tok.service}</td>
                       <td className="p-3.5 text-blue-400 font-mono font-semibold">{tok.estimatedWaitMinutes} mins</td>
+                      <td className="p-3.5 text-right">
+                        <button
+                          onClick={() => handleSkipToken(tok.tokenId || tok.id)}
+                          disabled={skippingTokenId === (tok.tokenId || tok.id)}
+                          className="px-2.5 py-1 bg-amber-950/60 hover:bg-amber-900 border border-amber-800 text-amber-300 rounded-lg text-[11px] font-semibold transition-colors disabled:opacity-50"
+                        >
+                          {skippingTokenId === (tok.tokenId || tok.id) ? 'Skipping...' : '⏭️ Skip'}
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

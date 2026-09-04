@@ -1,4 +1,4 @@
-﻿import { EventEmitter } from 'events';
+import { EventEmitter } from 'events';
 
 /**
  * Realtime Event Bus & SSE Client Registry
@@ -7,7 +7,7 @@
  * - Uses Node.js native EventEmitter. Zero new external dependencies.
  * - Manages active HTTP SSE (Server-Sent Events) subscriber response streams.
  * - Scopes events:
- *     - businessId: Business dashboard subscribers for that specific business/tenant
+ *     - businessId: Business dashboard & public display subscribers for that specific business/tenant
  *     - tokenId: Customer token tracking subscribers for that specific token
  * - Zero PII: Broadcast payloads contain only identifiers, statuses, and recalculation signals.
  */
@@ -16,7 +16,7 @@ class RealtimeService extends EventEmitter {
   constructor() {
     super();
     // In-memory set of connected SSE client objects:
-    // { id, res, businessId, tokenId, connectedAt }
+    // { id, res, businessId, tokenId, isPublic, connectedAt }
     this.clients = new Map();
     this.clientIdCounter = 1;
 
@@ -34,7 +34,7 @@ class RealtimeService extends EventEmitter {
   /**
    * Register a new SSE subscriber response stream
    */
-  registerClient({ res, businessId = null, tokenId = null }) {
+  registerClient({ res, businessId = null, tokenId = null, isPublic = false }) {
     const clientId = `client_${Date.now()}_${this.clientIdCounter++}`;
 
     const client = {
@@ -42,6 +42,7 @@ class RealtimeService extends EventEmitter {
       res,
       businessId: businessId ? String(businessId) : null,
       tokenId: tokenId ? String(tokenId) : null,
+      isPublic: Boolean(isPublic),
       connectedAt: new Date(),
     };
 
@@ -53,6 +54,7 @@ class RealtimeService extends EventEmitter {
       subscribedAt: client.connectedAt.toISOString(),
       businessId: client.businessId,
       tokenId: client.tokenId,
+      isPublic: client.isPublic,
     });
 
     return clientId;
@@ -84,8 +86,9 @@ class RealtimeService extends EventEmitter {
   /**
    * Broadcast a queue update event to interested clients
    * Scoped strictly:
-   * - Business subscribers receive events matching their businessId
+   * - Business & Public TV display subscribers receive events matching their businessId
    * - Customer subscribers receive events matching their tokenId OR if queue recalculated
+   * - Zero PII: Only status codes, token numbers, sequence counters, and timestamps
    */
   broadcastQueueEvent({ businessId, queueId = null, tokenId = null, type, data = {} }) {
     const payload = {
@@ -100,7 +103,7 @@ class RealtimeService extends EventEmitter {
     for (const client of this.clients.values()) {
       let shouldDeliver = false;
 
-      // 1. Business Dashboard subscriber: matches businessId
+      // 1. Business Dashboard or Public Display subscriber: matches businessId
       if (client.businessId && String(client.businessId) === String(businessId)) {
         shouldDeliver = true;
       }
@@ -112,7 +115,6 @@ class RealtimeService extends EventEmitter {
         if (tokenId && String(client.tokenId) === String(tokenId)) {
           shouldDeliver = true;
         } else if (['CUSTOMER_CALLED', 'CUSTOMER_SKIPPED', 'SERVICE_COMPLETED', 'QUEUE_CANCELLED', 'QUEUE_SETTINGS_UPDATED', 'CUSTOMER_JOINED'].includes(type)) {
-          // Whenever queue status changes, waiting customers in the queue need recalculation
           shouldDeliver = true;
         }
       }

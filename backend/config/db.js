@@ -10,11 +10,15 @@ let pool = null;
 
 const dbUrl = process.env.DATABASE_URL;
 
+if (process.env.NODE_ENV === 'production' && (!dbUrl || dbUrl.includes('localhost:5432/shewwina'))) {
+  throw new Error('FATAL: DATABASE_URL environment variable is required and must be configured in production mode.');
+}
+
 if (dbUrl && !dbUrl.includes('localhost:5432/shewwina')) {
   try {
     pool = new Pool({
       connectionString: dbUrl,
-      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+      ssl: { rejectUnauthorized: false },
     });
   } catch (err) {
     console.warn('PostgreSQL Pool Initialization Warning:', err.message);
@@ -23,17 +27,21 @@ if (dbUrl && !dbUrl.includes('localhost:5432/shewwina')) {
 
 /**
  * Executes a PostgreSQL database query using connection pool,
- * or returns null if DB connection is unconfigured.
+ * or throws an error in production when DB is unavailable,
+ * or returns null in dev/test fallback mode.
  */
 export async function query(text, params = []) {
   if (pool) {
     return pool.query(text, params);
   }
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Database query error: PostgreSQL connection pool is not available in production.');
+  }
   return null;
 }
 
 /**
- * Checks PostgreSQL database connection health & reports status
+ * Checks PostgreSQL database connection health & reports status without exposing credentials
  */
 export async function checkDatabaseConnection() {
   if (pool) {
@@ -60,7 +68,7 @@ export async function checkDatabaseConnection() {
     connected: false,
     type: 'PostgreSQL / Supabase Schema Ready',
     message: 'Database schema defined. Set DATABASE_URL in .env to connect to live PostgreSQL/Supabase instance.',
-    tables: ['businesses', 'services', 'queues', 'tokens'],
+    tables: ['businesses', 'services', 'queues', 'tokens', 'users', 'notifications'],
   };
 }
 

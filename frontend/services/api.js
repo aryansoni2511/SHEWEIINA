@@ -198,6 +198,20 @@ export async function completeService(businessId, queueId) {
 }
 
 /**
+ * Business Skip Token API
+ */
+export async function skipTokenApi({ businessId, queueId, tokenId }) {
+  return request('/api/v1/business/queue/skip', {
+    method: 'POST',
+    body: JSON.stringify({
+      ...(businessId ? { businessId } : {}),
+      ...(queueId ? { queueId } : {}),
+      ...(tokenId ? { tokenId } : {}),
+    }),
+  });
+}
+
+/**
  * Customer Cancel Queue Token API
  */
 export async function cancelQueueTokenApi(tokenId) {
@@ -324,4 +338,5 @@ export default {
   getBusinessQueue,
   callNextCustomer,
   completeService,
+  skipTokenApi,
 };

@@ -4,6 +4,12 @@ import { query } from '../config/db.js';
  * Queue Model — Data Access Layer for Shewwina Core Queue System
  */
 
+function guardProduction() {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Database error: PostgreSQL connection is required in production mode. MockStore fallback is disabled.');
+  }
+}
+
 // In-Memory Fallback Store (for offline local dev/unit testing when PostgreSQL is disconnected)
 const mockStore = {
   businesses: [
@@ -99,7 +105,7 @@ const mockStore = {
       name: 'Salon Owner',
       email: 'owner@shewwina.com',
       phone: '+919876543210',
-      password_hash: '$2a$10$xeZWtpeK/b6p4GxPVzYUx.vrtGWMK1MpRhepesx4seU4Vd5qyGO8i', // Hashed 'password123'
+      password_hash: '$2a$10$xeZWtpeK/b6p4GxPVzYUx.vrtGWMK1MpRhepesx4seU4Vd5qyGO8i',
       role: 'BUSINESS',
       business_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       created_at: new Date().toISOString(),
@@ -109,32 +115,37 @@ const mockStore = {
 
 export async function findBusinessById(businessId) {
   const res = await query('SELECT * FROM businesses WHERE id = $1 AND is_active = TRUE;', [businessId]);
-  if (res && res.rows.length > 0) return res.rows[0];
+  if (res) return res.rows[0] || null;
+  guardProduction();
   return mockStore.businesses.find((b) => b.id === businessId || b.slug === businessId) || null;
 }
 
 export async function findBusinessBySlug(slug) {
   if (!slug) return null;
   const res = await query('SELECT * FROM businesses WHERE (slug = $1 OR id = $1) AND is_active = TRUE;', [slug]);
-  if (res && res.rows.length > 0) return res.rows[0];
+  if (res) return res.rows[0] || null;
+  guardProduction();
   return mockStore.businesses.find((b) => b.slug === slug || b.id === slug) || null;
 }
 
 export async function findQueueById(queueId) {
   const res = await query('SELECT * FROM queues WHERE id = $1;', [queueId]);
-  if (res && res.rows.length > 0) return res.rows[0];
+  if (res) return res.rows[0] || null;
+  guardProduction();
   return mockStore.queues.find((q) => q.id === queueId) || null;
 }
 
 export async function findQueueByBusinessId(businessId) {
   const res = await query('SELECT * FROM queues WHERE business_id = $1 ORDER BY is_open DESC LIMIT 1;', [businessId]);
-  if (res && res.rows.length > 0) return res.rows[0];
+  if (res) return res.rows[0] || null;
+  guardProduction();
   return mockStore.queues.find((q) => q.business_id === businessId) || mockStore.queues[0];
 }
 
 export async function findServiceById(serviceId) {
   const res = await query('SELECT * FROM services WHERE id = $1;', [serviceId]);
-  if (res && res.rows.length > 0) return res.rows[0];
+  if (res) return res.rows[0] || null;
+  guardProduction();
   return mockStore.services.find((s) => s.id === serviceId) || null;
 }
 
@@ -144,6 +155,7 @@ export async function findServicesByBusinessId(businessId, includeInactive = fal
     : 'SELECT * FROM services WHERE business_id = $1 AND is_active = TRUE ORDER BY created_at ASC;';
   const res = await query(sql, [businessId]);
   if (res) return res.rows;
+  guardProduction();
   return mockStore.services.filter((s) => (s.business_id === businessId || s.business_id === 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11') && (includeInactive || s.is_active));
 }
 
@@ -155,9 +167,10 @@ export async function createService({ businessId, name, durationMinutes = 15, pr
     [businessId, name, durationMinutes, price, description]
   );
 
-  if (res && res.rows.length > 0) {
-    return res.rows[0];
+  if (res) {
+    return res.rows[0] || null;
   }
+  guardProduction();
 
   const newService = {
     id: `svc-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
@@ -189,9 +202,10 @@ export async function updateService(serviceId, businessId, { name, durationMinut
     [serviceId, businessId, name, durationMinutes, price, description, isActive]
   );
 
-  if (res && res.rows.length > 0) {
-    return res.rows[0];
+  if (res) {
+    return res.rows[0] || null;
   }
+  guardProduction();
 
   const svc = mockStore.services.find((s) => s.id === serviceId && (s.business_id === businessId || s.business_id === 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'));
   if (!svc) return null;
@@ -215,9 +229,10 @@ export async function toggleServiceStatus(serviceId, businessId, isActive) {
     [serviceId, businessId, Boolean(isActive)]
   );
 
-  if (res && res.rows.length > 0) {
-    return res.rows[0];
+  if (res) {
+    return res.rows[0] || null;
   }
+  guardProduction();
 
   const svc = mockStore.services.find((s) => s.id === serviceId && (s.business_id === businessId || s.business_id === 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'));
   if (!svc) return null;
@@ -238,6 +253,7 @@ export async function createToken({ queueId, businessId, serviceId, customerName
   if (seqRes && seqRes.rows.length > 0) {
     sequenceNumber = seqRes.rows[0].current_sequence;
   } else {
+    guardProduction();
     const queue = mockStore.queues.find((q) => q.id === queueId);
     if (queue) {
       queue.current_sequence += 1;
@@ -261,6 +277,7 @@ export async function createToken({ queueId, businessId, serviceId, customerName
   if (countRes && countRes.rows.length > 0) {
     position = countRes.rows[0].waiting_count + 1;
   } else {
+    guardProduction();
     position = mockStore.tokens.filter((t) => (t.queue_id === queueId || t.business_id === businessId) && t.status === 'WAITING').length + 1;
   }
 
@@ -271,9 +288,10 @@ export async function createToken({ queueId, businessId, serviceId, customerName
     [queueId, businessId, serviceId, customerName, customerPhone, tokenNumber, sequenceNumber, position, estimatedWaitMinutes, userId]
   );
 
-  if (insertRes && insertRes.rows.length > 0) {
-    return insertRes.rows[0];
+  if (insertRes) {
+    return insertRes.rows[0] || null;
   }
+  guardProduction();
 
   const newToken = {
     id: `token-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
@@ -306,7 +324,8 @@ export async function findTokenById(tokenId) {
     [tokenId, tokenId]
   );
   
-  if (res && res.rows.length > 0) return res.rows[0];
+  if (res) return res.rows[0] || null;
+  guardProduction();
   
   const token = mockStore.tokens.find((t) => t.id === tokenId || t.token_number === tokenId);
   if (!token) return null;
@@ -335,6 +354,7 @@ export async function findTokensByQueueId(queueId) {
     [queueId]
   );
   if (res) return res.rows;
+  guardProduction();
   return mockStore.tokens
     .filter((t) => t.queue_id === queueId)
     .sort((a, b) => a.sequence_number - b.sequence_number);
@@ -345,7 +365,8 @@ export async function getPeopleAheadCount(queueId, tokenSequenceNumber) {
     "SELECT COUNT(*)::int as count FROM tokens WHERE queue_id = $1 AND status = 'WAITING' AND sequence_number < $2;",
     [queueId, tokenSequenceNumber]
   );
-  if (res && res.rows.length > 0) return res.rows[0].count;
+  if (res) return res.rows[0] ? res.rows[0].count : 0;
+  guardProduction();
   return mockStore.tokens.filter(
     (t) => t.queue_id === queueId && t.status === 'WAITING' && t.sequence_number < tokenSequenceNumber
   ).length;
@@ -379,12 +400,12 @@ export async function callNextWaitingToken(queueId, businessId) {
     [queueId]
   );
 
-  if (nextRes && nextRes.rows.length > 0) {
-    return nextRes.rows[0];
+  if (nextRes) {
+    return nextRes.rows[0] || null;
   }
+  guardProduction();
 
   // Fallback for mockStore / test environment
-  // Mark previous SERVING token as SERVED in mockStore
   mockStore.tokens.forEach((t) => {
     if ((t.queue_id === queueId || t.business_id === businessId) && t.status === 'SERVING') {
       t.status = 'SERVED';
@@ -392,7 +413,6 @@ export async function callNextWaitingToken(queueId, businessId) {
     }
   });
 
-  // Find next WAITING token
   const nextWaitingToken = mockStore.tokens.find(
     (t) => (t.queue_id === queueId || t.business_id === businessId) && t.status === 'WAITING'
   );
@@ -406,7 +426,6 @@ export async function callNextWaitingToken(queueId, businessId) {
   nextWaitingToken.estimated_wait_minutes = 0;
   nextWaitingToken.called_at = new Date().toISOString();
 
-  // Update positions of remaining waiting tokens
   let currentPos = 1;
   mockStore.tokens.forEach((t) => {
     if ((t.queue_id === queueId || t.business_id === businessId) && t.status === 'WAITING') {
@@ -419,7 +438,6 @@ export async function callNextWaitingToken(queueId, businessId) {
 
 /**
  * Marks currently SERVING token as SERVED (Completed Service).
- * Resets currently SERVING count to 0 when complete.
  */
 export async function completeServingToken(queueId, businessId) {
   const completeRes = await query(
@@ -430,11 +448,11 @@ export async function completeServingToken(queueId, businessId) {
     [queueId]
   );
 
-  if (completeRes && completeRes.rows.length > 0) {
-    return completeRes.rows[0];
+  if (completeRes) {
+    return completeRes.rows[0] || null;
   }
+  guardProduction();
 
-  // Fallback for mockStore
   const activeServing = mockStore.tokens.find(
     (t) => (t.queue_id === queueId || t.business_id === businessId) && t.status === 'SERVING'
   );
@@ -453,14 +471,16 @@ export async function findUserByEmail(email) {
   if (!email) return null;
   const cleanEmail = email.trim().toLowerCase();
   const res = await query('SELECT * FROM users WHERE LOWER(email) = $1;', [cleanEmail]);
-  if (res && res.rows.length > 0) return res.rows[0];
+  if (res) return res.rows[0] || null;
+  guardProduction();
   return mockStore.users.find((u) => u.email.toLowerCase() === cleanEmail) || null;
 }
 
 export async function findUserById(userId) {
   if (!userId) return null;
   const res = await query('SELECT * FROM users WHERE id = $1;', [userId]);
-  if (res && res.rows.length > 0) return res.rows[0];
+  if (res) return res.rows[0] || null;
+  guardProduction();
   return mockStore.users.find((u) => u.id === userId) || null;
 }
 
@@ -473,9 +493,10 @@ export async function createUser({ name, email, phone, passwordHash, role = 'CUS
     [name.trim(), cleanEmail, phone || null, passwordHash, role, businessId]
   );
 
-  if (insertRes && insertRes.rows.length > 0) {
-    return insertRes.rows[0];
+  if (insertRes) {
+    return insertRes.rows[0] || null;
   }
+  guardProduction();
 
   const newUser = {
     id: `user-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
@@ -517,6 +538,7 @@ export async function createBusinessWithOwner({
   if (bizRes && bizRes.rows.length > 0) {
     business = bizRes.rows[0];
   } else {
+    guardProduction();
     business = {
       id: `biz-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       name: businessName.trim(),
@@ -543,6 +565,7 @@ export async function createBusinessWithOwner({
   if (queueRes && queueRes.rows.length > 0) {
     queue = queueRes.rows[0];
   } else {
+    guardProduction();
     queue = {
       id: `queue-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       business_id: business.id,
@@ -565,14 +588,16 @@ export async function createBusinessWithOwner({
   );
 
   if (!serviceRes || serviceRes.rows.length === 0) {
-    mockStore.services.push({
-      id: `svc-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-      business_id: business.id,
-      name: 'General Service',
-      duration_minutes: 15,
-      price: 300.0,
-      is_active: true,
-    });
+    if (process.env.NODE_ENV !== 'production') {
+      mockStore.services.push({
+        id: `svc-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        business_id: business.id,
+        name: 'General Service',
+        duration_minutes: 15,
+        price: 300.0,
+        is_active: true,
+      });
+    }
   }
 
   // 4. Create User linked to Business with role = 'BUSINESS'
@@ -601,6 +626,7 @@ export async function findTokensByUserId(userId, userPhone = null) {
   );
 
   if (res) return res.rows;
+  guardProduction();
 
   return mockStore.tokens
     .filter((t) => t.user_id === userId || (cleanPhone && t.customer_phone === cleanPhone))
@@ -630,9 +656,10 @@ export async function cancelToken(tokenId) {
     [tokenId, tokenId]
   );
 
-  if (res && res.rows.length > 0) {
-    return res.rows[0];
+  if (res) {
+    return res.rows[0] || null;
   }
+  guardProduction();
 
   const token = mockStore.tokens.find((t) => t.id === tokenId || t.token_number === tokenId);
   if (!token) return null;
@@ -657,9 +684,10 @@ export async function updateBusiness(businessId, { name, category, phone, addres
     [businessId, name, category, phone, address, city, description]
   );
 
-  if (res && res.rows.length > 0) {
-    return res.rows[0];
+  if (res) {
+    return res.rows[0] || null;
   }
+  guardProduction();
 
   const biz = mockStore.businesses.find((b) => b.id === businessId || b.slug === businessId);
   if (!biz) return null;
@@ -711,9 +739,10 @@ export async function updateQueueConfig(queueId, businessId, {
     ]
   );
 
-  if (res && res.rows.length > 0) {
-    return res.rows[0];
+  if (res) {
+    return res.rows[0] || null;
   }
+  guardProduction();
 
   const q = mockStore.queues.find((q) => q.id === queueId && (q.business_id === businessId || q.business_id === 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'));
   if (!q) return null;
@@ -757,6 +786,11 @@ export async function skipToken(tokenId, queueId, businessId) {
     return skipRes.rows[0];
   }
 
+  if (skipRes && skipRes.rows.length === 0) {
+    return null;
+  }
+  guardProduction();
+
   // Fallback for mockStore
   const token = mockStore.tokens.find(
     (t) =>
@@ -770,7 +804,6 @@ export async function skipToken(tokenId, queueId, businessId) {
   token.status = 'SKIPPED';
   token.updated_at = new Date().toISOString();
 
-  // Recalculate positions for remaining WAITING tokens in mockStore
   let pos = 1;
   mockStore.tokens
     .filter(
@@ -788,13 +821,6 @@ export async function skipToken(tokenId, queueId, businessId) {
 
 /**
  * Returns the average actual service time (in minutes) for the last `limit` SERVED tokens
- * in the given queue. Used by the Phase 9 AI layer to build a real throughput signal.
- *
- * Returns null when:
- * - No served tokens exist yet (queue is new today)
- * - served_at or called_at timestamps are absent
- * - Database is offline (mockStore path has no served_at timestamps)
- * - Any query error
  */
 export async function getRecentThroughput(queueId, limit = 10) {
   const res = await query(
@@ -815,11 +841,14 @@ export async function getRecentThroughput(queueId, limit = 10) {
     [queueId, limit]
   );
 
-  if (res && res.rows.length > 0 && res.rows[0].avg_minutes != null) {
-    return parseFloat(res.rows[0].avg_minutes);
+  if (res) {
+    if (res.rows.length > 0 && res.rows[0].avg_minutes != null) {
+      return parseFloat(res.rows[0].avg_minutes);
+    }
+    return null;
   }
+  guardProduction();
 
-  // mockStore path: calculate from in-memory served tokens if available
   const servedWithBoth = mockStore.tokens.filter(
     (t) => t.queue_id === queueId && t.status === 'SERVED' && t.served_at && t.called_at
   );
@@ -829,7 +858,7 @@ export async function getRecentThroughput(queueId, limit = 10) {
   const avgMs =
     recent.reduce((sum, t) => sum + (new Date(t.served_at) - new Date(t.called_at)), 0) /
     recent.length;
-  return Math.round((avgMs / 60000) * 10) / 10; // minutes, 1 decimal
+  return Math.round((avgMs / 60000) * 10) / 10;
 }
 
 export default {
@@ -860,4 +889,3 @@ export default {
   skipToken,
   getRecentThroughput,
 };
-

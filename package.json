@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "backend": "node backend/server.js",
     "dev:backend": "node --watch backend/server.js",
+    "db:migrate": "node backend/scripts/runMigrations.js",
     "test": "node --test backend/tests/*.test.js"
   },
   "keywords": [

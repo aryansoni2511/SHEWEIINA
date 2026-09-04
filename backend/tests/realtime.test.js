@@ -51,13 +51,54 @@ test('Phase 7B Realtime Queue Updates Test Suite', async (t) => {
       assert.ok(data.message.includes('Must provide either tokenId or authorized businessId'));
     });
 
-    // --- Test 2: Business subscription without matching auth token returns 403 (Tenant Isolation) ---
-    await t.test('GET /api/v1/queue/stream with businessId but no auth token returns 403', async () => {
-      const res = await fetch(`${baseUrl}/api/v1/queue/stream?businessId=${bizId}`);
+    // --- Test 2a: Business subscription with mismatched auth token returns 403 (Tenant Isolation) ---
+    await t.test('GET /api/v1/queue/stream with mismatched business token returns 403', async () => {
+      // Create second business to get token
+      const biz2Res = await fetch(`${baseUrl}/api/v1/auth/register-business`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Other Biz Owner',
+          email: `other_biz_${ts}@example.com`,
+          phone: '+919900002222',
+          password: pass,
+          businessName: 'Other Business',
+          category: 'salon',
+          city: 'Delhi',
+        }),
+      });
+      const biz2Data = await biz2Res.json();
+      const otherToken = biz2Data.data.token;
+
+      const res = await fetch(`${baseUrl}/api/v1/queue/stream?businessId=${bizId}`, {
+        headers: { Authorization: `Bearer ${otherToken}` },
+      });
       assert.strictEqual(res.status, 403);
       const data = await res.json();
       assert.strictEqual(data.success, false);
       assert.ok(data.message.includes('Forbidden'));
+    });
+
+    // --- Test 2b: Public Waiting Room Display can connect to SSE unauthenticated ---
+    await t.test('Public display can open SSE stream unauthenticated with public=true', async () => {
+      await new Promise((resolve, reject) => {
+        const req = http.get(`${baseUrl}/api/v1/queue/stream?businessId=${bizId}&public=true`, (res) => {
+          assert.strictEqual(res.statusCode, 200);
+          assert.strictEqual(res.headers['content-type'], 'text/event-stream');
+          assert.strictEqual(res.headers['connection'], 'keep-alive');
+
+          let received = '';
+          res.on('data', (chunk) => {
+            received += chunk.toString();
+            if (received.includes('event: connected')) {
+              req.destroy();
+              resolve();
+            }
+          });
+          res.on('error', reject);
+        });
+        req.on('error', reject);
+      });
     });
 
     // --- Test 3: Customer can connect with tokenId and receives SSE initial event ---

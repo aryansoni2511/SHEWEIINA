@@ -12,7 +12,7 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const from = location.state?.from?.pathname || '/dashboard';
+  const from = location.state?.from?.pathname || (typeof location.state?.from === 'string' ? location.state.from : null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -23,9 +23,9 @@ export default function LoginPage() {
       const res = await login(email, password);
       const user = res.data.user;
       if (user.role === 'BUSINESS') {
-        navigate('/dashboard');
+        navigate(from && from !== '/' && !from.startsWith('/customer') ? from : '/dashboard');
       } else {
-        navigate(from === '/dashboard' ? '/' : from);
+        navigate(from && from !== '/dashboard' ? from : '/customer/dashboard');
       }
     } catch (err) {
       setError(err.message || 'Login failed. Please check your credentials.');

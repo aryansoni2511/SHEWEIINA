@@ -3,8 +3,14 @@ import { query } from '../config/db.js';
 /**
  * Notification Model — Data Access Layer
  * Handles all persistence operations for the in-app notification system.
- * Falls back to an in-memory mock store when PostgreSQL is unavailable (dev/test).
+ * Falls back to an in-memory mock store only during offline dev/unit testing when PostgreSQL is unconfigured.
  */
+
+function guardProduction() {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Database error: PostgreSQL connection is required in production mode. Mock fallback is disabled.');
+  }
+}
 
 // In-Memory Fallback Store
 const mockNotifications = [];
@@ -19,9 +25,10 @@ export async function createNotification({ userId, type, title, message, metadat
     [userId, type, title, message, metadata ? JSON.stringify(metadata) : null]
   );
 
-  if (res && res.rows.length > 0) {
-    return res.rows[0];
+  if (res) {
+    return res.rows[0] || null;
   }
+  guardProduction();
 
   // Fallback
   const notification = {
@@ -50,6 +57,7 @@ export async function findNotificationsByUserId(userId, limit = 50) {
   );
 
   if (res) return res.rows;
+  guardProduction();
 
   return [...mockNotifications]
     .filter((n) => n.user_id === userId)
@@ -63,7 +71,8 @@ export async function findNotificationById(notificationId) {
     [notificationId]
   );
 
-  if (res && res.rows.length > 0) return res.rows[0];
+  if (res) return res.rows[0] || null;
+  guardProduction();
 
   return mockNotifications.find((n) => n.id === notificationId) || null;
 }
@@ -74,7 +83,8 @@ export async function countUnreadNotifications(userId) {
     [userId]
   );
 
-  if (res && res.rows.length > 0) return res.rows[0].count;
+  if (res) return res.rows[0] ? res.rows[0].count : 0;
+  guardProduction();
 
   return mockNotifications.filter((n) => n.user_id === userId && !n.is_read).length;
 }
@@ -90,7 +100,8 @@ export async function markNotificationRead(notificationId, userId) {
     [notificationId, userId]
   );
 
-  if (res && res.rows.length > 0) return res.rows[0];
+  if (res) return res.rows[0] || null;
+  guardProduction();
 
   // Fallback — enforces ownership: only update if user_id matches
   const notif = mockNotifications.find(
@@ -112,6 +123,7 @@ export async function markAllNotificationsRead(userId) {
   );
 
   if (res) return res.rows;
+  guardProduction();
 
   const updated = [];
   mockNotifications.forEach((n) => {
@@ -131,7 +143,7 @@ export async function findExistingNotification(userId, type, tokenNumber = null)
        LIMIT 1;`,
       [userId, type]
     );
-    if (res && res.rows.length > 0) return res.rows[0];
+    if (res) return res.rows[0] || null;
   } else {
     const res = await query(
       `SELECT * FROM notifications
@@ -139,8 +151,9 @@ export async function findExistingNotification(userId, type, tokenNumber = null)
        LIMIT 1;`,
       [userId, type, String(tokenNumber)]
     );
-    if (res && res.rows.length > 0) return res.rows[0];
+    if (res) return res.rows[0] || null;
   }
+  guardProduction();
 
   return (
     mockNotifications.find(

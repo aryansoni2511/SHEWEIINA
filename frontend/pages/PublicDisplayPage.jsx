@@ -107,6 +107,7 @@ export default function PublicDisplayPage() {
     if (businessId) {
       unsubscribe = subscribeQueueRealtime({
         businessId,
+        isPublic: true,
         onUpdate: () => {
           if (isMounted) fetchDisplayData(true);
         },
