@@ -58,7 +58,11 @@ export function AuthProvider({ children }) {
 
   const registerCustomer = async (data) => {
     const res = await registerCustomerApi(data);
-    const { token: jwtToken, user: userData } = res.data;
+    const resData = res?.data;
+    if (!resData?.token || !resData?.user) {
+      throw new Error('Registration failed: unexpected response from server.');
+    }
+    const { token: jwtToken, user: userData } = resData;
     setStoredToken(jwtToken);
     setToken(jwtToken);
     setUser(userData);
@@ -67,7 +71,11 @@ export function AuthProvider({ children }) {
 
   const registerBusiness = async (data) => {
     const res = await registerBusinessApi(data);
-    const { token: jwtToken, user: userData } = res.data;
+    const resData = res?.data;
+    if (!resData?.token || !resData?.user) {
+      throw new Error('Registration failed: unexpected response from server.');
+    }
+    const { token: jwtToken, user: userData } = resData;
     setStoredToken(jwtToken);
     setToken(jwtToken);
     setUser(userData);

@@ -48,6 +48,13 @@ async function request(endpoint, options = {}) {
       throw error;
     }
 
+    // Guard: if server returned a non-JSON body (e.g. HTML 404 from a misconfigured
+    // static host), result is null. Surface a clear error instead of crashing callers
+    // with "Cannot read properties of null (reading 'data')".
+    if (result === null) {
+      throw new Error('Server returned an unexpected non-JSON response. Check API base URL and network configuration.');
+    }
+
     return result;
   } catch (error) {
     if (error.name === 'TypeError' && error.message.includes('fetch')) {
