@@ -19,7 +19,7 @@ export default function ProblemSection() {
       title: 'Unpredictable Long Waits',
       badge: 'Friction #1',
       description: 'Clients wait 45+ minutes in crowded lobbies with zero visibility on when their turn will actually come, causing intense boredom and anxiety.',
-      impact: '68% abandon wait > 20 min',
+      impact: 'High Customer Drop-off',
       color: 'rose',
       icon: (
         <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -71,7 +71,7 @@ export default function ProblemSection() {
       title: 'Staff Overwhelm & Chaos',
       badge: 'Friction #5',
       description: 'Receptionists waste up to 40% of their workday answering "When is my turn?" instead of attending to clients, managing appointments, or driving sales.',
-      impact: '-40% Productivity Lost',
+      impact: 'Staff Administrative Burden',
       color: 'orange',
       icon: (
         <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -84,7 +84,7 @@ export default function ProblemSection() {
       title: 'Silent Revenue & Client Loss',
       badge: 'Friction #6',
       description: 'Impatient walk-in clients turn around and leave when they see a packed lobby. Competitors with smooth digital booking capture your lost revenue.',
-      impact: 'Up to 30% Revenue Lost',
+      impact: 'Walk-in Customer Loss',
       color: 'pink',
       icon: (
         <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">

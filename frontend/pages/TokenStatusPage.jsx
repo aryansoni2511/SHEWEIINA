@@ -192,20 +192,26 @@ export default function TokenStatusPage() {
                 setSoundEnabled((prev) => !prev);
               }}
               title={soundEnabled ? 'Sound is ON (Click to toggle/test)' : 'Sound is MUTED (Click to enable)'}
-              className={`text-xs px-2.5 py-1 rounded-lg font-medium border transition-colors flex items-center gap-1 ${
+              className={`text-xs px-2.5 py-1.5 rounded-lg font-medium border transition-colors flex items-center gap-1.5 ${
                 soundEnabled
                   ? 'bg-blue-500/10 border-blue-500/30 text-blue-400 hover:bg-blue-500/20'
                   : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'
               }`}
             >
-              <span>{soundEnabled ? '🔔 Sound ON' : '🔕 Muted'}</span>
+              {soundEnabled ? (
+                <svg className="w-3.5 h-3.5 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/></svg>
+              ) : (
+                <svg className="w-3.5 h-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+              )}
+              <span>{soundEnabled ? 'Sound ON' : 'Muted'}</span>
             </button>
             <button
               onClick={() => fetchTokenStatus(true)}
               disabled={refreshing}
-              className="text-xs font-semibold text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors"
+              className="text-xs font-medium text-blue-400 hover:text-blue-300 flex items-center gap-1.5 transition-colors px-2 py-1.5 rounded-lg hover:bg-slate-800"
             >
-              <span className={refreshing ? 'animate-spin' : ''}>🔄</span> Refresh
+              <svg className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+              <span>Refresh</span>
             </button>
           </div>
         </div>
@@ -248,7 +254,7 @@ export default function TokenStatusPage() {
           <div className="text-xs uppercase tracking-widest text-slate-400 font-semibold mb-1">
             Token Number
           </div>
-          <div className="text-6xl font-black text-white font-mono tracking-wider">
+          <div className="text-5xl sm:text-6xl font-black text-white font-mono tracking-tight">
             #{tokenData?.tokenNumber || 'S-101'}
           </div>
         </div>

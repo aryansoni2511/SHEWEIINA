@@ -159,18 +159,20 @@ export default function CustomerDashboardPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <Link
               to="/"
-              className="px-4 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs font-semibold rounded-xl transition-colors text-slate-300"
+              className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-xs font-medium rounded-xl transition-all text-slate-200 flex items-center gap-1.5 shadow-sm"
             >
-              🏠 Home
+              <svg className="w-3.5 h-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M9 22V12h6v10"/></svg>
+              <span>Home</span>
             </Link>
             <button
               onClick={handleLogout}
-              className="px-4 py-2 bg-rose-950/80 hover:bg-rose-900 border border-rose-800/80 text-xs font-semibold rounded-xl transition-colors text-rose-300"
+              className="px-3.5 py-2 bg-slate-900 hover:bg-rose-950/60 border border-slate-800 hover:border-rose-900/80 text-xs font-medium rounded-xl transition-all text-slate-300 hover:text-rose-300 flex items-center gap-1.5 shadow-sm"
             >
-              Log Out
+              <svg className="w-3.5 h-3.5 text-rose-400/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+              <span>Log Out</span>
             </button>
           </div>
         </div>
@@ -256,34 +258,41 @@ export default function CustomerDashboardPage() {
                 <div className="flex flex-col gap-2 w-full sm:w-auto">
                   <Link
                     to={`/token/${activeToken.tokenId}`}
-                    className="w-full sm:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs rounded-xl shadow-lg shadow-blue-600/20 text-center transition-all"
+                    className="w-full sm:w-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs rounded-xl shadow-lg shadow-blue-600/20 text-center transition-all flex items-center justify-center gap-1.5"
                   >
-                    📱 Track Live Token
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>
+                    <span>Track Live Token</span>
                   </Link>
 
                   {activeToken.status === 'WAITING' && (
                     <button
                       onClick={() => setShowConfirmModal(true)}
                       disabled={cancelling}
-                      className="w-full sm:w-auto px-6 py-2.5 bg-rose-950/80 hover:bg-rose-900 text-rose-300 border border-rose-800/80 font-semibold text-xs rounded-xl transition-all"
+                      className="w-full sm:w-auto px-5 py-2 bg-rose-950/80 hover:bg-rose-900 text-rose-300 border border-rose-800/80 font-medium text-xs rounded-xl transition-all flex items-center justify-center gap-1.5"
                     >
-                      {cancelling ? 'Cancelling...' : '🚫 Cancel Queue'}
+                      <svg className="w-3.5 h-3.5 text-rose-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+                      <span>{cancelling ? 'Cancelling...' : 'Cancel Queue'}</span>
                     </button>
                   )}
                 </div>
               </div>
             </div>
           ) : (
-            <div className="py-10 text-center space-y-3">
-              <div className="text-3xl">🎫</div>
-              <p className="text-sm font-semibold text-slate-300">You currently have no active queue token.</p>
-              <p className="text-xs text-slate-500">Visit any salon or clinic page to join a queue digitally.</p>
-              <div className="pt-2">
+            <div className="py-12 px-6 text-center flex flex-col items-center">
+              <div className="w-14 h-14 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-center text-slate-500 mb-4 shadow-inner">
+                <svg className="w-7 h-7 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+                </svg>
+              </div>
+              <p className="text-sm font-semibold text-slate-200">You currently have no active queue token</p>
+              <p className="text-xs text-slate-400 mt-1 max-w-sm">Visit any salon or clinic page to check in and skip the physical waiting room.</p>
+              <div className="mt-5">
                 <Link
                   to="/join/demo"
-                  className="inline-block px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-xl transition-colors"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-xl shadow-lg shadow-blue-600/20 transition-all active:scale-95"
                 >
-                  Browse Demo Salon Queue
+                  <span>Explore Demo Queue</span>
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
                 </Link>
               </div>
             </div>
@@ -321,8 +330,9 @@ export default function CustomerDashboardPage() {
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
+              <svg className="w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
               <h2 className="text-xs uppercase font-bold text-slate-400 tracking-wider">
-                🔔 Notifications
+                Notifications
               </h2>
               {unreadCount > 0 && (
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">

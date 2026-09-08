@@ -52,7 +52,7 @@ export default function CTASection() {
 
             {/* Subheading */}
             <p className="mt-6 text-lg sm:text-2xl text-slate-300 leading-relaxed max-w-2xl mx-auto font-normal">
-              Join hundreds of businesses improving customer experience with Shewwina.
+              Transform your customer lobby and eliminate waiting room chaos with Shewwina.
             </p>
 
             {/* CTA Buttons */}

@@ -4,6 +4,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { getPublicQueueDisplayApi } from '../services/api';
 import { subscribeQueueRealtime } from '../services/realtime';
 import { playCounterChime, unlockAudio } from '../utils/audioChime';
+import LogoMark from '../components/LogoMark';
 
 /**
  * PublicDisplayPage — Phase 12 Public Live Waiting Room Display & TV Counter Signage
@@ -220,9 +221,7 @@ export default function PublicDisplayPage() {
         
         {/* Left: Venue Identity */}
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-black text-2xl shadow-lg shadow-blue-500/20">
-            S
-          </div>
+          <LogoMark className="w-12 h-12" variant="blue" />
           <div>
             <div className="flex items-center gap-2.5">
               <h1 className="text-xl lg:text-2xl font-black text-white tracking-tight leading-tight">

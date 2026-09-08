@@ -132,16 +132,16 @@ export default function SolutionSection() {
         <div className="bg-slate-950 rounded-2xl p-5 border border-slate-800 text-white shadow-inner">
           <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
             <span>Queue Velocity & Analytics</span>
-            <span className="text-emerald-400 font-bold">99.4% CSAT</span>
+            <span className="text-emerald-400 font-bold">Live Queue Metrics</span>
           </div>
           <div className="grid grid-cols-2 gap-2 mt-2">
             <div className="p-2 bg-slate-900 rounded-lg border border-slate-800 text-center">
               <div className="text-[10px] text-slate-400">Total Served</div>
-              <div className="text-lg font-black text-white mt-0.5">142 Clients</div>
+              <div className="text-xs font-bold text-white mt-1">Daily Volume Overview</div>
             </div>
             <div className="p-2 bg-slate-900 rounded-lg border border-slate-800 text-center">
               <div className="text-[10px] text-slate-400">Avg Wait Time</div>
-              <div className="text-lg font-black text-amber-400 mt-0.5">3.2 Mins</div>
+              <div className="text-lg font-black text-amber-400 mt-0.5">Real-time</div>
             </div>
           </div>
         </div>
