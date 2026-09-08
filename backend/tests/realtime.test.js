@@ -24,7 +24,7 @@ test('Phase 7B Realtime Queue Updates Test Suite', async (t) => {
       body: JSON.stringify({
         name: 'Realtime Hospital Admin',
         email: `realtime_biz_${ts}@example.com`,
-        phone: '+919900001111',
+        phone: '9900001111',
         password: pass,
         businessName: 'City General Hospital',
         category: 'hospital',
@@ -60,7 +60,7 @@ test('Phase 7B Realtime Queue Updates Test Suite', async (t) => {
         body: JSON.stringify({
           name: 'Other Biz Owner',
           email: `other_biz_${ts}@example.com`,
-          phone: '+919900002222',
+          phone: '9900002222',
           password: pass,
           businessName: 'Other Business',
           category: 'salon',
@@ -112,7 +112,7 @@ test('Phase 7B Realtime Queue Updates Test Suite', async (t) => {
           queueId,
           serviceId,
           customerName: 'Aarav Patel',
-          customerPhone: '+919911112222',
+          customerPhone: '9911112222',
         }),
       });
       const joinData = await joinRes.json();
@@ -248,7 +248,7 @@ test('Phase 7B Realtime Queue Updates Test Suite', async (t) => {
           queueId,
           serviceId,
           customerName: 'Priya Sharma',
-          customerPhone: '+919922223333',
+          customerPhone: '9922223333',
         }),
       });
       const joinData = await joinRes.json();
@@ -337,7 +337,7 @@ test('Phase 7B Realtime Queue Updates Test Suite', async (t) => {
           queueId,
           serviceId,
           customerName: 'Arjun Singh',
-          customerPhone: '+919933334444',
+          customerPhone: '9933334444',
         }),
       });
       const data1 = await join1.json();
@@ -351,7 +351,7 @@ test('Phase 7B Realtime Queue Updates Test Suite', async (t) => {
           queueId,
           serviceId,
           customerName: 'Meera Nair',
-          customerPhone: '+919944445555',
+          customerPhone: '9944445555',
         }),
       });
       const data2 = await join2.json();

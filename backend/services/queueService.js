@@ -31,6 +31,7 @@ import realtimeService from './realtimeService.js';
 import aiService from './aiService.js';
 import messagingService from './messagingService.js';
 import { maskCustomerName } from '../utils/mask.js';
+import { validateName, validateBusinessName, validatePhone } from '../utils/validation.js';
 
 class ValidationError extends Error {
   constructor(message, statusCode = 400) {
@@ -61,18 +62,20 @@ class ConflictError extends Error {
 }
 
 export async function processCustomerJoinQueue({ businessId, queueId, serviceId, customerName, customerPhone, userId = null }) {
-  // 1. Input Presence Validation
   if (!businessId) throw new ValidationError('businessId is required');
   if (!queueId) throw new ValidationError('queueId is required');
   if (!serviceId) throw new ValidationError('serviceId is required');
-  if (!customerName || customerName.trim() === '') throw new ValidationError('customerName is required');
-  if (!customerPhone || customerPhone.trim() === '') throw new ValidationError('customerPhone is required');
 
-  // Phone Validation
-  const phoneClean = customerPhone.replace(/[\s\-\(\)]/g, '');
-  if (phoneClean.length < 8) {
-    throw new ValidationError('Invalid customer phone number');
+  // Name validation
+  const nameCheck = validateName(customerName);
+  if (!nameCheck.valid) throw new ValidationError(nameCheck.message);
+
+  // Phone validation — strict 10-digit Indian mobile
+  if (!customerPhone || String(customerPhone).trim() === '') {
+    throw new ValidationError('customerPhone is required');
   }
+  const phoneCheck = validatePhone(String(customerPhone).trim());
+  if (!phoneCheck.valid) throw new ValidationError(phoneCheck.message);
 
   // 2. Validate Business Exists
   const business = (await findBusinessById(businessId)) || (await findBusinessBySlug(businessId));
@@ -570,12 +573,19 @@ export async function processUpdateBusinessProfile(businessId, { name, category,
     throw new ValidationError('businessId is required');
   }
 
-  if (name !== undefined && (!name || name.trim() === '')) {
-    throw new ValidationError('Business name cannot be empty');
+  // Business name validation (only when provided)
+  if (name !== undefined) {
+    const nameCheck = validateBusinessName(name);
+    if (!nameCheck.valid) throw new ValidationError(nameCheck.message);
   }
 
-  if (phone !== undefined && (!phone || phone.trim() === '')) {
-    throw new ValidationError('Business phone cannot be empty');
+  // Phone validation (only when provided) — strict 10-digit Indian mobile
+  if (phone !== undefined) {
+    if (!phone || String(phone).trim() === '') {
+      throw new ValidationError('Business phone cannot be empty');
+    }
+    const phoneCheck = validatePhone(String(phone).trim());
+    if (!phoneCheck.valid) throw new ValidationError(phoneCheck.message);
   }
 
   const existing = (await findBusinessById(businessId)) || (await findBusinessBySlug(businessId));
@@ -583,10 +593,13 @@ export async function processUpdateBusinessProfile(businessId, { name, category,
     throw new NotFoundError(`Business not found: ${businessId}`);
   }
 
+  // Re-run validateBusinessName to get normalised value for storage
+  const normalisedName = name ? validateBusinessName(name).normalized : undefined;
+
   const updated = await updateBusiness(existing.id, {
-    name: name ? name.trim() : undefined,
+    name: normalisedName,
     category: category ? category.trim() : undefined,
-    phone: phone ? phone.trim() : undefined,
+    phone: phone ? String(phone).trim() : undefined,
     address: address ? address.trim() : undefined,
     city: city ? city.trim() : undefined,
     description: description ? description.trim() : undefined,

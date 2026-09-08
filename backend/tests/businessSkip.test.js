@@ -1,4 +1,4 @@
-﻿import test from 'node:test';
+import test from 'node:test';
 import assert from 'node:assert';
 import app from '../app.js';
 
@@ -31,7 +31,7 @@ test('Phase 6B Business Skip Token Suite', async (t) => {
       body: JSON.stringify({
         name: 'Skip Test Owner A',
         email: bizAEmail,
-        phone: '+919800001111',
+        phone: '9800001111',
         password: pass,
         businessName: 'City Hospital A',
         category: 'clinic',
@@ -55,7 +55,7 @@ test('Phase 6B Business Skip Token Suite', async (t) => {
       body: JSON.stringify({
         name: 'Skip Test Owner B',
         email: bizBEmail,
-        phone: '+919800002222',
+        phone: '9800002222',
         password: pass,
         businessName: 'Municipal Office B',
         category: 'government',
@@ -83,11 +83,11 @@ test('Phase 6B Business Skip Token Suite', async (t) => {
       return data.data;
     }
 
-    const t1 = await joinCustomer('Customer One', '+919811111111');
+    const t1 = await joinCustomer('Customer One', '9811111111');
     tokenWaiting1Id = t1.tokenId;
-    const t2 = await joinCustomer('Customer Two', '+919811111112');
+    const t2 = await joinCustomer('Customer Two', '9811111112');
     tokenWaiting2Id = t2.tokenId;
-    const t3 = await joinCustomer('Customer Three', '+919811111113');
+    const t3 = await joinCustomer('Customer Three', '9811111113');
     tokenWaiting3Id = t3.tokenId;
 
     // --- Test 1: Business A can skip a WAITING token ---
@@ -195,7 +195,7 @@ test('Phase 6B Business Skip Token Suite', async (t) => {
         body: JSON.stringify({
           name: 'Random Customer',
           email: `cust_skip_${ts}@example.com`,
-          phone: '+919800009999',
+          phone: '9800009999',
           password: pass,
         }),
       });

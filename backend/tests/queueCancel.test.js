@@ -37,7 +37,7 @@ test('Phase 4B Customer Queue Management — Token Cancellation & Recalculation 
       body: JSON.stringify({
         name: 'Cancellation Test Manager',
         email: bizEmail,
-        phone: '+919888877777',
+        phone: '9888877777',
         password: pass,
         businessName: 'Cancel Test Salon',
         category: 'salon',
@@ -57,21 +57,21 @@ test('Phase 4B Customer Queue Management — Token Cancellation & Recalculation 
     const regA = await (await fetch(`${baseUrl}/api/v1/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'Customer A', email: custAEmail, phone: '+919000000001', password: pass }),
+      body: JSON.stringify({ name: 'Customer A', email: custAEmail, phone: '9000000001', password: pass }),
     })).json();
     custAToken = regA.data.token;
 
     const regB = await (await fetch(`${baseUrl}/api/v1/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'Customer B', email: custBEmail, phone: '+919000000002', password: pass }),
+      body: JSON.stringify({ name: 'Customer B', email: custBEmail, phone: '9000000002', password: pass }),
     })).json();
     custBToken = regB.data.token;
 
     const regC = await (await fetch(`${baseUrl}/api/v1/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'Customer C', email: custCEmail, phone: '+919000000003', password: pass }),
+      body: JSON.stringify({ name: 'Customer C', email: custCEmail, phone: '9000000003', password: pass }),
     })).json();
     custCToken = regC.data.token;
 
@@ -79,7 +79,7 @@ test('Phase 4B Customer Queue Management — Token Cancellation & Recalculation 
     const joinA = await (await fetch(`${baseUrl}/api/v1/queue/join`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${custAToken}` },
-      body: JSON.stringify({ businessId: bizId, queueId, serviceId, customerName: 'Customer A', customerPhone: '+919000000001' }),
+      body: JSON.stringify({ businessId: bizId, queueId, serviceId, customerName: 'Customer A', customerPhone: '9000000001' }),
     })).json();
     tokenIdA = joinA.data.tokenId;
     tokenNumA = joinA.data.tokenNumber;
@@ -87,7 +87,7 @@ test('Phase 4B Customer Queue Management — Token Cancellation & Recalculation 
     const joinB = await (await fetch(`${baseUrl}/api/v1/queue/join`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${custBToken}` },
-      body: JSON.stringify({ businessId: bizId, queueId, serviceId, customerName: 'Customer B', customerPhone: '+919000000002' }),
+      body: JSON.stringify({ businessId: bizId, queueId, serviceId, customerName: 'Customer B', customerPhone: '9000000002' }),
     })).json();
     tokenIdB = joinB.data.tokenId;
     tokenNumB = joinB.data.tokenNumber;
@@ -95,7 +95,7 @@ test('Phase 4B Customer Queue Management — Token Cancellation & Recalculation 
     const joinC = await (await fetch(`${baseUrl}/api/v1/queue/join`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${custCToken}` },
-      body: JSON.stringify({ businessId: bizId, queueId, serviceId, customerName: 'Customer C', customerPhone: '+919000000003' }),
+      body: JSON.stringify({ businessId: bizId, queueId, serviceId, customerName: 'Customer C', customerPhone: '9000000003' }),
     })).json();
     tokenIdC = joinC.data.tokenId;
     tokenNumC = joinC.data.tokenNumber;

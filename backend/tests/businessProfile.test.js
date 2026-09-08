@@ -27,7 +27,7 @@ test('Phase 5A Business Profile & Setup API Suite', async (t) => {
       body: JSON.stringify({
         name: 'Profile Owner 1',
         email: biz1Email,
-        phone: '+919777711111',
+        phone: '9777711111',
         password: pass,
         businessName: 'Original Salon Name',
         category: 'salon',
@@ -44,7 +44,7 @@ test('Phase 5A Business Profile & Setup API Suite', async (t) => {
       body: JSON.stringify({
         name: 'Profile Owner 2',
         email: biz2Email,
-        phone: '+919777722222',
+        phone: '9777722222',
         password: pass,
         businessName: 'Second Business Salon',
         category: 'clinic',
@@ -58,7 +58,7 @@ test('Phase 5A Business Profile & Setup API Suite', async (t) => {
     const resCust = await fetch(`${baseUrl}/api/v1/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'Regular Customer', email: custEmail, phone: '+919777733333', password: pass }),
+      body: JSON.stringify({ name: 'Regular Customer', email: custEmail, phone: '9777733333', password: pass }),
     });
     const dataCust = await resCust.json();
     custToken = dataCust.data.token;
@@ -87,7 +87,7 @@ test('Phase 5A Business Profile & Setup API Suite', async (t) => {
         body: JSON.stringify({
           name: 'Updated Luxury Salon',
           category: 'spa',
-          phone: '+919999900000',
+          phone: '9999900000',
           address: '100 Marine Drive',
           city: 'Mumbai',
           description: 'Premium spa and wellness center',
@@ -99,7 +99,7 @@ test('Phase 5A Business Profile & Setup API Suite', async (t) => {
       assert.strictEqual(body.success, true);
       assert.strictEqual(body.data.name, 'Updated Luxury Salon');
       assert.strictEqual(body.data.category, 'spa');
-      assert.strictEqual(body.data.phone, '+919999900000');
+      assert.strictEqual(body.data.phone, '9999900000');
     });
 
     // 3. Unauthenticated request returns 401

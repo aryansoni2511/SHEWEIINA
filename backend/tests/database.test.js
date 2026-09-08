@@ -33,7 +33,7 @@ test('Queue Model correctly retrieves business, services, and creates queue toke
     businessId: business.id,
     serviceId: services[0].id,
     customerName: 'Test Customer',
-    customerPhone: '+919999988888',
+    customerPhone: '9999988888',
   });
 
   assert.ok(newToken);

@@ -117,13 +117,13 @@ describe('Phase 11 — Provider Router & MOCK Engine', () => {
 
     const last = getLastSentSMS();
     assert.ok(last);
-    assert.strictEqual(last.to, '+919876543210');
+    assert.strictEqual(last.to, '9876543210');
     assert.strictEqual(last.message, 'Your token S-101 is ready');
   });
 
   it('3. sendWhatsApp dispatches via MOCK and stores in memory', async () => {
     const res = await sendWhatsApp({
-      to: '+919876543210',
+      to: '9876543210',
       message: 'WhatsApp alert: Token called',
       metadata: { type: 'TEST' },
     });
@@ -235,7 +235,7 @@ describe('Phase 11 — Gateway Adapter Failure Isolation', () => {
 
   it('10. Twilio returns safe error if credentials missing without throwing', async () => {
     const res = await sendTwilioMessage({
-      to: '+919876543210',
+      to: '9876543210',
       message: 'Hello',
       accountSid: null,
       authToken: null,

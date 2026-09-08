@@ -30,7 +30,7 @@ test('Phase 9 AI Queue Prediction & Optimization Test Suite', async (t) => {
       body: JSON.stringify({
         name: 'AI Test Salon',
         email: `ai_salon_${ts}@example.com`,
-        phone: '+919877701111',
+        phone: '9877701111',
         password: pass,
         businessName: 'AI Intelligence Salon',
         category: 'salon',
@@ -169,7 +169,7 @@ test('Phase 9 AI Queue Prediction & Optimization Test Suite', async (t) => {
           queueId,
           serviceId,
           customerName: 'Aarav Patel',
-          customerPhone: '+919877702222',
+          customerPhone: '9877702222',
         }),
       });
       const joinData = await joinRes.json();
@@ -230,7 +230,7 @@ test('Phase 9 AI Queue Prediction & Optimization Test Suite', async (t) => {
           queueId,
           serviceId,
           customerName: 'Kavita Roy',
-          customerPhone: '+919877703333',
+          customerPhone: '9877703333',
         }),
       });
       const joinData = await joinRes.json();
@@ -280,7 +280,7 @@ test('Phase 9 AI Queue Prediction & Optimization Test Suite', async (t) => {
           queueId,
           serviceId,
           customerName: 'Robustness Test Customer',
-          customerPhone: '+919877704444',
+          customerPhone: '9877704444',
         }),
       });
       assert.strictEqual(joinRes.status, 201);

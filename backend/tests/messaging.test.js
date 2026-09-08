@@ -1,4 +1,4 @@
-﻿import test from 'node:test';
+import test from 'node:test';
 import assert from 'node:assert';
 import app from '../app.js';
 import {
@@ -31,7 +31,7 @@ test('Phase 8 External Messaging & Customer Communication Test Suite', async (t)
       body: JSON.stringify({
         name: 'Messaging Test Clinic',
         email: `msg_clinic_${ts}@example.com`,
-        phone: '+919800003333',
+        phone: '9800003333',
         password: pass,
         businessName: 'Apex Health Clinic',
         category: 'clinic',

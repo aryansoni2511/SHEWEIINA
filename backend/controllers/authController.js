@@ -8,8 +8,8 @@ import {
 
 export async function handleRegister(req, res, next) {
   try {
-    const { name, email, phone, password } = req.body;
-    const authData = await processRegisterCustomer({ name, email, phone, password });
+    const { name, email, phone, password, confirmPassword } = req.body;
+    const authData = await processRegisterCustomer({ name, email, phone, password, confirmPassword });
     return successResponse(res, 'User registered successfully', authData, 201);
   } catch (error) {
     next(error);
@@ -18,12 +18,13 @@ export async function handleRegister(req, res, next) {
 
 export async function handleRegisterBusiness(req, res, next) {
   try {
-    const { name, email, phone, password, businessName, category, address, city } = req.body;
+    const { name, email, phone, password, confirmPassword, businessName, category, address, city } = req.body;
     const authData = await processRegisterBusiness({
       name,
       email,
       phone,
       password,
+      confirmPassword,
       businessName,
       category,
       address,

@@ -30,7 +30,7 @@ test('Phase 5B Business Services Management Suite', async (t) => {
       body: JSON.stringify({
         name: 'Govt Office Manager',
         email: bizAEmail,
-        phone: '+919666611111',
+        phone: '9666611111',
         password: pass,
         businessName: 'City Passport & License Office',
         category: 'government',
@@ -48,7 +48,7 @@ test('Phase 5B Business Services Management Suite', async (t) => {
       body: JSON.stringify({
         name: 'Hospital Admin',
         email: bizBEmail,
-        phone: '+919666622222',
+        phone: '9666622222',
         password: pass,
         businessName: 'City Care Hospital',
         category: 'clinic',
@@ -62,7 +62,7 @@ test('Phase 5B Business Services Management Suite', async (t) => {
     const custRes = await fetch(`${baseUrl}/api/v1/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'Citizen Customer', email: custEmail, phone: '+919666633333', password: pass }),
+      body: JSON.stringify({ name: 'Citizen Customer', email: custEmail, phone: '9666633333', password: pass }),
     });
     const custData = await custRes.json();
     custToken = custData.data.token;
@@ -140,7 +140,7 @@ test('Phase 5B Business Services Management Suite', async (t) => {
           queueId: queueAId,
           serviceId: createdSvcId,
           customerName: 'Citizen Customer',
-          customerPhone: '+919666633333',
+          customerPhone: '9666633333',
         }),
       });
 
@@ -188,7 +188,7 @@ test('Phase 5B Business Services Management Suite', async (t) => {
           queueId: queueAId,
           serviceId: createdSvcId,
           customerName: 'Citizen Customer 2',
-          customerPhone: '+919666633344',
+          customerPhone: '9666633344',
         }),
       });
 

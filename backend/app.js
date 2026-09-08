@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import dotenv from 'dotenv';
 import healthRoutes from './routes/healthRoutes.js';
 import queueRoutes from './routes/queueRoutes.js';
@@ -8,11 +9,16 @@ import authRoutes from './routes/authRoutes.js';
 import customerRoutes from './routes/customerRoutes.js';
 import { requestLogger } from './middleware/logger.js';
 import { notFoundHandler, globalErrorHandler } from './middleware/errorHandler.js';
-import { authRateLimiter, queueJoinRateLimiter, generalRateLimiter } from './middleware/rateLimiter.js';
+import { authRateLimiter, generalRateLimiter } from './middleware/rateLimiter.js';
 
 dotenv.config();
 
 const app = express();
+
+// ─── Security Headers (Helmet) ────────────────────────────────────────────────
+// Sets X-Content-Type-Options, X-Frame-Options, Strict-Transport-Security,
+// X-XSS-Protection, and removes X-Powered-By header.
+app.use(helmet());
 
 // Production-Ready CORS Configuration
 const frontendUrl = process.env.FRONTEND_URL;
@@ -60,6 +66,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(requestLogger);
 
 // API Routes — with route-specific rate limiters
+// Note: queueJoinRateLimiter (20/min) is applied per-route inside queueRoutes.js
 app.use('/api', healthRoutes);
 app.use('/api/v1/auth', authRateLimiter, authRoutes);
 app.use('/api/v1/customer', generalRateLimiter, customerRoutes);

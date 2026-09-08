@@ -38,7 +38,7 @@ test('Phase 6A Customer Notifications API & Lifecycle Suite', async (t) => {
       body: JSON.stringify({
         name: 'Notification Test Business',
         email: businessEmail,
-        phone: '+919900998877',
+        phone: '9900998877',
         password: pass,
         businessName: 'Apex Health Clinic',
         category: 'clinic',
@@ -61,7 +61,7 @@ test('Phase 6A Customer Notifications API & Lifecycle Suite', async (t) => {
       body: JSON.stringify({
         name: 'Customer Alice',
         email: customerAEmail,
-        phone: '+919911223344',
+        phone: '9911223344',
         password: pass,
       }),
     });
@@ -76,7 +76,7 @@ test('Phase 6A Customer Notifications API & Lifecycle Suite', async (t) => {
       body: JSON.stringify({
         name: 'Customer Bob',
         email: customerBEmail,
-        phone: '+919955667788',
+        phone: '9955667788',
         password: pass,
       }),
     });
@@ -113,7 +113,7 @@ test('Phase 6A Customer Notifications API & Lifecycle Suite', async (t) => {
           queueId,
           serviceId,
           customerName: 'Customer Alice',
-          customerPhone: '+919911223344',
+          customerPhone: '9911223344',
         }),
       });
 
@@ -162,7 +162,7 @@ test('Phase 6A Customer Notifications API & Lifecycle Suite', async (t) => {
           queueId,
           serviceId,
           customerName: 'Customer Bob',
-          customerPhone: '+919955667788',
+          customerPhone: '9955667788',
         }),
       });
       const joinBData = await joinB.json();

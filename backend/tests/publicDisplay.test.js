@@ -123,7 +123,7 @@ describe('Phase 12 — Strict Customer PII Protection', () => {
       queueId: demoQueueId,
       serviceId: demoServiceId,
       customerName: 'Vikramaditya Singhania',
-      customerPhone: '+919988776655',
+      customerPhone: '9988776655',
     });
 
     const res = await req('GET', `/api/v1/queue/display/${demoBusinessId}`);
@@ -133,7 +133,7 @@ describe('Phase 12 — Strict Customer PII Protection', () => {
 
     // Absolute prohibition on customer phone numbers
     assert.ok(!rawJson.includes('9988776655'), 'Customer phone number must never appear in public display');
-    assert.ok(!rawJson.includes('+919988776655'), 'Normalized customer phone must never appear in public display');
+    assert.ok(!rawJson.includes('9988776655'), 'Normalized customer phone must never appear in public display');
     assert.ok(!rawJson.includes('customerPhone'), 'Field customerPhone must not exist in public display');
     assert.ok(!rawJson.includes('customer_phone'), 'Field customer_phone must not exist in public display');
     assert.ok(!rawJson.includes('user_id'), 'Field user_id must not exist in public display');

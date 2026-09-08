@@ -28,7 +28,7 @@ test('Phase 4A Customer Dashboard API Suite', async (t) => {
       body: JSON.stringify({
         name: 'Salon Manager',
         email: businessEmail,
-        phone: '+919900011100',
+        phone: '9900011100',
         password: pass,
         businessName: 'Customer Test Salon',
         category: 'salon',
@@ -51,7 +51,7 @@ test('Phase 4A Customer Dashboard API Suite', async (t) => {
       body: JSON.stringify({
         name: 'Customer Alpha',
         email: customerAEmail,
-        phone: '+919911122233',
+        phone: '9911122233',
         password: pass,
       }),
     });
@@ -65,7 +65,7 @@ test('Phase 4A Customer Dashboard API Suite', async (t) => {
       body: JSON.stringify({
         name: 'Customer Beta',
         email: customerBEmail,
-        phone: '+919944455566',
+        phone: '9944455566',
         password: pass,
       }),
     });
@@ -113,7 +113,7 @@ test('Phase 4A Customer Dashboard API Suite', async (t) => {
           queueId,
           serviceId,
           customerName: 'Customer Alpha',
-          customerPhone: '+919911122233',
+          customerPhone: '9911122233',
         }),
       });
 

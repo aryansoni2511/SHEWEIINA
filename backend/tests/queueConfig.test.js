@@ -29,7 +29,7 @@ test('Phase 5C Queue Configuration API Suite', async (t) => {
       body: JSON.stringify({
         name: 'Govt Office Officer',
         email: bizAEmail,
-        phone: '+919555511111',
+        phone: '9555511111',
         password: pass,
         businessName: 'Regional Passport Office',
         category: 'government',
@@ -47,7 +47,7 @@ test('Phase 5C Queue Configuration API Suite', async (t) => {
       body: JSON.stringify({
         name: 'Clinic Doctor',
         email: bizBEmail,
-        phone: '+919555522222',
+        phone: '9555522222',
         password: pass,
         businessName: 'Apex Health Clinic',
         category: 'clinic',
@@ -61,7 +61,7 @@ test('Phase 5C Queue Configuration API Suite', async (t) => {
     const custRes = await fetch(`${baseUrl}/api/v1/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'Citizen User', email: custEmail, phone: '+919555533333', password: pass }),
+      body: JSON.stringify({ name: 'Citizen User', email: custEmail, phone: '9555533333', password: pass }),
     });
     const custData = await custRes.json();
     custToken = custData.data.token;
@@ -123,7 +123,7 @@ test('Phase 5C Queue Configuration API Suite', async (t) => {
           queueId: queueAId,
           serviceId,
           customerName: 'Citizen One',
-          customerPhone: '+919555533333',
+          customerPhone: '9555533333',
         }),
       });
 
@@ -146,7 +146,7 @@ test('Phase 5C Queue Configuration API Suite', async (t) => {
           queueId: queueAId,
           serviceId,
           customerName: 'Citizen Two',
-          customerPhone: '+919555544444',
+          customerPhone: '9555544444',
         }),
       });
       assert.strictEqual(res.status, 201);
@@ -165,7 +165,7 @@ test('Phase 5C Queue Configuration API Suite', async (t) => {
           queueId: queueAId,
           serviceId,
           customerName: 'Overflow Citizen',
-          customerPhone: '+919555555555',
+          customerPhone: '9555555555',
         }),
       });
 
@@ -204,7 +204,7 @@ test('Phase 5C Queue Configuration API Suite', async (t) => {
           queueId: queueAId,
           serviceId,
           customerName: 'New Citizen After Close',
-          customerPhone: '+919555566666',
+          customerPhone: '9555566666',
         }),
       });
 

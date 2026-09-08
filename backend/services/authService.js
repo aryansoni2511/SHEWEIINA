@@ -7,6 +7,7 @@ import {
   createBusinessWithOwner,
   findBusinessById,
 } from '../models/queueModel.js';
+import { validateName, validateBusinessName, validatePhone } from '../utils/validation.js';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = '7d';
@@ -45,10 +46,25 @@ function generateToken(user) {
   );
 }
 
-export async function processRegisterCustomer({ name, email, phone, password }) {
-  if (!name || name.trim() === '') throw new ValidationError('Name is required');
+export async function processRegisterCustomer({ name, email, phone, password, confirmPassword }) {
+  // Name validation
+  const nameCheck = validateName(name);
+  if (!nameCheck.valid) throw new ValidationError(nameCheck.message);
+
   if (!email || email.trim() === '') throw new ValidationError('Email is required');
-  if (!password || password.length < 6) throw new ValidationError('Password must be at least 6 characters');
+
+  // Password validation — minimum 8 characters
+  if (!password || password.length < 8) throw new ValidationError('Password must be at least 8 characters');
+
+  // Confirm password check (if provided by caller)
+  if (confirmPassword !== undefined && password !== confirmPassword) {
+    throw new ValidationError('Passwords do not match');
+  }
+
+  // Phone validation (required for customer registration)
+  if (!phone || String(phone).trim() === '') throw new ValidationError('Phone number is required.');
+  const phoneCheck = validatePhone(String(phone).trim());
+  if (!phoneCheck.valid) throw new ValidationError(phoneCheck.message);
 
   const existingUser = await findUserByEmail(email);
   if (existingUser) {
@@ -59,9 +75,9 @@ export async function processRegisterCustomer({ name, email, phone, password }) 
   const passwordHash = await bcrypt.hash(password, salt);
 
   const user = await createUser({
-    name: name.trim(),
-    email: email.trim(),
-    phone: phone ? phone.trim() : null,
+    name: nameCheck.normalized,
+    email: email.trim().toLowerCase(),
+    phone: String(phone).trim(),
     passwordHash,
     role: 'CUSTOMER',
   });
@@ -86,15 +102,34 @@ export async function processRegisterBusiness({
   email,
   phone,
   password,
+  confirmPassword,
   businessName,
   category = 'salon',
   address = '',
   city = '',
 }) {
-  if (!name || name.trim() === '') throw new ValidationError('Owner name is required');
+  // Owner name validation
+  const ownerNameCheck = validateName(name);
+  if (!ownerNameCheck.valid) throw new ValidationError(ownerNameCheck.message);
+
+  // Business name validation
+  const bizNameCheck = validateBusinessName(businessName);
+  if (!bizNameCheck.valid) throw new ValidationError(bizNameCheck.message);
+
   if (!email || email.trim() === '') throw new ValidationError('Email is required');
-  if (!password || password.length < 6) throw new ValidationError('Password must be at least 6 characters');
-  if (!businessName || businessName.trim() === '') throw new ValidationError('Business name is required');
+
+  // Password validation — minimum 8 characters
+  if (!password || password.length < 8) throw new ValidationError('Password must be at least 8 characters');
+
+  // Confirm password check (if provided by caller)
+  if (confirmPassword !== undefined && password !== confirmPassword) {
+    throw new ValidationError('Passwords do not match');
+  }
+
+  // Phone validation (required for business registration)
+  if (!phone || String(phone).trim() === '') throw new ValidationError('Phone number is required.');
+  const ownerPhoneCheck = validatePhone(String(phone).trim());
+  if (!ownerPhoneCheck.valid) throw new ValidationError(ownerPhoneCheck.message);
 
   const existingUser = await findUserByEmail(email);
   if (existingUser) {
@@ -105,11 +140,11 @@ export async function processRegisterBusiness({
   const passwordHash = await bcrypt.hash(password, salt);
 
   const { user, business, queue } = await createBusinessWithOwner({
-    ownerName: name.trim(),
-    email: email.trim(),
-    phone: phone ? phone.trim() : '',
+    ownerName: ownerNameCheck.normalized,
+    email: email.trim().toLowerCase(),
+    phone: String(phone).trim(),
     passwordHash,
-    businessName: businessName.trim(),
+    businessName: bizNameCheck.normalized,
     category,
     address,
     city,
@@ -145,11 +180,13 @@ export async function processLogin({ email, password }) {
 
   const user = await findUserByEmail(email);
   if (!user) {
+    // Generic error — do not reveal whether the email exists
     throw new UnauthorizedError('Invalid email or password');
   }
 
   const isMatch = await bcrypt.compare(password, user.password_hash);
   if (!isMatch) {
+    // Generic error — do not reveal that the email was found
     throw new UnauthorizedError('Invalid email or password');
   }
 
@@ -163,6 +200,7 @@ export async function processLogin({ email, password }) {
       phone: user.phone,
       role: user.role,
       businessId: user.business_id,
+      // password_hash is intentionally omitted
     },
     token,
   };
@@ -188,6 +226,7 @@ export async function processGetMe(userId) {
     phone: user.phone,
     role: user.role,
     businessId: user.business_id,
+    // password_hash intentionally omitted
     business: business ? { id: business.id, name: business.name, slug: business.slug } : null,
   };
 }
