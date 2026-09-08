@@ -11,7 +11,6 @@ import FeaturesSection from './FeaturesSection';
 import TimelineSection from './TimelineSection';
 import IndustriesSection from './IndustriesSection';
 import StatsSection from './StatsSection';
-import TestimonialsSection from './TestimonialsSection';
 import FAQSection from './FAQSection';
 import CTASection from './CTASection';
 import FooterSection from './FooterSection';
@@ -89,7 +88,6 @@ function LandingPage() {
         <TimelineSection />
         <IndustriesSection />
         <StatsSection />
-        <TestimonialsSection />
         <FAQSection />
         <CTASection />
       </main>

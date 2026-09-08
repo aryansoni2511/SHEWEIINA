@@ -130,7 +130,7 @@ export default function TokenStatusPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center p-4">
+      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-4">
         <div className="text-center space-y-3">
           <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
           <p className="text-sm font-semibold text-slate-400">Fetching Your Live Token Status...</p>
@@ -141,8 +141,8 @@ export default function TokenStatusPage() {
 
   if (errorMessage && !tokenData) {
     return (
-      <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-slate-800 rounded-3xl p-8 border border-slate-700 text-center space-y-4">
+      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-slate-900 rounded-3xl p-8 border border-slate-800 text-center space-y-4">
           <div className="text-4xl mb-2">⚠️</div>
           <h1 className="text-xl font-bold text-slate-100">Token Not Found</h1>
           <p className="text-xs text-slate-400 leading-relaxed">{errorMessage}</p>

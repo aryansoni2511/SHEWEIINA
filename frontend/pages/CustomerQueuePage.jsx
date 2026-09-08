@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getBusinessServices, joinQueue } from '../services/api';
 import { DEMO_CONFIG } from '../config/demoConfig';
+import { validateName, validatePhone } from '../utils/validation';
+import LogoMark from '../components/LogoMark';
 
 export default function CustomerQueuePage() {
   const { businessId: rawBusinessId } = useParams();
@@ -16,7 +18,11 @@ export default function CustomerQueuePage() {
   const [selectedServiceId, setSelectedServiceId] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
-  
+
+  // Field-level validation errors
+  const [nameError, setNameError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
+
   // UI States
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -56,20 +62,27 @@ export default function CustomerQueuePage() {
     e.preventDefault();
     setErrorMessage(null);
 
-    // Form Validations
+    // Form Validations — using shared validateName / validatePhone rules
     if (!selectedServiceId) {
       setErrorMessage('Please select a service before joining the queue.');
       return;
     }
-    if (!customerName || customerName.trim().length < 2) {
-      setErrorMessage('Please enter your full name (minimum 2 characters).');
+
+    const nameCheck = validateName(customerName);
+    if (!nameCheck.valid) {
+      setNameError(nameCheck.message);
+      setErrorMessage(nameCheck.message);
       return;
     }
-    const cleanPhone = customerPhone.replace(/[\s\-\(\)]/g, '');
-    if (!cleanPhone || cleanPhone.length < 8) {
-      setErrorMessage('Please enter a valid phone number (minimum 8 digits).');
+    setNameError('');
+
+    const phoneCheck = validatePhone(customerPhone);
+    if (!phoneCheck.valid) {
+      setPhoneError(phoneCheck.message);
+      setErrorMessage(phoneCheck.message);
       return;
     }
+    setPhoneError('');
 
     const targetQueueId = queueInfo?.id || DEMO_CONFIG.QUEUE_ID;
     const targetBusinessId = businessInfo?.id || DEMO_CONFIG.BUSINESS_ID;
@@ -81,7 +94,7 @@ export default function CustomerQueuePage() {
         businessId: targetBusinessId,
         queueId: targetQueueId,
         serviceId: selectedServiceId,
-        customerName: customerName.trim(),
+        customerName: nameCheck.normalized,
         customerPhone: customerPhone.trim(),
       });
 
@@ -111,9 +124,7 @@ export default function CustomerQueuePage() {
         {/* Header Branding */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-5 mb-6">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-black text-xl shadow-md">
-              S
-            </div>
+            <LogoMark className="w-10 h-10" variant="blue" iconSize="w-5 h-5" />
             <div>
               <h1 className="text-lg font-bold text-slate-900 leading-tight">
                 {businessInfo?.name || 'Shewwina Express Queue'}
@@ -185,11 +196,18 @@ export default function CustomerQueuePage() {
               id="customerName"
               type="text"
               required
-              placeholder="e.g. Rahul Sharma"
+              placeholder="e.g. Rahul Sharma (letters only)"
               value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+              onChange={(e) => {
+                setCustomerName(e.target.value);
+                if (nameError) {
+                  const c = validateName(e.target.value);
+                  setNameError(c.valid ? '' : c.message);
+                }
+              }}
+              className={`w-full px-4 py-3 bg-slate-50 border rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:bg-white transition-all ${nameError ? 'border-rose-400 focus:ring-rose-400' : 'border-slate-200 focus:ring-blue-500'}`}
             />
+            {nameError && <p className="mt-1.5 text-xs text-rose-600 font-medium">{nameError}</p>}
           </div>
 
           {/* Customer Phone */}
@@ -201,18 +219,26 @@ export default function CustomerQueuePage() {
               id="customerPhone"
               type="tel"
               required
-              placeholder="e.g. +919876543210"
+              placeholder="e.g. 9876543210 (10 digits, no +91)"
               value={customerPhone}
-              onChange={(e) => setCustomerPhone(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+              maxLength={10}
+              onChange={(e) => {
+                setCustomerPhone(e.target.value);
+                if (phoneError) {
+                  const c = validatePhone(e.target.value);
+                  setPhoneError(c.valid ? '' : c.message);
+                }
+              }}
+              className={`w-full px-4 py-3 bg-slate-50 border rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:bg-white transition-all ${phoneError ? 'border-rose-400 focus:ring-rose-400' : 'border-slate-200 focus:ring-blue-500'}`}
             />
+            {phoneError && <p className="mt-1.5 text-xs text-rose-600 font-medium">{phoneError}</p>}
           </div>
 
           {/* Submit Button */}
           <button
             type="submit"
             disabled={submitting || (queueInfo && !queueInfo.isOpen)}
-            className="w-full py-4 bg-slate-950 hover:bg-slate-800 disabled:bg-slate-300 text-white font-semibold text-base rounded-2xl shadow-xl shadow-slate-950/20 active:scale-98 transition-all flex items-center justify-center gap-2 mt-4"
+            className="w-full py-4 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-300 text-white font-semibold text-base rounded-2xl shadow-xl shadow-blue-600/25 active:scale-98 transition-all flex items-center justify-center gap-2 mt-4"
           >
             {submitting ? (
               <>

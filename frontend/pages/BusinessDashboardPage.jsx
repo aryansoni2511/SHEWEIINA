@@ -18,6 +18,7 @@ import {
 import { subscribeQueueRealtime } from '../services/realtime';
 import { useAuth } from '../context/AuthContext';
 import QRPanel from '../components/QRPanel';
+import LogoMark from '../components/LogoMark';
 
 export default function BusinessDashboardPage() {
   const { user, logout } = useAuth();
@@ -389,9 +390,7 @@ export default function BusinessDashboardPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-5 mb-8 gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center text-white font-black text-2xl shadow-lg shadow-blue-500/20">
-              S
-            </div>
+            <LogoMark className="w-12 h-12" variant="blue" />
             <div>
               <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
                 {queueData?.business?.name || user?.name || 'Shewwina Salon Dashboard'}
@@ -425,53 +424,60 @@ export default function BusinessDashboardPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2.5 flex-wrap">
             <button
               id="open-customer-qr"
               onClick={() => setShowQRPanel(true)}
-              className="px-3.5 py-2 bg-violet-950/80 hover:bg-violet-900 border border-violet-800 text-xs font-semibold rounded-xl transition-colors text-violet-300 flex items-center gap-1.5"
+              className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-xs font-medium rounded-xl transition-all text-slate-200 flex items-center gap-2 shadow-sm"
             >
-              📱 Customer QR
+              <svg className="w-3.5 h-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+              <span>Customer QR</span>
             </button>
             <a
               id="open-tv-display"
               href={`/display/${activeBusinessId}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-3.5 py-2 bg-amber-950/80 hover:bg-amber-900 border border-amber-800 text-xs font-semibold rounded-xl transition-colors text-amber-300 flex items-center gap-1.5 shadow-sm"
+              className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-xs font-medium rounded-xl transition-all text-slate-200 flex items-center gap-2 shadow-sm"
               title="Open full-screen Waiting Room TV Display in a new tab"
             >
-              📺 TV Display
+              <svg className="w-3.5 h-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+              <span>TV Display</span>
             </a>
             <button
               onClick={() => { setShowQueueSettingsModal(true); fetchQueueSettings(); }}
-              className="px-3.5 py-2 bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-800 text-xs font-semibold rounded-xl transition-colors text-emerald-300 flex items-center gap-1.5"
+              className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-xs font-medium rounded-xl transition-all text-slate-200 flex items-center gap-2 shadow-sm"
             >
-              📋 Queue Config
+              <svg className="w-3.5 h-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>
+              <span>Queue Config</span>
             </button>
             <button
               onClick={() => { setShowServicesModal(true); fetchServices(); }}
-              className="px-3.5 py-2 bg-indigo-950/80 hover:bg-indigo-900 border border-indigo-800 text-xs font-semibold rounded-xl transition-colors text-indigo-300 flex items-center gap-1.5"
+              className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-xs font-medium rounded-xl transition-all text-slate-200 flex items-center gap-2 shadow-sm"
             >
-              🛠️ Manage Services
+              <svg className="w-3.5 h-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+              <span>Manage Services</span>
             </button>
             <button
               onClick={() => setShowProfileModal(true)}
-              className="px-3.5 py-2 bg-blue-950/80 hover:bg-blue-900 border border-blue-800 text-xs font-semibold rounded-xl transition-colors text-blue-300 flex items-center gap-1.5"
+              className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-xs font-medium rounded-xl transition-all text-slate-200 flex items-center gap-2 shadow-sm"
             >
-              ⚙️ Business Settings
+              <svg className="w-3.5 h-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+              <span>Business Settings</span>
             </button>
             <button
               onClick={() => fetchQueue(false)}
-              className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs font-semibold rounded-xl transition-colors text-slate-300 flex items-center gap-1.5"
+              className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-xs font-medium rounded-xl transition-all text-slate-200 flex items-center gap-2 shadow-sm"
             >
-              🔄 Sync List
+              <svg className="w-3.5 h-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+              <span>Sync List</span>
             </button>
             <button
               onClick={handleLogout}
-              className="px-4 py-2 bg-rose-950/80 hover:bg-rose-900 border border-rose-800/80 text-xs font-semibold rounded-xl transition-colors text-rose-300"
+              className="px-3.5 py-2 bg-slate-900 hover:bg-rose-950/60 border border-slate-800 hover:border-rose-900/80 text-xs font-medium rounded-xl transition-all text-slate-300 hover:text-rose-300 flex items-center gap-1.5 shadow-sm"
             >
-              Log Out
+              <svg className="w-3.5 h-3.5 text-rose-400/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+              <span>Log Out</span>
             </button>
           </div>
         </div>

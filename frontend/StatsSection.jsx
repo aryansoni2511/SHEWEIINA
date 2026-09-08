@@ -1,203 +1,134 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React from 'react';
 
 /**
- * Shewwina Statistics Section Component
- * 
- * Aesthetic Influence: Stripe & Vercel High-Contrast SaaS Metrics
- * Includes 4 Animated Counter Metrics:
- * 1. 1000+ Businesses
- * 2. 50,000+ Customers Served
- * 3. 30% Reduced Waiting Time
- * 4. 99% Customer Satisfaction
+ * Shewwina Core Platform Capabilities & Value Section
+ *
+ * Highlights genuine operational benefits for businesses and customers:
+ * - QR virtual check-in
+ * - Real-time SMS & WhatsApp alerts
+ * - Live browser tracking without app download
+ * - Fullscreen TV lobby display
  */
 export default function StatsSection() {
-  const [hasAnimated, setHasAnimated] = useState(false);
-  const [counts, setCounts] = useState({
-    businesses: 0,
-    customers: 0,
-    reducedWait: 0,
-    csat: 0
-  });
-
-  const sectionRef = useRef(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && !hasAnimated) {
-          setHasAnimated(true);
-          animateNumbers();
-        }
-      },
-      { threshold: 0.3 }
-    );
-
-    if (sectionRef.current) {
-      observer.observe(sectionRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, [hasAnimated]);
-
-  const animateNumbers = () => {
-    const duration = 2000;
-    const steps = 60;
-    const interval = duration / steps;
-    let step = 0;
-
-    const timer = setInterval(() => {
-      step++;
-      const progress = step / steps;
-      const easeOut = 1 - Math.pow(1 - progress, 3);
-
-      setCounts({
-        businesses: Math.floor(1000 * easeOut),
-        customers: Math.floor(50000 * easeOut),
-        reducedWait: Math.floor(30 * easeOut),
-        csat: Math.floor(99 * easeOut)
-      });
-
-      if (step >= steps) {
-        setCounts({
-          businesses: 1000,
-          customers: 50000,
-          reducedWait: 30,
-          csat: 99
-        });
-        clearInterval(timer);
-      }
-    }, interval);
-  };
-
-  const stats = [
+  const capabilities = [
     {
-      id: 'businesses',
-      value: counts.businesses.toLocaleString(),
-      suffix: '+',
-      label: 'Businesses',
-      badge: 'ACTIVE PARTNERS',
-      description: 'Active salons, clinics, and service centers operating on Shewwina.',
+      id: 'qr-checkin',
+      title: 'QR Virtual Check-In',
+      badge: 'ZERO HARDWARE',
+      description: 'Customers scan a printed QR code or join online. No thermal paper rolls, ticket dispensers, or buzzer pagers required.',
       color: 'blue',
-      badgeClass: 'text-blue-400',
+      badgeClass: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
       iconBg: 'bg-blue-500/10 border-blue-500/20 text-blue-400 group-hover:bg-blue-600 group-hover:text-white',
       hoverBorder: 'hover:border-blue-500/50 hover:shadow-blue-500/10',
       icon: (
         <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m3 0h1m-1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <rect x="3" y="3" width="7" height="7" rx="1" />
+          <rect x="14" y="3" width="7" height="7" rx="1" />
+          <rect x="14" y="14" width="7" height="7" rx="1" />
+          <rect x="3" y="14" width="7" height="7" rx="1" />
         </svg>
-      )
+      ),
     },
     {
-      id: 'customers',
-      value: counts.customers.toLocaleString(),
-      suffix: '+',
-      label: 'Customers Served',
-      badge: 'TOTAL QUEUE TOKENS',
-      description: 'Virtual queue tokens issued seamlessly without lobby waiting.',
-      color: 'purple',
-      badgeClass: 'text-purple-400',
-      iconBg: 'bg-purple-500/10 border-purple-500/20 text-purple-400 group-hover:bg-purple-600 group-hover:text-white',
-      hoverBorder: 'hover:border-purple-500/50 hover:shadow-purple-500/10',
-      icon: (
-        <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-        </svg>
-      )
-    },
-    {
-      id: 'reducedWait',
-      value: counts.reducedWait,
-      suffix: '%',
-      label: 'Reduced Waiting Time',
-      badge: 'EFFICIENCY BOOST',
-      description: 'Average reduction in lobby wait times recorded across partner locations.',
+      id: 'automated-alerts',
+      title: 'Automated SMS & WhatsApp Alerts',
+      badge: 'REAL-TIME UPDATES',
+      description: 'Customers receive timely alerts as their turn nears, allowing them to wait nearby instead of crowding your physical reception.',
       color: 'emerald',
-      badgeClass: 'text-emerald-400',
+      badgeClass: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
       iconBg: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 group-hover:bg-emerald-600 group-hover:text-white',
       hoverBorder: 'hover:border-emerald-500/50 hover:shadow-emerald-500/10',
       icon: (
         <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
         </svg>
-      )
+      ),
     },
     {
-      id: 'csat',
-      value: counts.csat,
-      suffix: '%',
-      label: 'Customer Satisfaction',
-      badge: 'CSAT SCORE',
-      description: 'CSAT rating based on post-service automated SMS feedback loops.',
+      id: 'live-tracking',
+      title: 'Live Tracking on Any Device',
+      badge: 'NO APP DOWNLOAD',
+      description: 'Customers track their position, estimated wait, and live counter call from any mobile browser with audio chimes.',
+      color: 'indigo',
+      badgeClass: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20',
+      iconBg: 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white',
+      hoverBorder: 'hover:border-indigo-500/50 hover:shadow-indigo-500/10',
+      icon: (
+        <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <rect x="5" y="2" width="14" height="20" rx="2" strokeWidth="2" />
+          <path d="M12 18h.01" strokeWidth="3" strokeLinecap="round" />
+        </svg>
+      ),
+    },
+    {
+      id: 'tv-display',
+      title: 'Lobby TV Display Mode',
+      badge: 'LARGE SCREEN READY',
+      description: 'Cast to any TV or tablet monitor for high-visibility token displays with automatic bilingual voice announcements.',
       color: 'amber',
-      badgeClass: 'text-amber-400',
+      badgeClass: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
       iconBg: 'bg-amber-500/10 border-amber-500/20 text-amber-400 group-hover:bg-amber-600 group-hover:text-white',
       hoverBorder: 'hover:border-amber-500/50 hover:shadow-amber-500/10',
       icon: (
         <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+          <rect x="2" y="3" width="20" height="14" rx="2" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M8 21h8M12 17v4" />
         </svg>
-      )
-    }
+      ),
+    },
   ];
 
   return (
-    <section ref={sectionRef} id="stats" className="py-24 bg-slate-950 text-white relative overflow-hidden">
+    <section id="stats" className="py-24 bg-slate-950 text-white relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        
         {/* Section Header */}
         <div className="max-w-3xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold uppercase tracking-wider mb-4 shadow-sm">
             <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            Proven Enterprise Scale
+            Built For Real Operations
           </div>
 
           <h2 className="font-display text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-tight">
-            Transforming Customer Flow <br className="hidden sm:block" />
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400">
-              At Massive Scale
+            Queue Smarter, <br className="hidden sm:block" />
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-300 to-emerald-400">
+              Not Harder
             </span>
           </h2>
 
-          <p className="mt-4 text-base sm:text-xl text-slate-400 leading-relaxed">
-            Real impact numbers generated across hundreds of salons, healthcare clinics, and service hubs.
+          <p className="mt-4 text-base sm:text-lg text-slate-400 leading-relaxed max-w-2xl mx-auto">
+            Everything your business needs to turn chaotic waiting lines into an organized, transparent digital experience.
           </p>
         </div>
 
-        {/* 4 Animated Stat Cards Grid */}
+        {/* 4 Feature Cards Grid */}
         <div className="mt-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
-          {stats.map((st) => (
+          {capabilities.map((item) => (
             <div
-              key={st.id}
-              className={`p-8 rounded-3xl bg-slate-900/90 border border-slate-800 ${st.hoverBorder} shadow-xl hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-300 group text-center relative overflow-hidden flex flex-col justify-between`}
+              key={item.id}
+              className={`p-8 rounded-3xl bg-slate-900/90 border border-slate-800 ${item.hoverBorder} shadow-xl hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-300 group flex flex-col justify-between relative overflow-hidden`}
             >
               <div>
-                <div className={`w-14 h-14 mx-auto mb-6 rounded-2xl border flex items-center justify-center transition-colors duration-300 shadow-sm ${st.iconBg}`}>
-                  {st.icon}
+                <div className={`w-14 h-14 mb-6 rounded-2xl border flex items-center justify-center transition-colors duration-300 shadow-sm ${item.iconBg}`}>
+                  {item.icon}
                 </div>
 
-                <div className="font-display text-5xl sm:text-6xl font-black tracking-tight text-white group-hover:text-blue-400 transition-colors flex items-center justify-center">
-                  <span>{st.value}</span>
-                  <span className="text-blue-500">{st.suffix}</span>
+                <div className="inline-block px-2.5 py-1 rounded-full text-[10px] font-mono font-bold tracking-wider mb-3 border uppercase">
+                  <span className={item.badgeClass.split(' ')[0]}>{item.badge}</span>
                 </div>
 
-                <h3 className="mt-3 text-lg font-bold text-slate-200">
-                  {st.label}
+                <h3 className="text-xl font-bold text-white group-hover:text-blue-300 transition-colors">
+                  {item.title}
                 </h3>
 
-                <p className="mt-2 text-xs text-slate-400 leading-relaxed">
-                  {st.description}
+                <p className="mt-3 text-xs sm:text-sm text-slate-400 leading-relaxed">
+                  {item.description}
                 </p>
-              </div>
-
-              <div className={`mt-6 pt-4 border-t border-slate-800 text-[11px] font-mono font-semibold uppercase tracking-wider ${st.badgeClass}`}>
-                {st.badge}
               </div>
             </div>
           ))}
         </div>
-
       </div>
     </section>
   );

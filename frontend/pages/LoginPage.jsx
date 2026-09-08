@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import LogoMark from '../components/LogoMark';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -39,8 +40,8 @@ export default function LoginPage() {
         
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="w-12 h-12 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center text-white font-black text-2xl mx-auto shadow-lg shadow-blue-500/20 mb-3">
-            S
+          <div className="flex justify-center mb-3">
+            <LogoMark className="w-12 h-12" variant="blue" />
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight">Welcome Back</h1>
           <p className="text-xs text-slate-400 mt-1">Sign in to your Shewwina account</p>

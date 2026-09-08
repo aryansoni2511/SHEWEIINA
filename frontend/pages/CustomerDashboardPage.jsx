@@ -11,6 +11,7 @@ import {
   markAllNotificationsReadApi,
 } from '../services/api';
 import { subscribeQueueRealtime } from '../services/realtime';
+import LogoMark from '../components/LogoMark';
 
 export default function CustomerDashboardPage() {
   const { user, logout } = useAuth();
@@ -147,9 +148,7 @@ export default function CustomerDashboardPage() {
         {/* Header Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-5 gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center text-white font-black text-2xl shadow-lg shadow-blue-500/20">
-              S
-            </div>
+            <LogoMark className="w-12 h-12" variant="blue" />
             <div>
               <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
                 Welcome, {profile?.name || user?.name || 'Customer'}
