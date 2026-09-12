@@ -165,7 +165,7 @@ describe('Phase 10 — Customer Queue Join (end-to-end)', () => {
       businessId: demoBusinessId,
       queueId: demoQueueId,
       serviceId: demoServiceId,
-      customerName: 'Phase10 Regression',
+      customerName: 'Phase Ten Regression',
       customerPhone: '9123456780',
     });
     assert.strictEqual(res.status, 201, 'Join must return 201');

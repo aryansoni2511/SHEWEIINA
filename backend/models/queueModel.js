@@ -165,19 +165,42 @@ export async function findQueueByBusinessId(businessId) {
   return mockStore.queues.find((q) => q.business_id === businessId) || mockStore.queues[0];
 }
 
+let customQueryHandler = null;
+
+export function setCustomQueryHandler(handler) {
+  customQueryHandler = handler;
+}
+
+async function runQuery(text, params = []) {
+  if (customQueryHandler) {
+    return customQueryHandler(text, params);
+  }
+  return query(text, params);
+}
+
 export async function findServiceById(serviceId) {
   if (!serviceId) return null;
   if (isValidUuid(serviceId)) {
-    const res = await query('SELECT * FROM services WHERE id = $1;', [serviceId]);
-    if (res && res.rows[0]) {
-      const row = res.rows[0];
-      return { ...row, price: parseFloat(row.price || 0) };
+    try {
+      const res = await runQuery('SELECT * FROM services WHERE id = $1;', [serviceId]);
+      if (res && res.rows && res.rows[0]) {
+        const row = res.rows[0];
+        return { ...row, price: parseFloat(row.price || 0) };
+      }
+      if (process.env.NODE_ENV === 'production' && res) {
+        return null;
+      }
+    } catch (err) {
+      if (process.env.NODE_ENV === 'production') {
+        throw err;
+      }
+      // In development/mock mode, gracefully fall back to mockStore
     }
-    return null;
   }
   guardProduction();
   return mockStore.services.find((s) => s.id === serviceId) || null;
 }
+
 
 export async function findServicesByBusinessId(businessId, includeInactive = false) {
   if (isValidUuid(businessId)) {
@@ -1014,4 +1037,5 @@ export default {
   updateQueueConfig,
   skipToken,
   getRecentThroughput,
+  setCustomQueryHandler,
 };

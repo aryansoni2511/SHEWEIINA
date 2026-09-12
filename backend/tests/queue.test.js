@@ -44,7 +44,7 @@ test('Phase 3 & 4 Core Queue REST API Suite', async (t) => {
           queueId: validQueueId,
           serviceId: validServiceId,
           customerName: 'Amit Verma',
-          customerPhone: '+919988776655',
+          customerPhone: '9988776655',
         }),
       });
 
@@ -84,7 +84,7 @@ test('Phase 3 & 4 Core Queue REST API Suite', async (t) => {
           queueId: validQueueId,
           serviceId: validServiceId,
           customerName: 'Amit Verma',
-          customerPhone: '+919988776655',
+          customerPhone: '9988776655',
         }),
       });
 
@@ -100,7 +100,7 @@ test('Phase 3 & 4 Core Queue REST API Suite', async (t) => {
           queueId: closedQueueId,
           serviceId: validServiceId,
           customerName: 'Amit Verma',
-          customerPhone: '+919988776655',
+          customerPhone: '9988776655',
         }),
       });
 

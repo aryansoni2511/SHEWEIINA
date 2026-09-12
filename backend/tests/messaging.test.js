@@ -164,7 +164,7 @@ test('Phase 8 External Messaging & Customer Communication Test Suite', async (t)
           businessId: bizId,
           queueId,
           serviceId,
-          customerName: 'Emergency Walk-in',
+          customerName: 'Emergency Walkin',
           customerPhone: '9900112233',
         }),
       });

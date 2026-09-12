@@ -28,7 +28,7 @@ test('Phase 3 Authentication & Authorization API Suite', async (t) => {
         body: JSON.stringify({
           name: 'Ananya Roy',
           email: customerEmail,
-          phone: '+919988001122',
+          phone: '9988001122',
           password,
         }),
       });
@@ -49,6 +49,7 @@ test('Phase 3 Authentication & Authorization API Suite', async (t) => {
         body: JSON.stringify({
           name: 'Duplicate Person',
           email: customerEmail,
+          phone: '9988001122',
           password,
         }),
       });
@@ -66,7 +67,7 @@ test('Phase 3 Authentication & Authorization API Suite', async (t) => {
         body: JSON.stringify({
           name: 'Karan Johar',
           email: businessEmail,
-          phone: '+919876500000',
+          phone: '9876500000',
           password,
           businessName: 'Karan Style Studio',
           category: 'salon',
@@ -93,7 +94,7 @@ test('Phase 3 Authentication & Authorization API Suite', async (t) => {
         body: JSON.stringify({
           name: 'Rohan Mehta',
           email: otherBusinessEmail,
-          phone: '+919876511111',
+          phone: '9876511111',
           password,
           businessName: 'Rohan Clinic',
           category: 'clinic',

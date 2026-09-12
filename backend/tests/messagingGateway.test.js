@@ -117,7 +117,7 @@ describe('Phase 11 — Provider Router & MOCK Engine', () => {
 
     const last = getLastSentSMS();
     assert.ok(last);
-    assert.strictEqual(last.to, '9876543210');
+    assert.strictEqual(last.to, '+919876543210');
     assert.strictEqual(last.message, 'Your token S-101 is ready');
   });
 

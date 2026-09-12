@@ -1,4 +1,4 @@
-﻿import test from 'node:test';
+import test from 'node:test';
 import assert from 'node:assert';
 import app from '../app.js';
 
@@ -20,7 +20,7 @@ test('Phase 6B Security Hardening Suite', async (t) => {
     body: JSON.stringify({
       name: 'Security Test Customer',
       email: `sec_cust_${ts}@example.com`,
-      phone: '+919800007777',
+      phone: '9800007777',
       password: 'Password123!',
     }),
   });
@@ -33,7 +33,7 @@ test('Phase 6B Security Hardening Suite', async (t) => {
     body: JSON.stringify({
       name: 'Security Biz Owner',
       email: `sec_biz_${ts}@example.com`,
-      phone: '+919800006666',
+      phone: '9800006666',
       password: 'Password123!',
       businessName: 'Security Test Biz',
       category: 'clinic',

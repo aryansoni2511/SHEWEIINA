@@ -25,7 +25,7 @@ test('Phase 5A Business Profile & Setup API Suite', async (t) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        name: 'Profile Owner 1',
+        name: 'Profile Owner One',
         email: biz1Email,
         phone: '9777711111',
         password: pass,
@@ -42,7 +42,7 @@ test('Phase 5A Business Profile & Setup API Suite', async (t) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        name: 'Profile Owner 2',
+        name: 'Profile Owner Two',
         email: biz2Email,
         phone: '9777722222',
         password: pass,
