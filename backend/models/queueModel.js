@@ -119,52 +119,6 @@ const mockStore = {
   ],
 };
 
-export async function findBusinessById(businessId) {
-  if (!businessId) return null;
-  if (isValidUuid(businessId)) {
-    const res = await query('SELECT * FROM businesses WHERE (id = $1::uuid OR slug = $1::text) AND is_active = TRUE;', [businessId]);
-    if (res) return res.rows[0] || null;
-  } else {
-    const res = await query('SELECT * FROM businesses WHERE slug = $1 AND is_active = TRUE;', [businessId]);
-    if (res) return res.rows[0] || null;
-  }
-  guardProduction();
-  return mockStore.businesses.find((b) => b.id === businessId || b.slug === businessId) || null;
-}
-
-export async function findBusinessBySlug(slug) {
-  if (!slug) return null;
-  if (isValidUuid(slug)) {
-    const res = await query('SELECT * FROM businesses WHERE (id = $1::uuid OR slug = $1::text) AND is_active = TRUE;', [slug]);
-    if (res) return res.rows[0] || null;
-  } else {
-    const res = await query('SELECT * FROM businesses WHERE slug = $1 AND is_active = TRUE;', [slug]);
-    if (res) return res.rows[0] || null;
-  }
-  guardProduction();
-  return mockStore.businesses.find((b) => b.slug === slug || b.id === slug) || null;
-}
-
-export async function findQueueById(queueId) {
-  if (!queueId) return null;
-  if (isValidUuid(queueId)) {
-    const res = await query('SELECT * FROM queues WHERE id = $1;', [queueId]);
-    if (res) return res.rows[0] || null;
-  }
-  guardProduction();
-  return mockStore.queues.find((q) => q.id === queueId) || null;
-}
-
-export async function findQueueByBusinessId(businessId) {
-  if (!businessId) return null;
-  if (isValidUuid(businessId)) {
-    const res = await query('SELECT * FROM queues WHERE business_id = $1 ORDER BY is_open DESC LIMIT 1;', [businessId]);
-    if (res) return res.rows[0] || null;
-  }
-  guardProduction();
-  return mockStore.queues.find((q) => q.business_id === businessId) || mockStore.queues[0];
-}
-
 let customQueryHandler = null;
 
 export function setCustomQueryHandler(handler) {
@@ -176,6 +130,76 @@ async function runQuery(text, params = []) {
     return customQueryHandler(text, params);
   }
   return query(text, params);
+}
+
+export async function findBusinessById(businessId) {
+  if (!businessId) return null;
+  if (isValidUuid(businessId)) {
+    try {
+      const res = await runQuery('SELECT * FROM businesses WHERE (id = $1::uuid OR slug = $1::text) AND is_active = TRUE;', [businessId]);
+      if (res && res.rows) return res.rows[0] || null;
+    } catch (err) {
+      if (process.env.NODE_ENV === 'production') throw err;
+    }
+  } else {
+    try {
+      const res = await runQuery('SELECT * FROM businesses WHERE slug = $1 AND is_active = TRUE;', [businessId]);
+      if (res && res.rows) return res.rows[0] || null;
+    } catch (err) {
+      if (process.env.NODE_ENV === 'production') throw err;
+    }
+  }
+  guardProduction();
+  return mockStore.businesses.find((b) => b.id === businessId || b.slug === businessId) || null;
+}
+
+export async function findBusinessBySlug(slug) {
+  if (!slug) return null;
+  if (isValidUuid(slug)) {
+    try {
+      const res = await runQuery('SELECT * FROM businesses WHERE (id = $1::uuid OR slug = $1::text) AND is_active = TRUE;', [slug]);
+      if (res && res.rows) return res.rows[0] || null;
+    } catch (err) {
+      if (process.env.NODE_ENV === 'production') throw err;
+    }
+  } else {
+    try {
+      const res = await runQuery('SELECT * FROM businesses WHERE slug = $1 AND is_active = TRUE;', [slug]);
+      if (res && res.rows) return res.rows[0] || null;
+    } catch (err) {
+      if (process.env.NODE_ENV === 'production') throw err;
+    }
+  }
+  guardProduction();
+  return mockStore.businesses.find((b) => b.slug === slug || b.id === slug) || null;
+}
+
+export async function findQueueById(queueId) {
+  if (!queueId) return null;
+  if (isValidUuid(queueId)) {
+    try {
+      const res = await runQuery('SELECT * FROM queues WHERE id = $1;', [queueId]);
+      if (res && res.rows) return res.rows[0] || null;
+    } catch (err) {
+      if (process.env.NODE_ENV === 'production') throw err;
+    }
+  }
+  guardProduction();
+  return mockStore.queues.find((q) => q.id === queueId) || null;
+}
+
+export async function findQueueByBusinessId(businessId) {
+  if (!businessId) return null;
+  if (isValidUuid(businessId)) {
+    try {
+      const res = await runQuery('SELECT * FROM queues WHERE business_id = $1 ORDER BY is_open DESC LIMIT 1;', [businessId]);
+      if (res && res.rows) return res.rows[0] || null;
+    } catch (err) {
+      if (process.env.NODE_ENV === 'production') throw err;
+    }
+  }
+  guardProduction();
+  return mockStore.queues.find((q) => q.business_id === businessId) || mockStore.queues[0];
 }
 
 export async function findServiceById(serviceId) {
@@ -306,7 +330,7 @@ export async function toggleServiceStatus(serviceId, businessId, isActive) {
   return svc;
 }
 
-export async function createToken({ queueId, businessId, serviceId, customerName, customerPhone, estimatedWaitMinutes = 15, userId = null }) {
+export async function createToken({ queueId, businessId, serviceId, customerName, customerPhone, estimatedWaitMinutes = 15, userId = null, servicePriceAtJoin = null }) {
   const isDbEligible = isValidUuid(queueId) && isValidUuid(businessId) && (!serviceId || isValidUuid(serviceId)) && (!userId || isValidUuid(userId));
 
   let sequenceNumber;
@@ -349,12 +373,17 @@ export async function createToken({ queueId, businessId, serviceId, customerName
     position = mockStore.tokens.filter((t) => (t.queue_id === queueId || t.business_id === businessId) && t.status === 'WAITING').length + 1;
   }
 
+  // Normalise price snapshot: null if not provided or invalid
+  const priceSnapshot = (servicePriceAtJoin !== null && servicePriceAtJoin !== undefined && !isNaN(Number(servicePriceAtJoin)))
+    ? Number(servicePriceAtJoin)
+    : null;
+
   if (isDbEligible) {
     const insertRes = await query(
-      `INSERT INTO tokens (queue_id, business_id, service_id, customer_name, customer_phone, token_number, sequence_number, status, position, estimated_wait_minutes, user_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, 'WAITING', $8, $9, $10)
+      `INSERT INTO tokens (queue_id, business_id, service_id, customer_name, customer_phone, token_number, sequence_number, status, position, estimated_wait_minutes, user_id, service_price_at_join)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'WAITING', $8, $9, $10, $11)
        RETURNING *;`,
-      [queueId, businessId, serviceId, customerName, customerPhone, tokenNumber, sequenceNumber, position, estimatedWaitMinutes, userId]
+      [queueId, businessId, serviceId, customerName, customerPhone, tokenNumber, sequenceNumber, position, estimatedWaitMinutes, userId, priceSnapshot]
     );
 
     if (insertRes && insertRes.rows.length > 0) {
@@ -376,6 +405,7 @@ export async function createToken({ queueId, businessId, serviceId, customerName
     status: 'WAITING',
     position,
     estimated_wait_minutes: estimatedWaitMinutes,
+    service_price_at_join: priceSnapshot,
     called_at: null,
     served_at: null,
     created_at: new Date().toISOString(),
@@ -969,6 +999,85 @@ export async function skipToken(tokenId, queueId, businessId) {
   return token;
 }
 
+/**
+ * Calculates estimated revenue for a business for the current IST calendar day.
+ *
+ * Revenue rule: ONLY tokens with status = 'SERVED' contribute.
+ * WAITING, SERVING, CANCELLED, and SKIPPED tokens contribute ₹0.
+ *
+ * Historical correctness: uses service_price_at_join (snapshot taken at join time)
+ * when available. Falls back to the current services.price for legacy tokens
+ * (created before migration 007) that have no snapshot stored.
+ *
+ * Tenant isolation: businessId parameter is always the authenticated business's
+ * UUID from the JWT — never trusted from request body/query.
+ *
+ * IST day boundary: uses 'Asia/Kolkata' timezone so "today" respects IST midnight,
+ * not UTC midnight (which is 5:30h behind IST).
+ *
+ * @param {string} businessId — authenticated business UUID
+ * @returns {{ estimated_revenue: number, customers_served: number }}
+ */
+export async function getEstimatedRevenueToday(businessId) {
+  if (!businessId) return { estimated_revenue: 0, customers_served: 0 };
+
+  if (isValidUuid(businessId)) {
+    try {
+      const res = await runQuery(
+        `SELECT
+           COALESCE(SUM(COALESCE(t.service_price_at_join, s.price, 0)), 0)::float AS estimated_revenue,
+           COUNT(*)::int AS customers_served
+         FROM tokens t
+         LEFT JOIN services s ON t.service_id = s.id
+         WHERE t.business_id = $1
+           AND t.status = 'SERVED'
+           AND (t.served_at AT TIME ZONE 'Asia/Kolkata')::date
+               = (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Kolkata')::date;`,
+        [businessId]
+      );
+
+      if (res && res.rows) {
+        return {
+          estimated_revenue: parseFloat(res.rows[0]?.estimated_revenue ?? 0) || 0,
+          customers_served: parseInt(res.rows[0]?.customers_served ?? 0, 10) || 0,
+        };
+      }
+    } catch (err) {
+      if (process.env.NODE_ENV === 'production') throw err;
+      // In non-production, fall through to mockStore
+    }
+  }
+
+  guardProduction();
+
+  // ---- MockStore fallback (offline dev / unit-test mode) ----
+  // Determine today's date boundaries in IST.
+  const nowIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+  const todayIST = new Date(nowIST.getFullYear(), nowIST.getMonth(), nowIST.getDate());
+  const tomorrowIST = new Date(todayIST.getTime() + 86400000);
+
+  const servedToday = mockStore.tokens.filter((t) => {
+    if (t.business_id !== businessId) return false;
+    if (t.status !== 'SERVED') return false;
+    if (!t.served_at) return false;
+    // Convert served_at to IST and compare date
+    const servedAtIST = new Date(
+      new Date(t.served_at).toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })
+    );
+    return servedAtIST >= todayIST && servedAtIST < tomorrowIST;
+  });
+
+  const estimated_revenue = servedToday.reduce((sum, t) => {
+    // Prefer snapshot; fall back to current service price
+    const price = (t.service_price_at_join !== null && t.service_price_at_join !== undefined)
+      ? parseFloat(t.service_price_at_join)
+      : (parseFloat(mockStore.services.find((s) => s.id === t.service_id)?.price) || 0);
+    return sum + price;
+  }, 0);
+
+  return { estimated_revenue, customers_served: servedToday.length };
+}
+
 export async function getRecentThroughput(queueId, limit = 10) {
   if (isValidUuid(queueId)) {
     const res = await query(
@@ -1010,6 +1119,695 @@ export async function getRecentThroughput(queueId, limit = 10) {
   return Math.round((avgMs / 60000) * 10) / 10;
 }
 
+export async function getBusinessAnalytics(businessId, period = 'today') {
+  const normalizedPeriod = (period || 'today').toLowerCase().trim();
+  if (!['today', '7d', '30d'].includes(normalizedPeriod)) {
+    const err = new Error("Invalid analytics period. Must be 'today', '7d', or '30d'.");
+    err.statusCode = 400;
+    throw err;
+  }
+
+  if (!businessId || !isValidUuid(businessId)) {
+    return {
+      period: normalizedPeriod,
+      hasData: false,
+      summary: {
+        totalTokens: 0,
+        waitingCount: 0,
+        servingCount: 0,
+        servedCount: 0,
+        cancelledCount: 0,
+        skippedCount: 0,
+        totalRevenue: 0,
+        avgTicketValue: 0,
+        completionRate: 0,
+        cancellationRate: 0,
+        skipRate: 0,
+        queueLoadLevel: 'OPTIMAL',
+      },
+      flow: [],
+      revenue: {
+        totalRevenue: 0,
+        avgTicketValue: 0,
+        servedCustomerCount: 0,
+        daily: [],
+      },
+      services: [],
+      queueLoad: {
+        currentWaiting: 0,
+        currentServing: 0,
+        currentServed: 0,
+        currentCancelled: 0,
+        currentSkipped: 0,
+        peakWaiting: 0,
+        loadLevel: 'OPTIMAL',
+      },
+      waitTime: {
+        avgWaitMinutes: null,
+        minWaitMinutes: null,
+        maxWaitMinutes: null,
+        distribution: { under10m: 0, m10to20m: 0, m20to30m: 0, over30m: 0 },
+      },
+      serviceDuration: {
+        avgDurationMinutes: null,
+        minDurationMinutes: null,
+        maxDurationMinutes: null,
+        isMeasurable: false,
+      },
+      peakHour: null,
+    };
+  }
+
+  // Calculate IST date boundaries
+  const now = new Date();
+  const istFormatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  const todayStr = istFormatter.format(now);
+  const [year, month, day] = todayStr.split('-').map(Number);
+  const midnightTodayISTinUTC = Date.UTC(year, month - 1, day, 0, 0, 0) - (5.5 * 3600 * 1000);
+  const endOfTodayUTC = new Date(midnightTodayISTinUTC + 24 * 3600 * 1000);
+
+  let startDateUTC;
+  let numDays = 1;
+  if (normalizedPeriod === '7d') {
+    numDays = 7;
+    startDateUTC = new Date(midnightTodayISTinUTC - 6 * 24 * 3600 * 1000);
+  } else if (normalizedPeriod === '30d') {
+    numDays = 30;
+    startDateUTC = new Date(midnightTodayISTinUTC - 29 * 24 * 3600 * 1000);
+  } else {
+    numDays = 1;
+    startDateUTC = new Date(midnightTodayISTinUTC);
+  }
+
+  const startIso = startDateUTC.toISOString();
+  const endIso = endOfTodayUTC.toISOString();
+
+  // Helper for 12h label
+  const formatHourLabel = (h) => `${h === 0 ? 12 : h > 12 ? h - 12 : h}${h >= 12 ? 'pm' : 'am'}`;
+
+  // ─── 1. Live PostgreSQL Execution via runQuery ────────────────────────────
+  try {
+    const summaryRes = await runQuery(
+      `SELECT
+         COUNT(*)::int AS total_tokens,
+         COUNT(CASE WHEN t.status = 'WAITING' THEN 1 END)::int AS waiting_count,
+         COUNT(CASE WHEN t.status = 'SERVING' THEN 1 END)::int AS serving_count,
+         COUNT(CASE WHEN t.status = 'SERVED' THEN 1 END)::int AS served_count,
+         COUNT(CASE WHEN t.status = 'CANCELLED' THEN 1 END)::int AS cancelled_count,
+         COUNT(CASE WHEN t.status = 'SKIPPED' THEN 1 END)::int AS skipped_count,
+         COALESCE(SUM(CASE WHEN t.status = 'SERVED' THEN COALESCE(t.service_price_at_join, s.price, 0) ELSE 0 END), 0)::float AS total_revenue,
+         ROUND(AVG(CASE WHEN t.status IN ('SERVING', 'SERVED') AND (t.called_at IS NOT NULL OR t.served_at IS NOT NULL)
+           THEN EXTRACT(EPOCH FROM (COALESCE(t.called_at, t.served_at) - t.created_at)) / 60
+           ELSE NULL END)::numeric, 1)::float AS avg_wait_minutes,
+         ROUND(MIN(CASE WHEN t.status IN ('SERVING', 'SERVED') AND (t.called_at IS NOT NULL OR t.served_at IS NOT NULL)
+           THEN EXTRACT(EPOCH FROM (COALESCE(t.called_at, t.served_at) - t.created_at)) / 60
+           ELSE NULL END)::numeric, 1)::float AS min_wait_minutes,
+         ROUND(MAX(CASE WHEN t.status IN ('SERVING', 'SERVED') AND (t.called_at IS NOT NULL OR t.served_at IS NOT NULL)
+           THEN EXTRACT(EPOCH FROM (COALESCE(t.called_at, t.served_at) - t.created_at)) / 60
+           ELSE NULL END)::numeric, 1)::float AS max_wait_minutes,
+         ROUND(AVG(CASE WHEN t.status = 'SERVED' AND t.called_at IS NOT NULL AND t.served_at IS NOT NULL
+           THEN EXTRACT(EPOCH FROM (t.served_at - t.called_at)) / 60
+           ELSE NULL END)::numeric, 1)::float AS avg_service_minutes,
+         ROUND(MIN(CASE WHEN t.status = 'SERVED' AND t.called_at IS NOT NULL AND t.served_at IS NOT NULL
+           THEN EXTRACT(EPOCH FROM (t.served_at - t.called_at)) / 60
+           ELSE NULL END)::numeric, 1)::float AS min_service_minutes,
+         ROUND(MAX(CASE WHEN t.status = 'SERVED' AND t.called_at IS NOT NULL AND t.served_at IS NOT NULL
+           THEN EXTRACT(EPOCH FROM (t.served_at - t.called_at)) / 60
+           ELSE NULL END)::numeric, 1)::float AS max_service_minutes
+       FROM tokens t
+       LEFT JOIN services s ON t.service_id = s.id
+       WHERE t.business_id = $1
+         AND t.created_at >= $2
+         AND t.created_at < $3;`,
+      [businessId, startIso, endIso]
+    );
+
+    if (summaryRes && summaryRes.rows) {
+      const sRow = summaryRes.rows[0] || {};
+      const totalTokens = parseInt(sRow.total_tokens ?? 0, 10) || 0;
+      const waitingCount = parseInt(sRow.waiting_count ?? 0, 10) || 0;
+      const servingCount = parseInt(sRow.serving_count ?? 0, 10) || 0;
+      const servedCount = parseInt(sRow.served_count ?? 0, 10) || 0;
+      const cancelledCount = parseInt(sRow.cancelled_count ?? 0, 10) || 0;
+      const skippedCount = parseInt(sRow.skipped_count ?? 0, 10) || 0;
+      const totalRevenue = parseFloat(sRow.total_revenue ?? 0) || 0;
+      const avgTicketValue = servedCount > 0 ? Math.round(totalRevenue / servedCount) : 0;
+      const completionRate = totalTokens > 0 ? Math.round((servedCount / totalTokens) * 1000) / 10 : 0;
+      const cancellationRate = totalTokens > 0 ? Math.round((cancelledCount / totalTokens) * 1000) / 10 : 0;
+      const skipRate = totalTokens > 0 ? Math.round((skippedCount / totalTokens) * 1000) / 10 : 0;
+      const queueLoadLevel = waitingCount >= 8 ? 'HIGH' : waitingCount >= 4 ? 'MODERATE' : waitingCount >= 1 ? 'LOW' : 'OPTIMAL';
+
+      // 1.2 Customer Flow Query
+      let flow = [];
+      let peakHour = null;
+
+      if (normalizedPeriod === 'today') {
+        const hourlyRes = await runQuery(
+          `SELECT
+             EXTRACT(HOUR FROM (t.created_at AT TIME ZONE 'Asia/Kolkata'))::int AS hour,
+             COUNT(*)::int AS tokens_created,
+             COUNT(CASE WHEN t.status = 'SERVED' THEN 1 END)::int AS served,
+             COUNT(CASE WHEN t.status = 'CANCELLED' THEN 1 END)::int AS cancelled,
+             COUNT(CASE WHEN t.status = 'SKIPPED' THEN 1 END)::int AS skipped
+           FROM tokens t
+           WHERE t.business_id = $1
+             AND t.created_at >= $2
+             AND t.created_at < $3
+           GROUP BY 1
+           ORDER BY 1 ASC;`,
+          [businessId, startIso, endIso]
+        );
+
+        const hourlyMap = {};
+        let maxTokens = 0;
+        let peakH = null;
+
+        if (hourlyRes && hourlyRes.rows) {
+          hourlyRes.rows.forEach((r) => {
+            const h = parseInt(r.hour, 10);
+            const created = parseInt(r.tokens_created ?? 0, 10) || 0;
+            hourlyMap[h] = {
+              tokensCreated: created,
+              served: parseInt(r.served ?? 0, 10) || 0,
+              cancelled: parseInt(r.cancelled ?? 0, 10) || 0,
+              skipped: parseInt(r.skipped ?? 0, 10) || 0,
+            };
+            if (created > maxTokens) {
+              maxTokens = created;
+              peakH = h;
+            }
+          });
+        }
+
+        const activeHours = Object.keys(hourlyMap).map(Number).sort((a, b) => a - b);
+        const minH = activeHours.length > 0 ? Math.max(0, Math.min(...activeHours) - 1) : 8;
+        const maxH = activeHours.length > 0 ? Math.min(23, Math.max(...activeHours) + 1) : 20;
+
+        for (let h = minH; h <= maxH; h++) {
+          const item = hourlyMap[h] || { tokensCreated: 0, served: 0, cancelled: 0, skipped: 0 };
+          flow.push({
+            hour: h,
+            label: formatHourLabel(h),
+            tokensCreated: item.tokensCreated,
+            served: item.served,
+            cancelled: item.cancelled,
+            skipped: item.skipped,
+          });
+        }
+
+        if (peakH !== null && maxTokens > 0) {
+          peakHour = {
+            hour: peakH,
+            label: `${formatHourLabel(peakH)}–${formatHourLabel((peakH + 1) % 24)}`,
+            tokensCreated: maxTokens,
+          };
+        }
+      } else {
+        // 7d or 30d Daily Aggregation
+        const dailyRes = await runQuery(
+          `SELECT
+             to_char(t.created_at AT TIME ZONE 'Asia/Kolkata', 'YYYY-MM-DD') AS date,
+             COUNT(*)::int AS tokens_created,
+             COUNT(CASE WHEN t.status = 'SERVED' THEN 1 END)::int AS served,
+             COUNT(CASE WHEN t.status = 'CANCELLED' THEN 1 END)::int AS cancelled,
+             COUNT(CASE WHEN t.status = 'SKIPPED' THEN 1 END)::int AS skipped,
+             COALESCE(SUM(CASE WHEN t.status = 'SERVED' THEN COALESCE(t.service_price_at_join, s.price, 0) ELSE 0 END), 0)::float AS revenue
+           FROM tokens t
+           LEFT JOIN services s ON t.service_id = s.id
+           WHERE t.business_id = $1
+             AND t.created_at >= $2
+             AND t.created_at < $3
+           GROUP BY 1
+           ORDER BY 1 ASC;`,
+          [businessId, startIso, endIso]
+        );
+
+        const dailyMap = {};
+        if (dailyRes && dailyRes.rows) {
+          dailyRes.rows.forEach((r) => {
+            dailyMap[r.date] = {
+              tokensCreated: parseInt(r.tokens_created ?? 0, 10) || 0,
+              served: parseInt(r.served ?? 0, 10) || 0,
+              cancelled: parseInt(r.cancelled ?? 0, 10) || 0,
+              skipped: parseInt(r.skipped ?? 0, 10) || 0,
+              revenue: parseFloat(r.revenue ?? 0) || 0,
+            };
+          });
+        }
+
+        let maxDayTokens = 0;
+        let peakDay = null;
+
+        for (let d = 0; d < numDays; d++) {
+          const dayDate = new Date(startDateUTC.getTime() + d * 24 * 3600 * 1000 + (5.5 * 3600 * 1000));
+          const dateStr = dayDate.toISOString().slice(0, 10);
+          const dayLabel = dayDate.toLocaleDateString('en-IN', {
+            timeZone: 'Asia/Kolkata',
+            weekday: numDays <= 7 ? 'short' : undefined,
+            day: 'numeric',
+            month: 'short',
+          });
+
+          const item = dailyMap[dateStr] || { tokensCreated: 0, served: 0, cancelled: 0, skipped: 0, revenue: 0 };
+          flow.push({
+            date: dateStr,
+            dayLabel,
+            tokensCreated: item.tokensCreated,
+            served: item.served,
+            cancelled: item.cancelled,
+            skipped: item.skipped,
+            revenue: item.revenue,
+          });
+
+          if (item.tokensCreated > maxDayTokens) {
+            maxDayTokens = item.tokensCreated;
+            peakDay = dayLabel;
+          }
+        }
+
+        if (peakDay !== null && maxDayTokens > 0) {
+          peakHour = {
+            label: `Peak: ${peakDay}`,
+            tokensCreated: maxDayTokens,
+          };
+        }
+      }
+
+      // 1.3 Service Breakdown Query
+      const servicesRes = await runQuery(
+        `SELECT
+           COALESCE(s.name, 'General Service') AS service_name,
+           t.service_id,
+           COUNT(*)::int AS tokens,
+           COUNT(CASE WHEN t.status = 'SERVED' THEN 1 END)::int AS served,
+           COUNT(CASE WHEN t.status = 'CANCELLED' THEN 1 END)::int AS cancelled,
+           COUNT(CASE WHEN t.status = 'SKIPPED' THEN 1 END)::int AS skipped,
+           COALESCE(SUM(CASE WHEN t.status = 'SERVED' THEN COALESCE(t.service_price_at_join, s.price, 0) ELSE 0 END), 0)::float AS revenue,
+           ROUND(AVG(CASE WHEN t.status IN ('SERVING', 'SERVED') AND (t.called_at IS NOT NULL OR t.served_at IS NOT NULL)
+             THEN EXTRACT(EPOCH FROM (COALESCE(t.called_at, t.served_at) - t.created_at)) / 60
+             ELSE NULL END)::numeric, 1)::float AS avg_wait_minutes
+         FROM tokens t
+         LEFT JOIN services s ON t.service_id = s.id
+         WHERE t.business_id = $1
+           AND t.created_at >= $2
+           AND t.created_at < $3
+         GROUP BY 1, 2
+         ORDER BY tokens DESC;`,
+        [businessId, startIso, endIso]
+      );
+
+      const services = (servicesRes?.rows || []).map((r) => {
+        const sTokens = parseInt(r.tokens ?? 0, 10) || 0;
+        return {
+          serviceId: r.service_id || null,
+          serviceName: r.service_name || 'General Service',
+          tokens: sTokens,
+          served: parseInt(r.served ?? 0, 10) || 0,
+          cancelled: parseInt(r.cancelled ?? 0, 10) || 0,
+          skipped: parseInt(r.skipped ?? 0, 10) || 0,
+          revenue: parseFloat(r.revenue ?? 0) || 0,
+          avgWaitMinutes: r.avg_wait_minutes != null ? parseFloat(r.avg_wait_minutes) : null,
+          percentage: totalTokens > 0 ? Math.round((sTokens / totalTokens) * 1000) / 10 : 0,
+        };
+      });
+
+      // 1.4 Wait Time Distribution Query
+      const distRes = await runQuery(
+        `SELECT
+           COUNT(CASE WHEN wait_mins < 10 THEN 1 END)::int AS under_10m,
+           COUNT(CASE WHEN wait_mins >= 10 AND wait_mins < 20 THEN 1 END)::int AS m10_to_20m,
+           COUNT(CASE WHEN wait_mins >= 20 AND wait_mins < 30 THEN 1 END)::int AS m20_to_30m,
+           COUNT(CASE WHEN wait_mins >= 30 THEN 1 END)::int AS over_30m
+         FROM (
+           SELECT EXTRACT(EPOCH FROM (COALESCE(t.called_at, t.served_at) - t.created_at)) / 60 AS wait_mins
+           FROM tokens t
+           WHERE t.business_id = $1
+             AND t.status IN ('SERVING', 'SERVED')
+             AND (t.called_at IS NOT NULL OR t.served_at IS NOT NULL)
+             AND t.created_at >= $2
+             AND t.created_at < $3
+         ) w;`,
+        [businessId, startIso, endIso]
+      );
+
+      const dRow = distRes?.rows?.[0] || {};
+      const waitDistribution = {
+        under10m: parseInt(dRow.under_10m ?? 0, 10) || 0,
+        m10to20m: parseInt(dRow.m10_to_20m ?? 0, 10) || 0,
+        m20to30m: parseInt(dRow.m20_to_30m ?? 0, 10) || 0,
+        over30m: parseInt(dRow.over_30m ?? 0, 10) || 0,
+      };
+
+      // Daily revenue array for revenue component
+      const dailyRevenue = normalizedPeriod === 'today'
+        ? [{ date: todayStr, dayLabel: 'Today', revenue: totalRevenue, served: servedCount }]
+        : flow.map((item) => ({
+            date: item.date,
+            dayLabel: item.dayLabel,
+            revenue: item.revenue ?? 0,
+            served: item.served ?? 0,
+          }));
+
+      return {
+        period: normalizedPeriod,
+        hasData: totalTokens > 0,
+        summary: {
+          totalTokens,
+          waitingCount,
+          servingCount,
+          servedCount,
+          cancelledCount,
+          skippedCount,
+          totalRevenue,
+          avgTicketValue,
+          completionRate,
+          cancellationRate,
+          skipRate,
+          queueLoadLevel,
+        },
+        flow,
+        revenue: {
+          totalRevenue,
+          avgTicketValue,
+          servedCustomerCount: servedCount,
+          daily: dailyRevenue,
+        },
+        services,
+        queueLoad: {
+          currentWaiting: waitingCount,
+          currentServing: servingCount,
+          currentServed: servedCount,
+          currentCancelled: cancelledCount,
+          currentSkipped: skippedCount,
+          peakWaiting: Math.max(waitingCount, flow.reduce((max, f) => Math.max(max, f.tokensCreated || 0), 0)),
+          loadLevel: queueLoadLevel,
+        },
+        waitTime: {
+          avgWaitMinutes: sRow.avg_wait_minutes != null ? parseFloat(sRow.avg_wait_minutes) : null,
+          minWaitMinutes: sRow.min_wait_minutes != null ? parseFloat(sRow.min_wait_minutes) : null,
+          maxWaitMinutes: sRow.max_wait_minutes != null ? parseFloat(sRow.max_wait_minutes) : null,
+          distribution: waitDistribution,
+        },
+        serviceDuration: {
+          avgDurationMinutes: sRow.avg_service_minutes != null ? parseFloat(sRow.avg_service_minutes) : null,
+          minDurationMinutes: sRow.min_service_minutes != null ? parseFloat(sRow.min_service_minutes) : null,
+          maxDurationMinutes: sRow.max_service_minutes != null ? parseFloat(sRow.max_service_minutes) : null,
+          isMeasurable: sRow.avg_service_minutes != null,
+        },
+        peakHour,
+      };
+    }
+  } catch (err) {
+    if (process.env.NODE_ENV === 'production') throw err;
+    // In dev / test fallback to mockStore
+  }
+
+  guardProduction();
+
+  // ─── 2. MockStore Fallback (Local Dev / Unit Testing) ──────────────────────
+  const startTimeMs = startDateUTC.getTime();
+  const endTimeMs = endOfTodayUTC.getTime();
+
+  const periodTokens = mockStore.tokens.filter((t) => {
+    if (t.business_id !== businessId) return false;
+    const tMs = new Date(t.created_at).getTime();
+    return tMs >= startTimeMs && tMs < endTimeMs;
+  });
+
+  const totalTokens = periodTokens.length;
+  const waitingCount = periodTokens.filter((t) => t.status === 'WAITING').length;
+  const servingCount = periodTokens.filter((t) => t.status === 'SERVING').length;
+  const servedTokens = periodTokens.filter((t) => t.status === 'SERVED');
+  const servedCount = servedTokens.length;
+  const cancelledCount = periodTokens.filter((t) => t.status === 'CANCELLED').length;
+  const skippedCount = periodTokens.filter((t) => t.status === 'SKIPPED').length;
+
+  const totalRevenue = servedTokens.reduce((sum, t) => {
+    const price = (t.service_price_at_join !== null && t.service_price_at_join !== undefined)
+      ? parseFloat(t.service_price_at_join)
+      : (parseFloat(mockStore.services.find((s) => s.id === t.service_id)?.price) || 0);
+    return sum + price;
+  }, 0);
+
+  const avgTicketValue = servedCount > 0 ? Math.round(totalRevenue / servedCount) : 0;
+  const completionRate = totalTokens > 0 ? Math.round((servedCount / totalTokens) * 1000) / 10 : 0;
+  const cancellationRate = totalTokens > 0 ? Math.round((cancelledCount / totalTokens) * 1000) / 10 : 0;
+  const skipRate = totalTokens > 0 ? Math.round((skippedCount / totalTokens) * 1000) / 10 : 0;
+  const queueLoadLevel = waitingCount >= 8 ? 'HIGH' : waitingCount >= 4 ? 'MODERATE' : waitingCount >= 1 ? 'LOW' : 'OPTIMAL';
+
+  // Wait time calculations
+  const waitDurations = periodTokens
+    .filter((t) => (t.status === 'SERVING' || t.status === 'SERVED') && (t.called_at || t.served_at))
+    .map((t) => {
+      const start = new Date(t.created_at).getTime();
+      const end = new Date(t.called_at || t.served_at).getTime();
+      return Math.max(0, (end - start) / 60000);
+    });
+
+  const avgWaitMinutes = waitDurations.length > 0
+    ? Math.round((waitDurations.reduce((a, b) => a + b, 0) / waitDurations.length) * 10) / 10
+    : null;
+  const minWaitMinutes = waitDurations.length > 0 ? Math.round(Math.min(...waitDurations) * 10) / 10 : null;
+  const maxWaitMinutes = waitDurations.length > 0 ? Math.round(Math.max(...waitDurations) * 10) / 10 : null;
+
+  const waitDistribution = {
+    under10m: waitDurations.filter((d) => d < 10).length,
+    m10to20m: waitDurations.filter((d) => d >= 10 && d < 20).length,
+    m20to30m: waitDurations.filter((d) => d >= 20 && d < 30).length,
+    over30m: waitDurations.filter((d) => d >= 30).length,
+  };
+
+  // Service durations
+  const serviceDurations = servedTokens
+    .filter((t) => t.called_at && t.served_at)
+    .map((t) => (new Date(t.served_at).getTime() - new Date(t.called_at).getTime()) / 60000);
+
+  const avgDurationMinutes = serviceDurations.length > 0
+    ? Math.round((serviceDurations.reduce((a, b) => a + b, 0) / serviceDurations.length) * 10) / 10
+    : null;
+  const minDurationMinutes = serviceDurations.length > 0 ? Math.round(Math.min(...serviceDurations) * 10) / 10 : null;
+  const maxDurationMinutes = serviceDurations.length > 0 ? Math.round(Math.max(...serviceDurations) * 10) / 10 : null;
+
+  // Flow & Peak Hour
+  let flow = [];
+  let peakHour = null;
+
+  if (normalizedPeriod === 'today') {
+    const hourlyMap = {};
+    let maxTokens = 0;
+    let peakH = null;
+
+    periodTokens.forEach((t) => {
+      const h = new Date(new Date(t.created_at).toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })).getHours();
+      if (!hourlyMap[h]) {
+        hourlyMap[h] = { tokensCreated: 0, served: 0, cancelled: 0, skipped: 0 };
+      }
+      hourlyMap[h].tokensCreated += 1;
+      if (t.status === 'SERVED') hourlyMap[h].served += 1;
+      if (t.status === 'CANCELLED') hourlyMap[h].cancelled += 1;
+      if (t.status === 'SKIPPED') hourlyMap[h].skipped += 1;
+
+      if (hourlyMap[h].tokensCreated > maxTokens) {
+        maxTokens = hourlyMap[h].tokensCreated;
+        peakH = h;
+      }
+    });
+
+    const activeHours = Object.keys(hourlyMap).map(Number).sort((a, b) => a - b);
+    const minH = activeHours.length > 0 ? Math.max(0, Math.min(...activeHours) - 1) : 8;
+    const maxH = activeHours.length > 0 ? Math.min(23, Math.max(...activeHours) + 1) : 20;
+
+    for (let h = minH; h <= maxH; h++) {
+      const item = hourlyMap[h] || { tokensCreated: 0, served: 0, cancelled: 0, skipped: 0 };
+      flow.push({
+        hour: h,
+        label: formatHourLabel(h),
+        tokensCreated: item.tokensCreated,
+        served: item.served,
+        cancelled: item.cancelled,
+        skipped: item.skipped,
+      });
+    }
+
+    if (peakH !== null && maxTokens > 0) {
+      peakHour = {
+        hour: peakH,
+        label: `${formatHourLabel(peakH)}–${formatHourLabel((peakH + 1) % 24)}`,
+        tokensCreated: maxTokens,
+      };
+    }
+  } else {
+    // 7d or 30d
+    const dailyMap = {};
+    periodTokens.forEach((t) => {
+      const dateStr = new Date(new Date(t.created_at).toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }))
+        .toISOString()
+        .slice(0, 10);
+      if (!dailyMap[dateStr]) {
+        dailyMap[dateStr] = { tokensCreated: 0, served: 0, cancelled: 0, skipped: 0, revenue: 0 };
+      }
+      dailyMap[dateStr].tokensCreated += 1;
+      if (t.status === 'SERVED') {
+        dailyMap[dateStr].served += 1;
+        const price = (t.service_price_at_join !== null && t.service_price_at_join !== undefined)
+          ? parseFloat(t.service_price_at_join)
+          : (parseFloat(mockStore.services.find((s) => s.id === t.service_id)?.price) || 0);
+        dailyMap[dateStr].revenue += price;
+      }
+      if (t.status === 'CANCELLED') dailyMap[dateStr].cancelled += 1;
+      if (t.status === 'SKIPPED') dailyMap[dateStr].skipped += 1;
+    });
+
+    let maxDayTokens = 0;
+    let peakDay = null;
+
+    for (let d = 0; d < numDays; d++) {
+      const dayDate = new Date(startDateUTC.getTime() + d * 24 * 3600 * 1000 + (5.5 * 3600 * 1000));
+      const dateStr = dayDate.toISOString().slice(0, 10);
+      const dayLabel = dayDate.toLocaleDateString('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        weekday: numDays <= 7 ? 'short' : undefined,
+        day: 'numeric',
+        month: 'short',
+      });
+
+      const item = dailyMap[dateStr] || { tokensCreated: 0, served: 0, cancelled: 0, skipped: 0, revenue: 0 };
+      flow.push({
+        date: dateStr,
+        dayLabel,
+        tokensCreated: item.tokensCreated,
+        served: item.served,
+        cancelled: item.cancelled,
+        skipped: item.skipped,
+        revenue: item.revenue,
+      });
+
+      if (item.tokensCreated > maxDayTokens) {
+        maxDayTokens = item.tokensCreated;
+        peakDay = dayLabel;
+      }
+    }
+
+    if (peakDay !== null && maxDayTokens > 0) {
+      peakHour = {
+        label: `Peak: ${peakDay}`,
+        tokensCreated: maxDayTokens,
+      };
+    }
+  }
+
+  // Service breakdown
+  const serviceMap = {};
+  periodTokens.forEach((t) => {
+    const sId = t.service_id || 'general';
+    if (!serviceMap[sId]) {
+      const svc = mockStore.services.find((s) => s.id === sId);
+      serviceMap[sId] = {
+        serviceId: t.service_id || null,
+        serviceName: svc?.name || 'General Service',
+        tokens: 0,
+        served: 0,
+        cancelled: 0,
+        skipped: 0,
+        revenue: 0,
+        waits: [],
+      };
+    }
+    serviceMap[sId].tokens += 1;
+    if (t.status === 'SERVED') {
+      serviceMap[sId].served += 1;
+      const price = (t.service_price_at_join !== null && t.service_price_at_join !== undefined)
+        ? parseFloat(t.service_price_at_join)
+        : (parseFloat(mockStore.services.find((s) => s.id === t.service_id)?.price) || 0);
+      serviceMap[sId].revenue += price;
+    }
+    if (t.status === 'CANCELLED') serviceMap[sId].cancelled += 1;
+    if (t.status === 'SKIPPED') serviceMap[sId].skipped += 1;
+    if ((t.status === 'SERVING' || t.status === 'SERVED') && (t.called_at || t.served_at)) {
+      const start = new Date(t.created_at).getTime();
+      const end = new Date(t.called_at || t.served_at).getTime();
+      serviceMap[sId].waits.push(Math.max(0, (end - start) / 60000));
+    }
+  });
+
+  const services = Object.values(serviceMap)
+    .map((s) => ({
+      serviceId: s.serviceId,
+      serviceName: s.serviceName,
+      tokens: s.tokens,
+      served: s.served,
+      cancelled: s.cancelled,
+      skipped: s.skipped,
+      revenue: s.revenue,
+      avgWaitMinutes: s.waits.length > 0 ? Math.round((s.waits.reduce((a, b) => a + b, 0) / s.waits.length) * 10) / 10 : null,
+      percentage: totalTokens > 0 ? Math.round((s.tokens / totalTokens) * 1000) / 10 : 0,
+    }))
+    .sort((a, b) => b.tokens - a.tokens);
+
+  const dailyRevenue = normalizedPeriod === 'today'
+    ? [{ date: todayStr, dayLabel: 'Today', revenue: totalRevenue, served: servedCount }]
+    : flow.map((item) => ({
+        date: item.date,
+        dayLabel: item.dayLabel,
+        revenue: item.revenue ?? 0,
+        served: item.served ?? 0,
+      }));
+
+  return {
+    period: normalizedPeriod,
+    hasData: totalTokens > 0,
+    summary: {
+      totalTokens,
+      waitingCount,
+      servingCount,
+      servedCount,
+      cancelledCount,
+      skippedCount,
+      totalRevenue,
+      avgTicketValue,
+      completionRate,
+      cancellationRate,
+      skipRate,
+      queueLoadLevel,
+    },
+    flow,
+    revenue: {
+      totalRevenue,
+      avgTicketValue,
+      servedCustomerCount: servedCount,
+      daily: dailyRevenue,
+    },
+    services,
+    queueLoad: {
+      currentWaiting: waitingCount,
+      currentServing: servingCount,
+      currentServed: servedCount,
+      currentCancelled: cancelledCount,
+      currentSkipped: skippedCount,
+      peakWaiting: Math.max(waitingCount, flow.reduce((max, f) => Math.max(max, f.tokensCreated || 0), 0)),
+      loadLevel: queueLoadLevel,
+    },
+    waitTime: {
+      avgWaitMinutes,
+      minWaitMinutes,
+      maxWaitMinutes,
+      distribution: waitDistribution,
+    },
+    serviceDuration: {
+      avgDurationMinutes,
+      minDurationMinutes,
+      maxDurationMinutes,
+      isMeasurable: serviceDurations.length > 0,
+    },
+    peakHour,
+  };
+}
+
 export default {
   findBusinessById,
   findBusinessBySlug,
@@ -1037,5 +1835,7 @@ export default {
   updateQueueConfig,
   skipToken,
   getRecentThroughput,
+  getEstimatedRevenueToday,
+  getBusinessAnalytics,
   setCustomQueryHandler,
 };

@@ -13,6 +13,7 @@ import {
   handleUpdateQueueSettings,
   handleSkipToken,
   handleTestAlert,
+  handleGetBusinessAnalytics,
 } from '../controllers/businessQueueController.js';
 import { authenticateToken, requireRole, requireBusinessTenant } from '../middleware/authMiddleware.js';
 
@@ -20,6 +21,9 @@ const router = Router();
 
 // Public Business Services lookup (for customers joining queue)
 router.get('/services', handleGetBusinessServices);
+
+// Protected Business Analytics Endpoint (Requires BUSINESS role & tenant isolation)
+router.get('/analytics', authenticateToken, requireRole('BUSINESS'), requireBusinessTenant, handleGetBusinessAnalytics);
 
 // Protected Business Profile Endpoints (Requires BUSINESS role)
 router.get('/profile', authenticateToken, requireRole('BUSINESS'), requireBusinessTenant, handleGetBusinessProfile);

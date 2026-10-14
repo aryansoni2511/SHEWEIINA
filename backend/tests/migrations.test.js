@@ -10,13 +10,14 @@ describe('Phase 1 Migration System Test Suite', () => {
     assert.equal(fs.existsSync(migrationsDir), true, 'database/migrations directory must exist');
 
     const files = fs.readdirSync(migrationsDir).filter((f) => f.endsWith('.sql'));
-    assert.ok(files.length >= 6, `Expected at least 6 migration files, found ${files.length}`);
+    assert.ok(files.length >= 7, `Expected at least 7 migration files, found ${files.length}`);
     assert.ok(files.includes('001_initial_queue_schema.sql'));
     assert.ok(files.includes('002_authentication_schema.sql'));
     assert.ok(files.includes('003_customer_tokens_user_id.sql'));
     assert.ok(files.includes('004_queue_config_columns.sql'));
     assert.ok(files.includes('005_notifications_table.sql'));
     assert.ok(files.includes('006_notification_settings.sql'));
+    assert.ok(files.includes('007_service_price_at_join.sql'));
   });
 
   it('Migration directory backend/migrations exists and contains SQL files', () => {
@@ -24,13 +25,14 @@ describe('Phase 1 Migration System Test Suite', () => {
     assert.equal(fs.existsSync(migrationsDir), true, 'backend/migrations directory must exist');
 
     const files = fs.readdirSync(migrationsDir).filter((f) => f.endsWith('.sql'));
-    assert.ok(files.length >= 6, `Expected at least 6 migration files, found ${files.length}`);
+    assert.ok(files.length >= 7, `Expected at least 7 migration files, found ${files.length}`);
     assert.ok(files.includes('001_initial_queue_schema.sql'));
     assert.ok(files.includes('002_authentication_schema.sql'));
     assert.ok(files.includes('003_customer_tokens_user_id.sql'));
     assert.ok(files.includes('004_queue_config_columns.sql'));
     assert.ok(files.includes('005_notifications_table.sql'));
     assert.ok(files.includes('006_notification_settings.sql'));
+    assert.ok(files.includes('007_service_price_at_join.sql'));
   });
 
   it('runMigrations skips gracefully when DATABASE_URL is not set (in dev mode)', async () => {

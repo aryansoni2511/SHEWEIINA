@@ -13,6 +13,7 @@ import {
   processUpdateQueueSettings,
   processSkipToken,
   processTestMessagingAlert,
+  processGetBusinessAnalytics,
 } from '../services/queueService.js';
 
 export async function handleGetBusinessQueue(req, res, next) {
@@ -201,6 +202,17 @@ export async function handleTestAlert(req, res, next) {
     const { channel, testPhone } = req.body;
     const result = await processTestMessagingAlert({ businessId, channel, testPhone });
     return successResponse(res, 'Test alert processed successfully', result, 200);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function handleGetBusinessAnalytics(req, res, next) {
+  try {
+    const businessId = req.user?.businessId;
+    const period = req.query.period || 'today';
+    const analyticsData = await processGetBusinessAnalytics(businessId, period);
+    return successResponse(res, 'Business analytics retrieved successfully', analyticsData, 200);
   } catch (error) {
     next(error);
   }

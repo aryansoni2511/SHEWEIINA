@@ -19,6 +19,8 @@ import {
   updateQueueConfig,
   skipToken,
   getRecentThroughput,
+  getEstimatedRevenueToday,
+  getBusinessAnalytics,
 } from '../models/queueModel.js';
 import {
   notifyCustomerJoinedQueue,
@@ -125,7 +127,8 @@ export async function processCustomerJoinQueue({ businessId, queueId, serviceId,
   const position = peopleAhead + 1;
   const estimatedWaitMinutes = peopleAhead * (service.duration_minutes || 15);
 
-  // 8. Create Token Atomic
+  // 8. Create Token Atomic — capture service_price_at_join snapshot so
+  //    historical revenue is preserved even if the service price is later edited.
   const token = await createToken({
     queueId: queue.id,
     businessId: business.id,
@@ -134,6 +137,7 @@ export async function processCustomerJoinQueue({ businessId, queueId, serviceId,
     customerPhone: customerPhone.trim(),
     estimatedWaitMinutes,
     userId,
+    servicePriceAtJoin: service.price,
   });
 
   // Fire-and-forget: notify customer they have joined the queue
@@ -279,6 +283,10 @@ export async function processGetBusinessQueue({ businessId, queueId }) {
     recentAvgActualMinutes: recentThroughput,
   });
 
+  // Estimated Revenue — SERVED tokens only, IST calendar day, tenant-isolated.
+  // business.id is from the DB lookup (trusted), never from client-supplied input.
+  const revenueData = await getEstimatedRevenueToday(business.id);
+
   return {
     business: {
       id: business.id,
@@ -293,6 +301,8 @@ export async function processGetBusinessQueue({ businessId, queueId }) {
     totalTokens: formattedTokens.length,
     waitingCount,
     servingCount,
+    estimatedRevenueToday: revenueData.estimated_revenue,
+    customersServedToday: revenueData.customers_served,
     queueInsights,
     tokens: formattedTokens,
   };
@@ -1020,6 +1030,33 @@ export async function processGetPublicQueueDisplay(businessId) {
   };
 }
 
+export async function processGetBusinessAnalytics(businessId, period = 'today') {
+  if (!businessId) {
+    throw new ValidationError('businessId parameter is required');
+  }
+
+  const business = (await findBusinessById(businessId)) || (await findBusinessBySlug(businessId));
+  if (!business) {
+    throw new NotFoundError(`Business not found with ID/Slug: ${businessId}`);
+  }
+
+  const normalizedPeriod = (period || 'today').toLowerCase().trim();
+  if (!['today', '7d', '30d'].includes(normalizedPeriod)) {
+    throw new ValidationError("Invalid analytics period. Must be 'today', '7d', or '30d'.");
+  }
+
+  const analytics = await getBusinessAnalytics(business.id, normalizedPeriod);
+
+  return {
+    business: {
+      id: business.id,
+      name: business.name,
+      category: business.category,
+    },
+    ...analytics,
+  };
+}
+
 export default {
   processCustomerJoinQueue,
   processGetTokenStatus,
@@ -1038,4 +1075,5 @@ export default {
   processSkipToken,
   processTestMessagingAlert,
   processGetPublicQueueDisplay,
+  processGetBusinessAnalytics,
 };

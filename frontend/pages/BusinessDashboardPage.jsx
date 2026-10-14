@@ -17,8 +17,22 @@ import {
 } from '../services/api';
 import { subscribeQueueRealtime } from '../services/realtime';
 import { useAuth } from '../context/AuthContext';
+import { getIndustryConfig } from '../config/industryTerminology';
 import QRPanel from '../components/QRPanel';
 import LogoMark from '../components/LogoMark';
+
+// Phase 2 UI Primitives
+import Button from '../components/ui/Button';
+import Input from '../components/ui/Input';
+import Select from '../components/ui/Select';
+import Card from '../components/ui/Card';
+import Badge from '../components/ui/Badge';
+import StatCard from '../components/ui/StatCard';
+import EmptyState from '../components/ui/EmptyState';
+import Modal from '../components/ui/Modal';
+
+// Analytics Master Section
+import AnalyticsSection from '../components/analytics/AnalyticsSection';
 
 export default function BusinessDashboardPage() {
   const { user, logout } = useAuth();
@@ -30,8 +44,10 @@ export default function BusinessDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [callingNext, setCallingNext] = useState(false);
   const [completingServiceState, setCompletingServiceState] = useState(false);
+  const [skippingTokenId, setSkippingTokenId] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
   const [infoMessage, setInfoMessage] = useState(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Business Profile Settings State
   const [profile, setProfile] = useState(null);
@@ -79,6 +95,10 @@ export default function BusinessDashboardPage() {
   const [qSuccess, setQSuccess] = useState(null);
   const [qError, setQError] = useState(null);
 
+  // Industry-Agnostic Terminology Resolution
+  const activeCategory = profile?.category || queueData?.business?.category || user?.category || 'salon';
+  const terms = getIndustryConfig(activeCategory);
+
   const fetchQueueSettings = async () => {
     try {
       const res = await getQueueSettingsApi();
@@ -102,7 +122,7 @@ export default function BusinessDashboardPage() {
     setQError(null);
 
     try {
-      const res = await updateQueueSettingsApi({
+      await updateQueueSettingsApi({
         name: qName,
         isOpen: qIsOpen,
         tokenPrefix: qTokenPrefix,
@@ -119,6 +139,24 @@ export default function BusinessDashboardPage() {
     } catch (err) {
       setQError(err.message || 'Failed to update queue settings.');
       setSavingQSettings(false);
+    }
+  };
+
+  const handleQuickToggleQueue = async () => {
+    const nextState = !qIsOpen;
+    try {
+      await updateQueueSettingsApi({
+        name: qName,
+        isOpen: nextState,
+        tokenPrefix: qTokenPrefix,
+        maxDailyCapacity: Number(qMaxCapacity),
+        avgServiceDuration: Number(qAvgDuration),
+      });
+      setQIsOpen(nextState);
+      setInfoMessage(`Queue has been turned ${nextState ? 'OPEN' : 'CLOSED'}.`);
+      fetchQueue(true);
+    } catch (err) {
+      setErrorMessage(err.message || 'Failed to toggle queue status.');
     }
   };
 
@@ -224,6 +262,10 @@ export default function BusinessDashboardPage() {
     try {
       const res = await getBusinessQueue(activeBusinessId);
       setQueueData(res.data);
+      if (res.data?.queue) {
+        setQIsOpen(Boolean(res.data.queue.isOpen));
+        setQName(res.data.queue.name || 'Main Queue');
+      }
       setLoading(false);
     } catch (err) {
       setErrorMessage(err.message || 'Unable to load business queue.');
@@ -243,7 +285,7 @@ export default function BusinessDashboardPage() {
     } catch (err) {}
   };
 
-  // Initial Fetch, Realtime Subscription & Auto-Refresh Fallback
+  // Initial Fetch, Realtime SSE Subscription & Auto-Refresh Fallback
   useEffect(() => {
     let isMounted = true;
 
@@ -252,7 +294,6 @@ export default function BusinessDashboardPage() {
     fetchServices();
     fetchQueueSettings();
 
-    // 1. Realtime SSE subscription: instantly updates queue when any customer joins, cancels, is called, skipped, or completed
     let unsubscribe = () => {};
     if (activeBusinessId) {
       unsubscribe = subscribeQueueRealtime({
@@ -265,7 +306,6 @@ export default function BusinessDashboardPage() {
       });
     }
 
-    // 2. Resilient Polling Fallback: keeps running in background in case network interrupts SSE
     const interval = setInterval(() => {
       if (isMounted) {
         getBusinessQueue(activeBusinessId)
@@ -321,7 +361,7 @@ export default function BusinessDashboardPage() {
       setCallingNext(false);
     } catch (err) {
       if (err.status === 404 || err.message?.toLowerCase().includes('no waiting')) {
-        setInfoMessage('No customers are currently waiting in the queue.');
+        setInfoMessage(`No ${terms.customerPlural.toLowerCase()} are currently waiting in the ${terms.queueTerm.toLowerCase()}.`);
       } else {
         setErrorMessage(err.message || 'Failed to call next customer.');
       }
@@ -346,13 +386,11 @@ export default function BusinessDashboardPage() {
     }
   };
 
-  // Handle Skip Token (Only WAITING tokens can be skipped)
-  const [skippingTokenId, setSkippingTokenId] = useState(null);
-
+  // Handle Skip Token
   const handleSkipToken = async (targetTokenId = null) => {
     const tokToSkip = targetTokenId || (waitingTokens.length > 0 ? (waitingTokens[0]?.tokenId || waitingTokens[0]?.id) : null);
     if (!tokToSkip) {
-      setErrorMessage('No waiting customer to skip.');
+      setErrorMessage(`No waiting ${terms.customerTerm.toLowerCase()} to skip.`);
       return;
     }
 
@@ -383,795 +421,1036 @@ export default function BusinessDashboardPage() {
   const servingToken = queueData?.tokens?.find((t) => t.status === 'SERVING');
   const waitingTokens = queueData?.tokens?.filter((t) => t.status === 'WAITING') || [];
 
+  // Average wait estimation across waiting tokens
+  const avgWaitMins =
+    waitingTokens.length > 0
+      ? Math.round(
+          waitingTokens.reduce((acc, t) => acc + Number(t.estimatedWaitMinutes || 0), 0) /
+            waitingTokens.length
+        )
+      : Number(qAvgDuration || 15);
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-8 selection:bg-blue-600 selection:text-white">
-      <div className="max-w-6xl mx-auto">
-        
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-5 mb-8 gap-4">
-          <div className="flex items-center gap-3">
-            <LogoMark className="w-12 h-12" variant="blue" />
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-                {queueData?.business?.name || user?.name || 'Shewwina Salon Dashboard'}
-              </h1>
-              <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
-                <span>Queue: <strong className="text-slate-200">{queueData?.queue?.name || 'Main Queue'}</strong></span>
-                <span>•</span>
-                <span
-                    className={`inline-flex items-center gap-1 font-semibold ${
-                      queueData?.queue == null
-                        ? 'text-slate-500'
-                        : queueData.queue.isOpen
-                        ? 'text-emerald-400'
-                        : 'text-rose-400'
-                    }`}
+    <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-indigo-600 selection:text-white">
+      {/* Top Sticky Navigation Header */}
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16 gap-4">
+
+            {/* Brand & Business Info */}
+            <div className="flex items-center gap-3 min-w-0">
+              <Link to="/" className="flex-shrink-0" aria-label="Shewwina Home">
+                <LogoMark className="w-9 h-9" variant="emerald" iconSize="w-4.5 h-4.5" />
+              </Link>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h1 className="font-display font-bold text-base sm:text-lg text-slate-900 truncate tracking-tight">
+                    {queueData?.business?.name || profile?.name || user?.name || 'Shewwina Dashboard'}
+                  </h1>
+                  <Badge variant="slate" size="sm" className="hidden sm:inline-flex">
+                    {terms.icon} {terms.categoryName}
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
+                  <span className="truncate">
+                    {terms.queueTerm}: <strong className="text-slate-700 font-semibold">{queueData?.queue?.name || qName}</strong>
+                  </span>
+                  <span>•</span>
+                  <button
+                    type="button"
+                    onClick={handleQuickToggleQueue}
+                    title="Click to toggle queue status"
+                    className="inline-flex items-center gap-1 font-semibold hover:opacity-80 transition-opacity"
                   >
                     <span
                       className={`w-2 h-2 rounded-full ${
-                        queueData?.queue == null
-                          ? 'bg-slate-500'
-                          : queueData.queue.isOpen
-                          ? 'bg-emerald-400 animate-pulse'
-                          : 'bg-rose-400'
+                        qIsOpen ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'
                       }`}
                     />
-                    {queueData?.queue == null ? '—' : queueData.queue.isOpen ? 'OPEN' : 'CLOSED'}
-                  </span>
-                <span>•</span>
-                <span className="text-slate-400">Logged in as: <strong className="text-slate-200">{user?.name}</strong></span>
+                    <span className={qIsOpen ? 'text-emerald-700' : 'text-rose-700'}>
+                      {qIsOpen ? 'OPEN' : 'CLOSED'}
+                    </span>
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <button
-              id="open-customer-qr"
-              onClick={() => setShowQRPanel(true)}
-              className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-xs font-medium rounded-xl transition-all text-slate-200 flex items-center gap-2 shadow-sm"
-            >
-              <svg className="w-3.5 h-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-              <span>Customer QR</span>
-            </button>
-            <a
-              id="open-tv-display"
-              href={`/display/${activeBusinessId}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-xs font-medium rounded-xl transition-all text-slate-200 flex items-center gap-2 shadow-sm"
-              title="Open full-screen Waiting Room TV Display in a new tab"
-            >
-              <svg className="w-3.5 h-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-              <span>TV Display</span>
-            </a>
-            <button
-              onClick={() => { setShowQueueSettingsModal(true); fetchQueueSettings(); }}
-              className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-xs font-medium rounded-xl transition-all text-slate-200 flex items-center gap-2 shadow-sm"
-            >
-              <svg className="w-3.5 h-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>
-              <span>Queue Config</span>
-            </button>
-            <button
-              onClick={() => { setShowServicesModal(true); fetchServices(); }}
-              className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-xs font-medium rounded-xl transition-all text-slate-200 flex items-center gap-2 shadow-sm"
-            >
-              <svg className="w-3.5 h-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
-              <span>Manage Services</span>
-            </button>
-            <button
-              onClick={() => setShowProfileModal(true)}
-              className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-xs font-medium rounded-xl transition-all text-slate-200 flex items-center gap-2 shadow-sm"
-            >
-              <svg className="w-3.5 h-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-              <span>Business Settings</span>
-            </button>
-            <button
-              onClick={() => fetchQueue(false)}
-              className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-xs font-medium rounded-xl transition-all text-slate-200 flex items-center gap-2 shadow-sm"
-            >
-              <svg className="w-3.5 h-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
-              <span>Sync List</span>
-            </button>
-            <button
-              onClick={handleLogout}
-              className="px-3.5 py-2 bg-slate-900 hover:bg-rose-950/60 border border-slate-800 hover:border-rose-900/80 text-xs font-medium rounded-xl transition-all text-slate-300 hover:text-rose-300 flex items-center gap-1.5 shadow-sm"
-            >
-              <svg className="w-3.5 h-3.5 text-rose-400/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
-              <span>Log Out</span>
-            </button>
+            {/* Desktop Navigation & Actions */}
+            <div className="hidden lg:flex items-center gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                id="open-customer-qr"
+                onClick={() => setShowQRPanel(true)}
+                icon={
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
+                  </svg>
+                }
+              >
+                QR Check-in
+              </Button>
+
+              <a
+                id="open-tv-display"
+                href={`/display/${activeBusinessId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center font-medium rounded-xl transition-all text-xs gap-1.5 min-h-[32px] px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 shadow-sm hover:border-slate-300"
+                title="Open full-screen Live Waiting Room TV Display in a new tab"
+              >
+                <svg className="w-3.5 h-3.5 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="2" y="3" width="20" height="14" rx="2" /><path d="M8 21h8M12 17v4" />
+                </svg>
+                <span>TV Display</span>
+              </a>
+
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => { setShowServicesModal(true); fetchServices(); }}
+                icon={
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" />
+                  </svg>
+                }
+              >
+                {terms.servicePlural}
+              </Button>
+
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => { setShowQueueSettingsModal(true); fetchQueueSettings(); }}
+                icon={
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6" />
+                  </svg>
+                }
+              >
+                Queue Config
+              </Button>
+
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowProfileModal(true)}
+                icon={
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
+                  </svg>
+                }
+              >
+                Settings
+              </Button>
+
+              <button
+                type="button"
+                onClick={() => fetchQueue(false)}
+                title="Refresh queue data"
+                className="p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+                aria-label="Refresh Queue"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M23 4v6h-6M1 20v-6h6" /><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
+                </svg>
+              </button>
+
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleLogout}
+                icon={
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" />
+                  </svg>
+                }
+              >
+                Log Out
+              </Button>
+            </div>
+
+            {/* Mobile Navigation Hamburger */}
+            <div className="flex lg:hidden items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => fetchQueue(false)}
+                className="p-2 rounded-xl text-slate-600 hover:bg-slate-100"
+                aria-label="Sync Queue"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M23 4v6h-6M1 20v-6h6" /><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="p-2 rounded-xl text-slate-600 hover:bg-slate-100"
+                aria-label="Open navigation menu"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  {mobileMenuOpen ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                  )}
+                </svg>
+              </button>
+            </div>
+
           </div>
         </div>
 
-        {/* Action / Notification Banners */}
+        {/* Mobile Dropdown Menu Drawer */}
+        {mobileMenuOpen && (
+          <div className="lg:hidden border-t border-slate-200 bg-white px-4 py-3 space-y-2 shadow-lg animate-fadeIn">
+            <div className="grid grid-cols-2 gap-2 pb-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                className="w-full justify-start"
+                onClick={() => { setMobileMenuOpen(false); setShowQRPanel(true); }}
+              >
+                📷 Customer QR
+              </Button>
+              <a
+                href={`/display/${activeBusinessId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full inline-flex items-center justify-start text-xs font-semibold px-3 py-2 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl text-slate-700"
+              >
+                📺 TV Display
+              </a>
+              <Button
+                variant="secondary"
+                size="sm"
+                className="w-full justify-start"
+                onClick={() => { setMobileMenuOpen(false); setShowServicesModal(true); fetchServices(); }}
+              >
+                🛠️ {terms.servicePlural}
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                className="w-full justify-start"
+                onClick={() => { setMobileMenuOpen(false); setShowQueueSettingsModal(true); fetchQueueSettings(); }}
+              >
+                ⚙️ Queue Config
+              </Button>
+            </div>
+            <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => { setMobileMenuOpen(false); setShowProfileModal(true); }}
+                className="text-xs font-semibold text-slate-700 hover:text-indigo-600"
+              >
+                Business Profile
+              </button>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="text-xs font-semibold text-rose-600 hover:text-rose-700"
+              >
+                Log Out
+              </button>
+            </div>
+          </div>
+        )}
+      </header>
+
+      {/* Main Dashboard Workspace */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        {/* Info / Success Feedback Banner */}
         {infoMessage && (
-          <div className="mb-6 p-4 rounded-2xl bg-blue-950/60 border border-blue-800/80 text-blue-300 text-xs font-semibold flex items-center justify-between">
-            <span>ℹ️ {infoMessage}</span>
-            <button onClick={() => setInfoMessage(null)} className="text-blue-400 hover:text-white font-bold ml-2">✕</button>
+          <div
+            role="status"
+            className="mb-6 p-4 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-900 text-xs font-semibold flex items-center justify-between shadow-sm animate-fadeIn"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-sm">ℹ️</span>
+              <span>{infoMessage}</span>
+            </div>
+            <button
+              onClick={() => setInfoMessage(null)}
+              className="text-indigo-500 hover:text-indigo-800 p-1 rounded font-bold"
+              aria-label="Dismiss message"
+            >
+              ✕
+            </button>
           </div>
         )}
 
+        {/* Error Feedback Banner */}
         {errorMessage && (
-          <div className="mb-6 p-4 rounded-2xl bg-rose-950/60 border border-rose-800/80 text-rose-300 text-xs font-semibold flex items-center justify-between">
-            <span>⚠️ {errorMessage}</span>
-            <button onClick={() => setErrorMessage(null)} className="text-rose-400 hover:text-white font-bold ml-2">✕</button>
+          <div
+            role="alert"
+            className="mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-xs font-semibold flex items-center justify-between shadow-sm animate-fadeIn"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-sm">⚠️</span>
+              <span>{errorMessage}</span>
+            </div>
+            <button
+              onClick={() => setErrorMessage(null)}
+              className="text-rose-500 hover:text-rose-800 p-1 rounded font-bold"
+              aria-label="Dismiss error"
+            >
+              ✕
+            </button>
           </div>
         )}
 
-        {/* Stats Summary Bar */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-          <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 text-center">
-            <div className="text-xs uppercase font-bold text-slate-400 tracking-wider">Total Tokens Today</div>
-            <div className="text-3xl font-black text-white font-mono mt-1">{queueData?.totalTokens ?? 0}</div>
-          </div>
-          <div className="p-5 rounded-2xl bg-slate-900 border border-emerald-900/40 text-center">
-            <div className="text-xs uppercase font-bold text-emerald-400 tracking-wider">Currently Serving</div>
-            <div className="text-3xl font-black text-emerald-400 font-mono mt-1">{queueData?.servingCount ?? 0}</div>
-          </div>
-          <div className="p-5 rounded-2xl bg-slate-900 border border-amber-900/40 text-center">
-            <div className="text-xs uppercase font-bold text-amber-400 tracking-wider">Waiting in Line</div>
-            <div className="text-3xl font-black text-amber-400 font-mono mt-1">{queueData?.waitingCount ?? 0}</div>
-          </div>
-        </div>
-
-        {/* AI Queue Forecast Banner (Phase 9) */}
+        {/* AI Queue Forecast Banner */}
         {queueData?.queueInsights && (
-          <div className="mb-8 p-5 rounded-2xl bg-indigo-950/40 border border-indigo-800/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="mb-8 p-4 sm:p-5 rounded-2xl bg-white border border-indigo-200/80 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-indigo-900/60 border border-indigo-700/60 flex items-center justify-center text-lg">
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-lg flex-shrink-0">
                 🤖
               </div>
               <div>
-                <div className="text-sm font-bold text-indigo-200 flex items-center gap-2">
-                  <span>AI Queue Forecast</span>
-                  <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${
-                    queueData.queueInsights.loadLevel === 'HIGH'
-                      ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
-                      : queueData.queueInsights.loadLevel === 'MODERATE'
-                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-                      : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                  }`}>
+                <div className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <span>AI {terms.queueTerm} Forecast</span>
+                  <Badge
+                    variant={
+                      queueData.queueInsights.loadLevel === 'HIGH'
+                        ? 'rose'
+                        : queueData.queueInsights.loadLevel === 'MODERATE'
+                        ? 'amber'
+                        : 'emerald'
+                    }
+                    size="sm"
+                    dot
+                  >
                     {queueData.queueInsights.loadLevel} LOAD
-                  </span>
+                  </Badge>
                 </div>
-                <div className="text-xs text-indigo-300/80 mt-0.5">
-                  Est. Queue Clear Time: <strong className="text-white">~{queueData.queueInsights.aiAdjustedClearTimeMinutes} min</strong> (Standard: ~{queueData.queueInsights.estimatedClearTimeMinutes} min)
-                </div>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Est. Clear Time: <strong className="text-slate-800">~{queueData.queueInsights.aiAdjustedClearTimeMinutes} min</strong> (Standard model: ~{queueData.queueInsights.estimatedClearTimeMinutes} min)
+                </p>
               </div>
             </div>
             {queueData.queueInsights.peakWarning && (
-              <div className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1.5">
-                <span>⚠️ Peak Volume Alert</span>
-              </div>
+              <Badge variant="amber" size="md">
+                ⚠️ Peak Volume Alert
+              </Badge>
             )}
           </div>
         )}
 
-        {/* Serving Banner & Action Controls */}
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 mb-8 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="space-y-2 text-center md:text-left">
-            <div className="text-xs uppercase font-bold text-slate-400 tracking-widest">Active Serving Token</div>
-            {servingToken ? (
-              <div className="flex items-center gap-4">
-                <span className="text-5xl font-black text-emerald-400 font-mono">#{servingToken.tokenNumber}</span>
-                <div>
-                  <div className="text-lg font-bold text-white">{servingToken.customerName}</div>
-                  <div className="text-xs text-slate-400">Service: {servingToken.service} • {servingToken.customerPhone}</div>
+        {/* Overview / KPI Section */}
+        <section aria-label="Key Performance Indicators" className="mb-8">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 sm:gap-4">
+            <StatCard
+              title={`Waiting in ${terms.queueTerm}`}
+              value={queueData?.waitingCount ?? waitingTokens.length}
+              subtitle={`Active in queue line`}
+              accent="amber"
+              icon={
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              }
+            />
+
+            <StatCard
+              title={`Currently ${terms.servingTerm}`}
+              value={queueData?.servingCount ?? (servingToken ? 1 : 0)}
+              subtitle={servingToken ? `Token #${servingToken.tokenNumber}` : 'None active'}
+              accent="emerald"
+              icon={
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              }
+            />
+
+            <StatCard
+              title={`Total ${terms.customerPlural} Today`}
+              value={queueData?.totalTokens ?? 0}
+              subtitle="Generated tokens"
+              accent="indigo"
+              icon={
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                </svg>
+              }
+            />
+
+            <StatCard
+              title={`${terms.customerPlural} Served Today`}
+              value={queueData?.customersServedToday ?? 0}
+              subtitle="Completed services"
+              accent="emerald"
+              icon={
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              }
+            />
+
+            <StatCard
+              title="Estimated Revenue"
+              value={`₹${Number(queueData?.estimatedRevenueToday || 0).toLocaleString('en-IN')}`}
+              subtitle={`${queueData?.customersServedToday || 0} billed today`}
+              accent="emerald"
+              className="col-span-2 sm:col-span-1"
+              icon={
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              }
+            />
+          </div>
+        </section>
+
+        {/* Live Active Serving & Action Control Hero Card */}
+        <section aria-label="Active Queue Control" className="mb-8">
+          <Card className="p-6 sm:p-8 bg-white border border-slate-200/80 shadow-md shadow-slate-900/5">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+
+              {/* Active Serving Token Display */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs uppercase font-bold text-slate-500 tracking-wider">
+                    Currently Active {terms.servingTerm}
+                  </span>
+                  {servingToken && (
+                    <Badge variant="emerald" dot size="sm">
+                      Serving Now
+                    </Badge>
+                  )}
                 </div>
+
+                {servingToken ? (
+                  <div className="flex flex-wrap items-baseline gap-4 pt-1">
+                    <span className="text-4xl sm:text-5xl font-black text-emerald-600 font-mono tracking-tight">
+                      #{servingToken.tokenNumber}
+                    </span>
+                    <div>
+                      <h3 className="text-lg sm:text-xl font-bold text-slate-900">
+                        {servingToken.customerName}
+                      </h3>
+                      <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+                        {terms.serviceTerm}: <strong className="text-slate-800 font-semibold">{servingToken.service}</strong> • {servingToken.customerPhone}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="pt-2">
+                    <p className="text-sm font-medium text-slate-500 italic">
+                      No {terms.customerTerm.toLowerCase()} is currently being served. Click "{terms.actionCallNext}" to begin.
+                    </p>
+                  </div>
+                )}
               </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
+                {servingToken && (
+                  <>
+                    <Button
+                      variant="secondary"
+                      size="lg"
+                      onClick={handleCompleteService}
+                      loading={completingServiceState}
+                      disabled={completingServiceState}
+                      className="border-emerald-200 hover:border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                      icon={
+                        <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      }
+                    >
+                      {terms.actionComplete}
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      onClick={() => handleSkipToken()}
+                      disabled={Boolean(skippingTokenId) || waitingTokens.length === 0}
+                      className="border-amber-200 text-amber-800 hover:bg-amber-50 hover:border-amber-300"
+                      icon={
+                        <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                        </svg>
+                      }
+                    >
+                      {skippingTokenId ? 'Skipping...' : `Skip Next`}
+                    </Button>
+                  </>
+                )}
+
+                <Button
+                  variant="primary"
+                  size="lg"
+                  onClick={handleCallNext}
+                  loading={callingNext}
+                  disabled={callingNext || waitingTokens.length === 0}
+                  className="font-bold shadow-md shadow-indigo-600/20 px-8"
+                  icon={
+                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                    </svg>
+                  }
+                >
+                  {terms.actionCallNext.toUpperCase()}
+                </Button>
+              </div>
+
+            </div>
+          </Card>
+        </section>
+
+        {/* Live Waiting List Table */}
+        <section aria-label="Waiting List" className="mb-8">
+          <Card className="border border-slate-200/80 shadow-sm overflow-hidden">
+            <div className="p-5 sm:p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <h2 className="text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                  <span>Waiting {terms.customerPlural}</span>
+                  <Badge variant="amber" size="sm">
+                    {waitingTokens.length} in line
+                  </Badge>
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Est. Average wait: <strong className="text-slate-800">{avgWaitMins} mins</strong> per ticket.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-slate-400">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Real-time SSE Live Connection</span>
+              </div>
+            </div>
+
+            {loading ? (
+              <div className="py-16 text-center text-xs text-slate-500 font-mono">
+                Synchronizing queue data...
+              </div>
+            ) : waitingTokens.length === 0 ? (
+              <EmptyState
+                title={`No ${terms.customerPlural.toLowerCase()} currently waiting`}
+                description={`New tokens joined via customer QR or link will instantly appear here.`}
+                className="py-12"
+              />
             ) : (
-              <div className="text-slate-500 italic text-sm">No token is currently being served.</div>
-            )}
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-            {servingToken && (
-              <>
-                <button
-                  onClick={handleCompleteService}
-                  disabled={completingServiceState}
-                  className="w-full sm:w-auto px-6 py-4 bg-slate-800 hover:bg-slate-700 disabled:bg-slate-800/50 text-slate-200 font-semibold text-sm rounded-2xl border border-slate-700 transition-all flex items-center justify-center gap-2"
-                >
-                  {completingServiceState ? (
-                    <>
-                      <span className="w-4 h-4 border-2 border-slate-300 border-t-transparent rounded-full animate-spin" />
-                      <span>Completing...</span>
-                    </>
-                  ) : (
-                    <span>✅ Complete Service</span>
-                  )}
-                </button>
-                <button
-                  onClick={() => handleSkipToken()}
-                  disabled={Boolean(skippingTokenId) || waitingTokens.length === 0}
-                  className="w-full sm:w-auto px-5 py-4 bg-amber-950/60 hover:bg-amber-900/80 disabled:opacity-40 disabled:cursor-not-allowed text-amber-300 font-semibold text-sm rounded-2xl border border-amber-800/80 transition-all flex items-center justify-center gap-2"
-                  title={waitingTokens.length > 0 ? "Skip next waiting token in line" : "No waiting tokens to skip"}
-                >
-                  {skippingTokenId ? (
-                    <>
-                      <span className="w-4 h-4 border-2 border-amber-300 border-t-transparent rounded-full animate-spin" />
-                      <span>Skipping...</span>
-                    </>
-                  ) : (
-                    <span>⏭️ Skip Next Waiting</span>
-                  )}
-                </button>
-              </>
-            )}
-
-            <button
-              onClick={handleCallNext}
-              disabled={callingNext || waitingTokens.length === 0}
-              className="w-full sm:w-auto px-8 py-4 bg-emerald-500 hover:bg-emerald-400 disabled:bg-slate-800 disabled:text-slate-500 text-slate-950 font-bold text-base rounded-2xl shadow-lg shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
-            >
-              {callingNext ? (
-                <>
-                  <span className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
-                  <span>Calling Next...</span>
-                </>
-              ) : (
-                <>
-                  <span>📢 CALL NEXT CUSTOMER</span>
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* Waiting List Table */}
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6">
-          <h2 className="text-base font-bold text-slate-200 mb-4 flex items-center justify-between">
-            <span>Waiting Customers ({waitingTokens.length})</span>
-            <span className="text-xs font-normal text-slate-500">Auto-Refreshing (5s)</span>
-          </h2>
-
-          {loading ? (
-            <div className="py-8 text-center text-xs text-slate-500 font-mono">Loading active queue...</div>
-          ) : waitingTokens.length === 0 ? (
-            <div className="py-12 text-center text-slate-500 text-sm">
-              ✨ No customers currently waiting in the queue.
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-950 text-slate-400 font-bold uppercase tracking-wider">
-                  <tr>
-                    <th className="p-3 rounded-l-xl">Pos</th>
-                    <th className="p-3">Token #</th>
-                    <th className="p-3">Customer</th>
-                    <th className="p-3">Phone</th>
-                    <th className="p-3">Service</th>
-                    <th className="p-3">Est. Wait</th>
-                    <th className="p-3 rounded-r-xl text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/60 font-medium">
-                  {waitingTokens.map((tok, idx) => (
-                    <tr key={tok.tokenId || tok.id} className="hover:bg-slate-800/40 transition-colors">
-                      <td className="p-3.5 font-bold text-amber-400">#{idx + 1}</td>
-                      <td className="p-3.5 font-mono font-bold text-white text-sm">#{tok.tokenNumber}</td>
-                      <td className="p-3.5 text-slate-200 font-semibold">{tok.customerName}</td>
-                      <td className="p-3.5 font-mono text-slate-400">{tok.customerPhone}</td>
-                      <td className="p-3.5 text-slate-300">{tok.service}</td>
-                      <td className="p-3.5 text-blue-400 font-mono font-semibold">{tok.estimatedWaitMinutes} mins</td>
-                      <td className="p-3.5 text-right">
-                        <button
-                          onClick={() => handleSkipToken(tok.tokenId || tok.id)}
-                          disabled={skippingTokenId === (tok.tokenId || tok.id)}
-                          className="px-2.5 py-1 bg-amber-950/60 hover:bg-amber-900 border border-amber-800 text-amber-300 rounded-lg text-[11px] font-semibold transition-colors disabled:opacity-50"
-                        >
-                          {skippingTokenId === (tok.tokenId || tok.id) ? 'Skipping...' : '⏭️ Skip'}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-
-        {/* Business Profile Settings Modal */}
-        {showProfileModal && (
-          <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-lg w-full space-y-6 shadow-2xl relative">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  ⚙️ Business Profile Settings
-                </h3>
-                <button
-                  onClick={() => setShowProfileModal(false)}
-                  className="text-slate-400 hover:text-white font-bold text-lg"
-                >
-                  ✕
-                </button>
-              </div>
-
-              {profileSuccess && (
-                <div className="p-3 rounded-xl bg-emerald-950/60 border border-emerald-800 text-emerald-300 text-xs font-semibold">
-                  ✅ {profileSuccess}
-                </div>
-              )}
-
-              {profileError && (
-                <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-800 text-rose-300 text-xs font-semibold">
-                  ⚠️ {profileError}
-                </div>
-              )}
-
-              <form onSubmit={handleSaveProfile} className="space-y-4 text-xs">
-                <div>
-                  <label className="block text-slate-400 font-semibold mb-1">Business Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-blue-500 font-semibold"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-slate-400 font-semibold mb-1">Category</label>
-                    <select
-                      value={editCategory}
-                      onChange={(e) => setEditCategory(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-blue-500 font-semibold"
-                    >
-                      <option value="salon">Salon & Spa</option>
-                      <option value="clinic">Clinic & Healthcare</option>
-                      <option value="bank">Financial / Banking</option>
-                      <option value="service">General Service Center</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-slate-400 font-semibold mb-1">Phone Number</label>
-                    <input
-                      type="text"
-                      required
-                      value={editPhone}
-                      onChange={(e) => setEditPhone(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-blue-500 font-mono"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-slate-400 font-semibold mb-1">Address</label>
-                  <input
-                    type="text"
-                    required
-                    value={editAddress}
-                    onChange={(e) => setEditAddress(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-blue-500 font-medium"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-slate-400 font-semibold mb-1">City</label>
-                    <input
-                      type="text"
-                      required
-                      value={editCity}
-                      onChange={(e) => setEditCity(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-blue-500 font-medium"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-slate-400 font-semibold mb-1">Queue Operational Status</label>
-                    <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl text-emerald-400 font-bold flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> OPEN FOR QUEUE
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-4 flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setShowProfileModal(false)}
-                    className="w-1/2 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl text-xs transition-colors"
-                  >
-                    Close
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={savingProfile}
-                    className="w-1/2 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs transition-colors shadow-lg shadow-blue-600/20"
-                  >
-                    {savingProfile ? 'Saving...' : 'Save Profile Changes'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* Services Management Modal */}
-        {showServicesModal && (
-          <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-2xl w-full space-y-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-                <div>
-                  <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                    🛠️ Service Management ({servicesList.length})
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-0.5">Configure custom service offerings for your business.</p>
-                </div>
-                <button
-                  onClick={() => setShowServicesModal(false)}
-                  className="text-slate-400 hover:text-white font-bold text-lg"
-                >
-                  ✕
-                </button>
-              </div>
-
-              {svcSuccess && (
-                <div className="p-3 rounded-xl bg-emerald-950/60 border border-emerald-800 text-emerald-300 text-xs font-semibold">
-                  ✅ {svcSuccess}
-                </div>
-              )}
-
-              {svcError && (
-                <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-800 text-rose-300 text-xs font-semibold">
-                  ⚠️ {svcError}
-                </div>
-              )}
-
-              {/* Add New Service Button */}
-              <div className="flex justify-between items-center">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Services List</span>
-                <button
-                  onClick={handleOpenAddService}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-md transition-colors"
-                >
-                  + Add Custom Service
-                </button>
-              </div>
-
-              {/* Service Add/Edit Inline Form */}
-              {showServiceForm && (
-                <form onSubmit={handleSaveServiceForm} className="bg-slate-950/80 border border-slate-800 rounded-2xl p-5 space-y-4 text-xs">
-                  <h4 className="font-bold text-white text-sm">
-                    {editingServiceId ? 'Edit Service' : 'Add New Service'}
-                  </h4>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="sm:col-span-2">
-                      <label className="block text-slate-400 font-semibold mb-1">Service Name</label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="e.g. Haircut / Consultation / KYC Enquiry"
-                        value={svcName}
-                        onChange={(e) => setSvcName(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-blue-500 font-semibold"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-slate-400 font-semibold mb-1">Duration (mins)</label>
-                      <input
-                        type="number"
-                        min="1"
-                        required
-                        value={svcDuration}
-                        onChange={(e) => setSvcDuration(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-blue-500 font-mono font-bold"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-slate-400 font-semibold mb-1">Price (₹)</label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        required
-                        value={svcPrice}
-                        onChange={(e) => setSvcPrice(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-blue-500 font-mono"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-slate-400 font-semibold mb-1">Description (Optional)</label>
-                      <input
-                        type="text"
-                        placeholder="Brief service details"
-                        value={svcDesc}
-                        onChange={(e) => setSvcDesc(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-blue-500"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end gap-2 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setShowServiceForm(false)}
-                      className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl text-xs"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={savingSvc}
-                      className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs shadow-md"
-                    >
-                      {savingSvc ? 'Saving...' : editingServiceId ? 'Update Service' : 'Save Service'}
-                    </button>
-                  </div>
-                </form>
-              )}
-
-              {/* Services Table */}
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-950 text-slate-400 font-bold uppercase tracking-wider">
+                  <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-200">
                     <tr>
-                      <th className="p-3 rounded-l-xl">Service Name</th>
-                      <th className="p-3">Duration</th>
-                      <th className="p-3">Price</th>
-                      <th className="p-3">Status</th>
-                      <th className="p-3 text-right rounded-r-xl">Actions</th>
+                      <th className="p-3.5 pl-6">Pos</th>
+                      <th className="p-3.5">Token #</th>
+                      <th className="p-3.5">{terms.customerTerm}</th>
+                      <th className="p-3.5">Phone</th>
+                      <th className="p-3.5">{terms.serviceTerm}</th>
+                      <th className="p-3.5">Est. Wait</th>
+                      <th className="p-3.5 pr-6 text-right">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/60 font-medium">
-                    {servicesList.map((svc) => (
-                      <tr key={svc.id} className="hover:bg-slate-800/40 transition-colors">
-                        <td className="p-3.5 font-bold text-white text-sm">
-                          {svc.name}
-                          {svc.description && <span className="block text-[10px] text-slate-400 font-normal mt-0.5">{svc.description}</span>}
+                  <tbody className="divide-y divide-slate-100 font-medium">
+                    {waitingTokens.map((tok, idx) => (
+                      <tr key={tok.tokenId || tok.id} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="p-3.5 pl-6 font-bold text-amber-600">
+                          #{idx + 1}
                         </td>
-                        <td className="p-3.5 font-mono text-blue-400 font-semibold">{svc.durationMinutes} mins</td>
-                        <td className="p-3.5 font-mono text-slate-200">₹{svc.price}</td>
+                        <td className="p-3.5 font-mono font-bold text-slate-900 text-sm">
+                          #{tok.tokenNumber}
+                        </td>
+                        <td className="p-3.5 text-slate-900 font-semibold">
+                          {tok.customerName}
+                        </td>
+                        <td className="p-3.5 font-mono text-slate-500">
+                          {tok.customerPhone}
+                        </td>
                         <td className="p-3.5">
-                          <span
-                            className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
-                              svc.isActive
-                                ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
-                                : 'bg-rose-500/20 text-rose-400 border-rose-500/40'
-                            }`}
-                          >
-                            {svc.isActive ? 'ACTIVE' : 'INACTIVE'}
+                          <span className="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-700 border border-slate-200">
+                            {tok.service}
                           </span>
                         </td>
-                        <td className="p-3.5 text-right space-x-2">
-                          <button
-                            onClick={() => handleOpenEditService(svc)}
-                            className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-lg text-[11px]"
+                        <td className="p-3.5 text-indigo-600 font-mono font-semibold">
+                          ~{tok.estimatedWaitMinutes} mins
+                        </td>
+                        <td className="p-3.5 pr-6 text-right">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => handleSkipToken(tok.tokenId || tok.id)}
+                            disabled={skippingTokenId === (tok.tokenId || tok.id)}
+                            className="text-amber-800 border-amber-200 hover:bg-amber-50"
                           >
-                            ✏️ Edit
-                          </button>
-                          <button
-                            onClick={() => handleToggleStatus(svc.id, svc.isActive)}
-                            className={`px-2.5 py-1 font-semibold rounded-lg text-[11px] border ${
-                              svc.isActive
-                                ? 'bg-rose-950/60 hover:bg-rose-900 border-rose-800 text-rose-300'
-                                : 'bg-emerald-950/60 hover:bg-emerald-900 border-emerald-800 text-emerald-300'
-                            }`}
-                          >
-                            {svc.isActive ? 'Deactivate' : 'Activate'}
-                          </button>
+                            {skippingTokenId === (tok.tokenId || tok.id) ? 'Skipping...' : 'Skip'}
+                          </Button>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
+            )}
+          </Card>
+        </section>
 
-              <div className="pt-2 flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => setShowServicesModal(false)}
-                  className="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl text-xs"
-                >
-                  Done
-                </button>
-              </div>
-            </div>
+        {/* Dedicated Analytics & Graphs Section */}
+        <AnalyticsSection
+          queueData={queueData}
+          waitingTokens={waitingTokens}
+          servicesList={servicesList}
+          terms={terms}
+          avgServiceDuration={Number(qAvgDuration || 15)}
+        />
+
+      </main>
+
+      {/* Business Profile Settings Modal */}
+      <Modal
+        isOpen={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+        title="Business Profile Settings"
+        description="Update contact details, category, and operating address."
+        maxWidth="max-w-lg"
+      >
+        {profileSuccess && (
+          <div className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
+            <span>✅</span>
+            <span>{profileSuccess}</span>
           </div>
         )}
 
-        {/* Queue Configuration Settings Modal */}
-        {showQueueSettingsModal && (
-          <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-lg w-full space-y-6 shadow-2xl relative">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-                <div>
-                  <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                    📋 Queue Configuration
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-0.5">Customize operational capacity, prefix, and status.</p>
-                </div>
-                <button
-                  onClick={() => setShowQueueSettingsModal(false)}
-                  className="text-slate-400 hover:text-white font-bold text-lg"
-                >
-                  ✕
-                </button>
+        {profileError && (
+          <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center gap-2">
+            <span>⚠️</span>
+            <span>{profileError}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleSaveProfile} className="space-y-4 text-xs">
+          <Input
+            label="Business Name"
+            type="text"
+            required
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+          />
+
+          <div className="grid grid-cols-2 gap-3">
+            <Select
+              label="Business Vertical"
+              value={editCategory}
+              onChange={(e) => setEditCategory(e.target.value)}
+            >
+              <option value="salon">Salon &amp; Spa</option>
+              <option value="clinic">Clinic &amp; Healthcare</option>
+              <option value="hospital">Hospital OPD</option>
+              <option value="bank">Banking &amp; Financial</option>
+              <option value="restaurant">Restaurant &amp; Dining</option>
+              <option value="government">Government Office</option>
+              <option value="service">Service &amp; Repair</option>
+              <option value="education">Education</option>
+            </Select>
+
+            <Input
+              label="Contact Phone"
+              type="tel"
+              required
+              value={editPhone}
+              onChange={(e) => setEditPhone(e.target.value)}
+            />
+          </div>
+
+          <Input
+            label="Street Address"
+            type="text"
+            required
+            value={editAddress}
+            onChange={(e) => setEditAddress(e.target.value)}
+          />
+
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="City"
+              type="text"
+              required
+              value={editCity}
+              onChange={(e) => setEditCity(e.target.value)}
+            />
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                Current Operational Mode
+              </label>
+              <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-emerald-700 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>{qIsOpen ? 'QUEUE OPEN' : 'QUEUE CLOSED'}</span>
               </div>
+            </div>
+          </div>
 
-              {qSuccess && (
-                <div className="p-3 rounded-xl bg-emerald-950/60 border border-emerald-800 text-emerald-300 text-xs font-semibold">
-                  ✅ {qSuccess}
-                </div>
-              )}
+          <div className="pt-4 flex items-center justify-end gap-2 border-t border-slate-100">
+            <Button
+              variant="secondary"
+              onClick={() => setShowProfileModal(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={savingProfile}
+            >
+              Save Profile Changes
+            </Button>
+          </div>
+        </form>
+      </Modal>
 
-              {qError && (
-                <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-800 text-rose-300 text-xs font-semibold">
-                  ⚠️ {qError}
-                </div>
-              )}
+      {/* Services Management Modal */}
+      <Modal
+        isOpen={showServicesModal}
+        onClose={() => setShowServicesModal(false)}
+        title={`${terms.servicePlural} Management`}
+        description={`Configure offerings, estimated durations, and prices for ${terms.categoryName}.`}
+        maxWidth="max-w-2xl"
+      >
+        {svcSuccess && (
+          <div className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold">
+            ✅ {svcSuccess}
+          </div>
+        )}
 
-              <form onSubmit={handleSaveQueueSettings} className="space-y-4 text-xs">
-                <div>
-                  <label className="block text-slate-400 font-semibold mb-1">Queue Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={qName}
-                    onChange={(e) => setQName(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-blue-500 font-semibold"
-                  />
-                </div>
+        {svcError && (
+          <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold">
+            ⚠️ {svcError}
+          </div>
+        )}
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-slate-400 font-semibold mb-1">Queue Operational Status</label>
-                    <select
-                      value={qIsOpen ? 'open' : 'closed'}
-                      onChange={(e) => setQIsOpen(e.target.value === 'open')}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-blue-500 font-bold"
-                    >
-                      <option value="open">🟢 OPEN (Accept Tokens)</option>
-                      <option value="closed">🔴 CLOSED (Block New Tokens)</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-slate-400 font-semibold mb-1">Token Prefix</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. S, GOV, CLI, BANK"
-                      value={qTokenPrefix}
-                      onChange={(e) => setQTokenPrefix(e.target.value.toUpperCase())}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-blue-500 font-mono font-bold"
-                    />
-                  </div>
-                </div>
+        <div className="flex justify-between items-center mb-4">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+            Active Catalog ({servicesList.length})
+          </span>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={handleOpenAddService}
+          >
+            + Add New {terms.serviceTerm}
+          </Button>
+        </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-slate-400 font-semibold mb-1">Max Daily Capacity</label>
-                    <input
-                      type="number"
-                      min="1"
-                      required
-                      value={qMaxCapacity}
-                      onChange={(e) => setQMaxCapacity(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-blue-500 font-mono font-bold"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-slate-400 font-semibold mb-1">Avg Service Duration (mins)</label>
-                    <input
-                      type="number"
-                      min="1"
-                      required
-                      value={qAvgDuration}
-                      onChange={(e) => setQAvgDuration(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-blue-500 font-mono font-bold"
-                    />
-                  </div>
-                </div>
+        {showServiceForm && (
+          <form onSubmit={handleSaveServiceForm} className="mb-5 bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3 text-xs">
+            <h4 className="font-bold text-slate-900 text-sm">
+              {editingServiceId ? `Edit ${terms.serviceTerm}` : `Add New ${terms.serviceTerm}`}
+            </h4>
 
-                {/* Customer Alert Preferences (Phase 11) */}
-                <div className="pt-2 border-t border-slate-800">
-                  <div className="text-xs uppercase font-bold text-slate-400 tracking-wider mb-2">
-                    Customer Alert Channels & Timing
-                  </div>
-                  <div className="space-y-2.5 bg-slate-950/60 p-3.5 rounded-xl border border-slate-800">
-                    <label className="flex items-center gap-2.5 cursor-pointer text-slate-200 font-semibold">
-                      <input
-                        type="checkbox"
-                        checked={qSmsEnabled}
-                        onChange={(e) => setQSmsEnabled(e.target.checked)}
-                        className="w-4 h-4 rounded text-blue-600 focus:ring-0 focus:ring-offset-0 bg-slate-900 border-slate-700"
-                      />
-                      <span>SMS Alerts (Fast2SMS / Twilio)</span>
-                    </label>
-                    <label className="flex items-center gap-2.5 cursor-pointer text-slate-200 font-semibold">
-                      <input
-                        type="checkbox"
-                        checked={qWaEnabled}
-                        onChange={(e) => setQWaEnabled(e.target.checked)}
-                        className="w-4 h-4 rounded text-emerald-500 focus:ring-0 focus:ring-offset-0 bg-slate-900 border-slate-700"
-                      />
-                      <span>WhatsApp Alerts (Meta Cloud API / Twilio)</span>
-                    </label>
-                    <div className="pt-1.5">
-                      <label className="block text-slate-400 font-medium mb-1">
-                        Alert Customer When Ahead:
-                      </label>
-                      <select
-                        value={qAlertThreshold}
-                        onChange={(e) => setQAlertThreshold(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white font-medium focus:outline-none focus:border-blue-500"
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="sm:col-span-2">
+                <Input
+                  label={`${terms.serviceTerm} Name`}
+                  type="text"
+                  required
+                  placeholder="e.g. Haircut / Consultation / KYC"
+                  value={svcName}
+                  onChange={(e) => setSvcName(e.target.value)}
+                />
+              </div>
+              <div>
+                <Input
+                  label="Duration (mins)"
+                  type="number"
+                  min="1"
+                  required
+                  value={svcDuration}
+                  onChange={(e) => setSvcDuration(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Input
+                label="Price (₹)"
+                type="number"
+                min="0"
+                step="0.01"
+                required
+                value={svcPrice}
+                onChange={(e) => setSvcPrice(e.target.value)}
+              />
+              <Input
+                label="Description (Optional)"
+                type="text"
+                placeholder="Brief service description"
+                value={svcDesc}
+                onChange={(e) => setSvcDesc(e.target.value)}
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowServiceForm(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                size="sm"
+                loading={savingSvc}
+              >
+                {savingSvc ? 'Saving...' : editingServiceId ? 'Update' : 'Save'}
+              </Button>
+            </div>
+          </form>
+        )}
+
+        <div className="overflow-x-auto max-h-[50vh] overflow-y-auto border border-slate-200 rounded-xl">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider sticky top-0 border-b border-slate-200">
+              <tr>
+                <th className="p-3">{terms.serviceTerm}</th>
+                <th className="p-3">Duration</th>
+                <th className="p-3">Price</th>
+                <th className="p-3">Status</th>
+                <th className="p-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 font-medium">
+              {servicesList.length === 0 ? (
+                <tr>
+                  <td colSpan="5" className="p-6 text-center text-slate-400">
+                    No services created yet. Click "+ Add New {terms.serviceTerm}" above.
+                  </td>
+                </tr>
+              ) : (
+                servicesList.map((svc) => (
+                  <tr key={svc.id} className="hover:bg-slate-50/70">
+                    <td className="p-3 font-semibold text-slate-900">
+                      {svc.name}
+                      {svc.description && (
+                        <span className="block text-[10px] text-slate-400 font-normal mt-0.5">
+                          {svc.description}
+                        </span>
+                      )}
+                    </td>
+                    <td className="p-3 text-indigo-600 font-mono">
+                      {svc.durationMinutes} mins
+                    </td>
+                    <td className="p-3 font-mono text-slate-800">
+                      ₹{svc.price}
+                    </td>
+                    <td className="p-3">
+                      <Badge
+                        variant={svc.isActive ? 'emerald' : 'slate'}
+                        size="sm"
                       >
-                        <option value="1">1 customer ahead (approx 10-15 mins)</option>
-                        <option value="2">2 customers ahead (Recommended)</option>
-                        <option value="3">3 customers ahead (approx 30-45 mins)</option>
-                        <option value="4">4 customers ahead</option>
-                        <option value="5">5 customers ahead</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
+                        {svc.isActive ? 'ACTIVE' : 'INACTIVE'}
+                      </Badge>
+                    </td>
+                    <td className="p-3 text-right space-x-1.5">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleOpenEditService(svc)}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        variant={svc.isActive ? 'destructive' : 'secondary'}
+                        size="sm"
+                        onClick={() => handleToggleStatus(svc.id, svc.isActive)}
+                      >
+                        {svc.isActive ? 'Deactivate' : 'Activate'}
+                      </Button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
 
-                {/* Test Gateway Trigger (Phase 11) */}
-                <div className="pt-1">
-                  <div className="text-[11px] text-slate-400 font-medium mb-1.5">
-                    Test Gateway Alerts (MOCK by default without keys)
-                  </div>
-                  <div className="flex gap-2">
-                    <input
-                      type="tel"
-                      placeholder="Enter phone: e.g. 9876543210"
-                      value={testAlertPhone}
-                      onChange={(e) => setTestAlertPhone(e.target.value)}
-                      className="w-2/3 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500 font-mono"
-                    />
-                    <button
-                      type="button"
-                      disabled={testAlertSending}
-                      onClick={() => handleSendTestAlert('SMS')}
-                      className="w-1/3 py-1.5 bg-blue-950/80 hover:bg-blue-900 border border-blue-800 text-blue-300 text-[11px] font-bold rounded-lg transition-colors"
-                    >
-                      {testAlertSending ? 'Sending...' : 'Test SMS'}
-                    </button>
-                  </div>
-                  {testAlertFeedback?.success && (
-                    <div className="mt-1.5 text-[11px] text-emerald-400 font-medium">
-                      ✅ {testAlertFeedback.success}
-                    </div>
-                  )}
-                  {testAlertFeedback?.error && (
-                    <div className="mt-1.5 text-[11px] text-rose-400 font-medium">
-                      ⚠️ {testAlertFeedback.error}
-                    </div>
-                  )}
-                </div>
+        <div className="pt-4 flex justify-end">
+          <Button
+            variant="secondary"
+            onClick={() => setShowServicesModal(false)}
+          >
+            Done
+          </Button>
+        </div>
+      </Modal>
 
-                <div className="pt-4 flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setShowQueueSettingsModal(false)}
-                    className="w-1/2 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl text-xs transition-colors"
-                  >
-                    Close
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={savingQSettings}
-                    className="w-1/2 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition-colors shadow-lg shadow-emerald-600/20"
-                  >
-                    {savingQSettings ? 'Saving...' : 'Save Queue Config'}
-                  </button>
-                </div>
-              </form>
-            </div>
+      {/* Queue Configuration Settings Modal */}
+      <Modal
+        isOpen={showQueueSettingsModal}
+        onClose={() => setShowQueueSettingsModal(false)}
+        title="Queue &amp; Notification Configuration"
+        description="Operational capacity, token prefix, and SMS/WhatsApp alert dispatch thresholds."
+        maxWidth="max-w-lg"
+      >
+        {qSuccess && (
+          <div className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold">
+            ✅ {qSuccess}
           </div>
         )}
 
-      </div>
+        {qError && (
+          <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold">
+            ⚠️ {qError}
+          </div>
+        )}
 
-      {/* Customer QR Code Panel (Phase 10) */}
+        <form onSubmit={handleSaveQueueSettings} className="space-y-4 text-xs">
+          <Input
+            label="Queue Display Name"
+            type="text"
+            required
+            value={qName}
+            onChange={(e) => setQName(e.target.value)}
+          />
+
+          <div className="grid grid-cols-2 gap-3">
+            <Select
+              label="Queue Status"
+              value={qIsOpen ? 'open' : 'closed'}
+              onChange={(e) => setQIsOpen(e.target.value === 'open')}
+            >
+              <option value="open">🟢 OPEN (Accepting Tokens)</option>
+              <option value="closed">🔴 CLOSED (Pause Intake)</option>
+            </Select>
+
+            <Input
+              label="Token Prefix"
+              type="text"
+              required
+              placeholder="e.g. S, GOV, CLI"
+              value={qTokenPrefix}
+              onChange={(e) => setQTokenPrefix(e.target.value.toUpperCase())}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="Max Daily Tokens"
+              type="number"
+              min="1"
+              required
+              value={qMaxCapacity}
+              onChange={(e) => setQMaxCapacity(e.target.value)}
+            />
+            <Input
+              label="Avg Service (mins)"
+              type="number"
+              min="1"
+              required
+              value={qAvgDuration}
+              onChange={(e) => setQAvgDuration(e.target.value)}
+            />
+          </div>
+
+          {/* Alert Preferences */}
+          <div className="pt-2 border-t border-slate-100">
+            <span className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+              Customer Notification Gateways
+            </span>
+            <div className="space-y-2.5 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+              <label className="flex items-center gap-2.5 cursor-pointer text-slate-800 font-semibold">
+                <input
+                  type="checkbox"
+                  checked={qSmsEnabled}
+                  onChange={(e) => setQSmsEnabled(e.target.checked)}
+                  className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
+                />
+                <span>SMS Notifications (Fast2SMS / Twilio)</span>
+              </label>
+
+              <label className="flex items-center gap-2.5 cursor-pointer text-slate-800 font-semibold">
+                <input
+                  type="checkbox"
+                  checked={qWaEnabled}
+                  onChange={(e) => setQWaEnabled(e.target.checked)}
+                  className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300"
+                />
+                <span>WhatsApp Alerts (Meta Cloud API / Twilio)</span>
+              </label>
+
+              <div className="pt-1.5">
+                <Select
+                  label="Dispatch Turn Alert When:"
+                  value={qAlertThreshold}
+                  onChange={(e) => setQAlertThreshold(e.target.value)}
+                >
+                  <option value="1">1 customer ahead (approx 10-15 mins)</option>
+                  <option value="2">2 customers ahead (Recommended)</option>
+                  <option value="3">3 customers ahead (approx 30-45 mins)</option>
+                  <option value="4">4 customers ahead</option>
+                  <option value="5">5 customers ahead</option>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          {/* Test Alert Dispatch */}
+          <div className="pt-1">
+            <span className="block text-[11px] font-semibold text-slate-600 mb-1">
+              Test Alert Dispatch (MOCK provider by default)
+            </span>
+            <div className="flex gap-2">
+              <input
+                type="tel"
+                placeholder="Enter 10-digit phone"
+                value={testAlertPhone}
+                onChange={(e) => setTestAlertPhone(e.target.value)}
+                className="w-2/3 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="w-1/3"
+                loading={testAlertSending}
+                disabled={testAlertSending}
+                onClick={() => handleSendTestAlert('SMS')}
+              >
+                Test SMS
+              </Button>
+            </div>
+            {testAlertFeedback?.success && (
+              <div className="mt-1.5 text-[11px] text-emerald-600 font-medium">
+                ✅ {testAlertFeedback.success}
+              </div>
+            )}
+            {testAlertFeedback?.error && (
+              <div className="mt-1.5 text-[11px] text-rose-600 font-medium">
+                ⚠️ {testAlertFeedback.error}
+              </div>
+            )}
+          </div>
+
+          <div className="pt-4 flex items-center justify-end gap-2 border-t border-slate-100">
+            <Button
+              variant="secondary"
+              onClick={() => setShowQueueSettingsModal(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={savingQSettings}
+            >
+              Save Configuration
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Customer QR Code Panel Modal */}
       {showQRPanel && (
         <QRPanel
           onClose={() => setShowQRPanel(false)}
-          businessDisplayName={queueData?.business?.name}
+          businessDisplayName={queueData?.business?.name || profile?.name}
         />
       )}
 

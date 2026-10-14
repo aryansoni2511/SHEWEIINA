@@ -315,6 +315,16 @@ export async function getPublicQueueDisplayApi(businessId) {
   });
 }
 
+/**
+ * Business Queue & Financial Analytics API (Phase 5B)
+ * Retrieves real operational and historical metrics for 'today', '7d', or '30d'.
+ */
+export async function getBusinessAnalyticsApi(period = 'today') {
+  return request(`/api/v1/business/analytics?period=${encodeURIComponent(period)}`, {
+    method: 'GET',
+  });
+}
+
 export default {
   getStoredToken,
   setStoredToken,
@@ -337,6 +347,7 @@ export default {
   updateQueueSettingsApi,
   testMessagingAlertApi,
   getPublicQueueDisplayApi,
+  getBusinessAnalyticsApi,
   checkHealth,
   getBusinessServices,
   joinQueue,

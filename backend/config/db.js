@@ -14,7 +14,12 @@ if (process.env.NODE_ENV === 'production' && (!dbUrl || dbUrl.includes('localhos
   throw new Error('FATAL: DATABASE_URL environment variable is required and must be configured in production mode.');
 }
 
-if (dbUrl && !dbUrl.includes('localhost:5432/shewwina')) {
+const isTestEnv =
+  process.env.NODE_ENV === 'test' ||
+  Boolean(process.env.NODE_TEST_CONTEXT) ||
+  (Array.isArray(process.execArgv) && process.execArgv.some((arg) => arg.includes('--test')));
+
+if (!isTestEnv && dbUrl && !dbUrl.includes('localhost:5432/shewwina')) {
   try {
     pool = new Pool({
       connectionString: dbUrl,
