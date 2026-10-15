@@ -261,10 +261,14 @@ export default function TokenStatusPage() {
               <div
                 role="status"
                 aria-live="polite"
-                className="mb-4 p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold flex items-center justify-center gap-2"
+                className="mb-4 p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-950 text-xs font-semibold flex items-center justify-center gap-2"
               >
-                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                <span>You are in the queue. We will alert you when called.</span>
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>
+                  {tokenData?.peopleAhead != null && tokenData.peopleAhead <= 2
+                    ? "You're getting closer! Please stay nearby."
+                    : "You're in the queue! We'll help you keep track of your turn."}
+                </span>
               </div>
             )}
 

@@ -174,14 +174,14 @@ export default function CustomerQueuePage() {
           </div>
 
           {/* Value Proposition Hero Badge */}
-          <div className="mb-5 p-3.5 rounded-2xl bg-indigo-50/60 border border-indigo-100 text-indigo-950 flex items-start gap-2.5">
+          <div className="mb-5 p-3.5 rounded-2xl bg-[#DCFCE7]/60 border border-emerald-200 text-emerald-950 flex items-start gap-2.5">
             <span className="text-base mt-0.5">🎫</span>
             <div>
-              <h2 className="text-xs font-bold text-indigo-900">
+              <h2 className="text-xs font-bold text-emerald-900">
                 Join the {terms.queueTerm.toLowerCase()} without standing in line
               </h2>
-              <p className="text-[11px] text-indigo-700/80 mt-0.5 leading-relaxed">
-                Get a digital waiting pass, track your position live, and arrive right when it's your turn.
+              <p className="text-[11px] text-emerald-800/80 mt-0.5 leading-relaxed">
+                You're about to join the live queue! We'll help you keep track of your turn with real-time updates.
               </p>
             </div>
           </div>
@@ -247,7 +247,7 @@ export default function CustomerQueuePage() {
                         onClick={() => setSelectedServiceId(svc.id)}
                         className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
                           isSelected
-                            ? 'border-indigo-600 bg-indigo-50/70 shadow-sm shadow-indigo-500/10 ring-2 ring-indigo-500/20'
+                            ? 'border-emerald-600 bg-emerald-50/70 shadow-sm shadow-emerald-500/10 ring-2 ring-emerald-500/20'
                             : 'border-slate-200 hover:border-slate-300 bg-slate-50/50'
                         }`}
                       >

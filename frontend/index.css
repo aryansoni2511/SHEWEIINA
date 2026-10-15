@@ -2,7 +2,7 @@
 
 /* Smooth focus rings for keyboard navigation / accessibility */
 :focus-visible {
-  outline: 2px solid #4f46e5;
+  outline: 2px solid #22c55e;
   outline-offset: 2px;
 }
 
@@ -11,22 +11,22 @@
   transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
 }
 .glass-nav.scrolled {
-  background-color: rgba(255, 255, 255, 0.92);
+  background-color: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid rgba(226, 232, 240, 0.9);
-  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.05);
+  border-bottom: 1px solid rgba(220, 252, 231, 0.8);
+  box-shadow: 0 1px 3px 0 rgba(22, 101, 52, 0.05);
 }
 
 /* Background grid & subtle ambient glow */
 .bg-grid-pattern {
   background-size: 32px 32px;
   background-image:
-    linear-gradient(to right, rgba(226, 232, 240, 0.45) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(226, 232, 240, 0.45) 1px, transparent 1px);
+    linear-gradient(to right, rgba(226, 232, 240, 0.5) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(226, 232, 240, 0.5) 1px, transparent 1px);
 }
 .glow-radial {
-  background: radial-gradient(circle 600px at 50% 120px, rgba(79, 70, 229, 0.08), transparent 70%);
+  background: radial-gradient(circle 600px at 50% 120px, rgba(34, 197, 94, 0.08), transparent 70%);
 }
 
 /* Accordion transition for FAQ */

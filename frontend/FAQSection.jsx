@@ -1,11 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 
 /* ─────────────────────────────────────────────────────────────────────
-   FAQ Section — Phase 3 Redesign
-   Accessible accordion with smooth expand/collapse animation.
-   Uses max-height CSS transition (no dependency).
-   Respects prefers-reduced-motion.
-   Preserves aria-expanded and aria-controls.
+   FAQ Section — Shewwina Friendly Design
+   Fresh green palette, accessible accordion, clear beginner-friendly answers
 ───────────────────────────────────────────────────────────────────── */
 
 const FAQS = [
@@ -13,37 +11,37 @@ const FAQS = [
     id: 'what-is',
     question: 'What is Shewwina?',
     answer:
-      'Shewwina is a digital queue management platform for salons, clinics, restaurants, and service businesses. It replaces paper tokens and crowded lobbies with a live virtual queue — customers join via QR code, track their position on their phone, and receive WhatsApp or SMS alerts when their turn arrives.',
+      'Shewwina is a smart waiting platform designed for everyday service businesses like salons, clinics, restaurants, and retail service centers. It replaces physical waiting lines and paper tokens with a live digital queue that customers can track on their smartphone.',
   },
   {
     id: 'how-queue',
-    question: 'How does the queue work?',
+    question: 'How does a customer join the queue?',
     answer:
-      'When a customer arrives, they scan your lobby QR code or tap your booking link to receive a digital token with a live position and estimated wait time. As staff call customers forward on their Shewwina dashboard, the queue advances and automated alerts are sent to the next person in line.',
-  },
-  {
-    id: 'remote-join',
-    question: 'Can customers join remotely?',
-    answer:
-      "Yes. Customers can join your digital queue before they even arrive — from your website, social media link, or by scanning a QR code at your entrance. They see their live position and wait time on their phone. When it's nearly their turn, they get a WhatsApp or SMS alert to head in.",
+      'A customer visits the business page or scans an in-store QR code, selects the service they need, and enters their name and phone number. They instantly receive a digital token pass with their queue number, current line position, and estimated wait time.',
   },
   {
     id: 'app-required',
-    question: 'Do customers need to download an app?',
+    question: 'Do customers need to download a mobile app?',
     answer:
-      'No. Everything works in any mobile browser. Customers access their live queue pass, see their position, and receive alerts without installing anything. Businesses manage the queue from a web dashboard that also works on tablets and desktops.',
+      'No app download is required. Everything runs inside any standard mobile browser (Chrome, Safari, Firefox). Customers can bookmark or keep the browser tab open to watch their position advance in real time.',
   },
   {
-    id: 'revenue',
-    question: 'What does the Revenue Tracking feature do?',
+    id: 'demo-mode',
+    question: 'What is the Interactive Queue Simulation / Demo Mode?',
     answer:
-      "Shewwina captures the service price at the moment a customer joins the queue. When that token is marked SERVED, the price is added to your today's estimated revenue dashboard — even if you later change the service price. This gives you accurate daily revenue data regardless of price updates.",
+      'Demo Mode is an in-memory testing environment designed for student presentations and evaluation. It lets you simulate queue actions (Call Next, Mark Served, Add Customer, Auto-Run) safely with sample customers without touching or modifying real database records.',
   },
   {
-    id: 'setup',
-    question: 'How quickly can I set up Shewwina?',
+    id: 'wait-calc',
+    question: 'How is the estimated waiting time calculated?',
     answer:
-      'Most businesses are live in under 60 seconds. Register your business, add your services and pricing, and share your queue link or print your QR code. Customers can start joining your digital queue immediately — no hardware, no installation, no IT department required.',
+      'The estimated wait is calculated as: (Number of customers ahead) × (Average service duration). For example, if 2 customers are ahead and each service takes ~5 minutes, the estimated wait is approximately 10 minutes. This is shown as an operational estimate.',
+  },
+  {
+    id: 'hardware',
+    question: 'Does a business need special hardware?',
+    answer:
+      'No specialized ticket dispensers, pagers, or thermal printers are needed. Business staff manage tokens directly from a smartphone, tablet, or laptop dashboard.',
   },
 ];
 
@@ -55,12 +53,10 @@ function ChevronDown({ className = 'w-5 h-5' }) {
   );
 }
 
-/* ─── Animated panel wrapper ──────────────────────────────────────── */
 function AccordionPanel({ isOpen, id, labelId, children }) {
   const panelRef = useRef(null);
   const [height, setHeight] = useState(0);
 
-  /* Measure content height whenever open state changes */
   useEffect(() => {
     if (panelRef.current) {
       setHeight(isOpen ? panelRef.current.scrollHeight : 0);
@@ -75,15 +71,12 @@ function AccordionPanel({ isOpen, id, labelId, children }) {
       style={{
         maxHeight: `${height}px`,
         overflow: 'hidden',
-        transition: 'max-height 0.32s cubic-bezier(0.16,1,0.3,1), opacity 0.25s ease',
+        transition: 'max-height 0.3s cubic-bezier(0.16,1,0.3,1), opacity 0.2s ease',
         opacity: isOpen ? 1 : 0,
       }}
-      /* Respect prefers-reduced-motion — instant toggle */
       className="motion-reduce:transition-none"
     >
-      <div ref={panelRef}>
-        {children}
-      </div>
+      <div ref={panelRef}>{children}</div>
     </div>
   );
 }
@@ -94,27 +87,20 @@ export default function FAQSection() {
   const toggle = (idx) => setOpenIdx(openIdx === idx ? null : idx);
 
   return (
-    <section id="faq" aria-labelledby="faq-heading" className="py-24 bg-white relative overflow-hidden">
+    <section id="faq" aria-labelledby="faq-heading" className="py-16 sm:py-20 bg-white relative overflow-hidden">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-
         {/* Header */}
-        <div className="text-center mb-14">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-600 text-xs font-semibold uppercase tracking-wider mb-4">
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            Got Questions?
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold uppercase tracking-wider mb-3">
+            <span>Got Questions?</span>
           </div>
 
-          <h2 id="faq-heading" className="font-display text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
-            Frequently Asked{' '}
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
-              Questions
-            </span>
+          <h2 id="faq-heading" className="font-display text-3xl sm:text-4xl font-extrabold text-[#172033] tracking-tight">
+            Frequently Asked Questions
           </h2>
 
-          <p className="mt-4 text-base sm:text-lg text-slate-600 leading-relaxed max-w-2xl mx-auto">
-            Everything you need to know about setting up Shewwina for your business.
+          <p className="mt-3 text-sm sm:text-base text-[#64748B] leading-relaxed max-w-xl mx-auto">
+            Clear, straightforward answers about how Shewwina manages queues for customers and businesses.
           </p>
         </div>
 
@@ -129,27 +115,28 @@ export default function FAQSection() {
               <div
                 key={faq.id}
                 role="listitem"
-                className={`rounded-xl border overflow-hidden transition-colors duration-200 ${
+                className={`rounded-2xl border overflow-hidden transition-colors duration-200 ${
                   isOpen
-                    ? 'border-indigo-200 bg-indigo-50/40'
-                    : 'border-slate-200/80 bg-slate-50/60 hover:border-indigo-200/60'
+                    ? 'border-emerald-300 bg-emerald-50/40'
+                    : 'border-slate-200 bg-white hover:border-emerald-200'
                 }`}
               >
-                {/* Trigger */}
                 <button
                   type="button"
                   id={btnId}
                   aria-expanded={isOpen}
                   aria-controls={panelId}
                   onClick={() => toggle(idx)}
-                  className="w-full flex items-center justify-between gap-4 px-6 py-5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 rounded-xl"
+                  className="w-full flex items-center justify-between gap-4 px-6 py-4.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-2xl"
                 >
-                  <span className="font-semibold text-slate-900 text-base leading-snug">{faq.question}</span>
+                  <span className="font-semibold text-[#172033] text-sm sm:text-base leading-snug">
+                    {faq.question}
+                  </span>
                   <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all duration-300 ${
+                    className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 transition-transform duration-200 ${
                       isOpen
-                        ? 'bg-indigo-600 text-white rotate-180'
-                        : 'bg-white border border-slate-200 text-slate-400'
+                        ? 'bg-emerald-800 text-white rotate-180'
+                        : 'bg-slate-100 text-slate-500'
                     }`}
                     aria-hidden="true"
                   >
@@ -157,11 +144,12 @@ export default function FAQSection() {
                   </div>
                 </button>
 
-                {/* Animated panel — always rendered, height transitions 0 → full */}
                 <AccordionPanel isOpen={isOpen} id={panelId} labelId={btnId}>
-                  <div className="px-6 pb-6">
-                    <div className="pt-1 border-t border-slate-200/60">
-                      <p className="mt-4 text-sm sm:text-base text-slate-600 leading-relaxed">{faq.answer}</p>
+                  <div className="px-6 pb-5">
+                    <div className="pt-2 border-t border-emerald-100/60">
+                      <p className="text-xs sm:text-sm text-[#64748B] leading-relaxed">
+                        {faq.answer}
+                      </p>
                     </div>
                   </div>
                 </AccordionPanel>
@@ -170,18 +158,20 @@ export default function FAQSection() {
           })}
         </div>
 
-        {/* Support footer */}
-        <div className="mt-12 p-7 rounded-2xl bg-slate-900 text-white flex flex-col sm:flex-row items-center justify-between gap-5 shadow-xl">
+        {/* Try Simulation Callout Banner */}
+        <div className="mt-10 p-6 rounded-2xl bg-emerald-50 border border-emerald-200 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div>
-            <h3 className="text-base font-bold text-white">Still have questions?</h3>
-            <p className="text-sm text-slate-400 mt-1">Reach our product team directly — we respond fast.</p>
+            <h3 className="text-sm font-bold text-emerald-950">Want to test the queue without signing up?</h3>
+            <p className="text-xs text-emerald-800/80 mt-0.5">
+              Launch our live simulation to call next, mark served, and test wait calculations.
+            </p>
           </div>
-          <a
-            href="#contact"
-            className="shrink-0 inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold text-slate-900 bg-white hover:bg-slate-100 rounded-full shadow transition-all"
+          <Link
+            to="/demo"
+            className="shrink-0 px-4 py-2 text-xs font-bold text-white bg-emerald-800 hover:bg-emerald-900 rounded-xl transition-colors shadow-xs"
           >
-            Contact Support →
-          </a>
+            Open Queue Playground →
+          </Link>
         </div>
       </div>
     </section>

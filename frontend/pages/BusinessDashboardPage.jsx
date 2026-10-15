@@ -662,6 +662,33 @@ export default function BusinessDashboardPage() {
       {/* Main Dashboard Workspace */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
+        {/* Friendly Personalized Greeting Header */}
+        <div className="mb-6 p-5 rounded-3xl bg-white border border-emerald-100 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-[#DCFCE7] text-emerald-800 flex items-center justify-center font-bold text-lg shrink-0">
+              👋
+            </div>
+            <div>
+              <h2 className="text-lg sm:text-xl font-bold font-display text-[#172033]">
+                Welcome back, {user?.name || 'Manager'}!
+              </h2>
+              <p className="text-xs text-[#64748B] mt-0.5">
+                Here is your live {terms.queueTerm.toLowerCase()} status for{' '}
+                <strong className="text-slate-800 font-semibold">{queueData?.business?.name || profile?.name || 'your business'}</strong>.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 self-end sm:self-center">
+            <span className="text-xs font-semibold text-slate-500">Status:</span>
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
+              qIsOpen ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-rose-100 text-rose-800 border border-rose-300'
+            }`}>
+              <span className={`w-2 h-2 rounded-full ${qIsOpen ? 'bg-emerald-600 animate-pulse' : 'bg-rose-600'}`} />
+              {qIsOpen ? `${terms.queueTerm} Open` : `${terms.queueTerm} Paused`}
+            </span>
+          </div>
+        </div>
+
         {/* Info / Success Feedback Banner */}
         {infoMessage && (
           <div

@@ -33,32 +33,43 @@
           },
           colors: {
             brand: {
-              50: '#eef2ff',
-              100: '#e0e7ff',
-              200: '#c7d2fe',
-              300: '#a5b4fc',
-              400: '#818cf8',
-              500: '#4f46e5',
-              600: '#4338ca',
-              700: '#3730a3',
-              800: '#312e81',
-              900: '#1e1b4b',
-              950: '#0f172a',
+              50: '#f0fdf4',
+              100: '#dcfce7', /* Soft green */
+              200: '#bbf7d0',
+              300: '#86efac',
+              400: '#4ade80',
+              500: '#22c55e', /* Bright accent green */
+              600: '#16a34a',
+              700: '#15803d',
+              800: '#166534', /* Primary green */
+              900: '#14532d',
+              950: '#052e16',
+            },
+            primary: {
+              DEFAULT: '#166534',
+              hover: '#14532d',
+              accent: '#22c55e',
+              soft: '#dcfce7',
             },
             surface: {
-              subtle: '#f8fafc',
-              card: '#ffffff',
+              subtle: '#f8fafc', /* Main background */
+              card: '#ffffff',   /* White cards */
               border: '#e2e8f0',
-              dark: '#0b0f19',
-              darkCard: '#111827',
-              darkBorder: '#1f2937',
+              dark: '#172033',   /* Main text / dark surface */
+              darkCard: '#1e293b',
+              darkBorder: '#334155',
+            },
+            app: {
+              bg: '#f8fafc',
+              text: '#172033',
+              muted: '#64748b',
             }
           },
           boxShadow: {
             subtle: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-            card: '0 1px 3px 0 rgba(15, 23, 42, 0.06), 0 1px 2px -1px rgba(15, 23, 42, 0.06)',
-            'card-hover': '0 10px 25px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.04)',
-            modal: '0 20px 25px -5px rgba(15, 23, 42, 0.15), 0 8px 10px -6px rgba(15, 23, 42, 0.1)',
+            card: '0 1px 3px 0 rgba(23, 32, 51, 0.06), 0 1px 2px -1px rgba(23, 32, 51, 0.06)',
+            'card-hover': '0 10px 25px -3px rgba(22, 101, 52, 0.08), 0 4px 6px -4px rgba(22, 101, 52, 0.04)',
+            modal: '0 20px 25px -5px rgba(23, 32, 51, 0.15), 0 8px 10px -6px rgba(23, 32, 51, 0.1)',
           },
           animation: {
             'fade-in': 'fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards',
@@ -83,10 +94,8 @@
       }
     }
   </script>
-
-
 </head>
-<body id="top" class="bg-white text-slate-900 font-sans antialiased min-h-screen relative selection:bg-brand-500 selection:text-white">
+<body id="top" class="bg-[#F8FAFC] text-[#172033] font-sans antialiased min-h-screen relative selection:bg-[#22C55E] selection:text-white">
   <div id="root"></div>
   <script type="module" src="/frontend/main.jsx"></script>
 </body>

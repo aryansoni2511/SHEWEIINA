@@ -5,12 +5,9 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 // Landing Page Modular Components
 import Navbar from './Navbar';
 import Hero from './Hero';
-import ProblemSection from './ProblemSection';
-import SolutionSection from './SolutionSection';
-import FeaturesSection from './FeaturesSection';
-import TimelineSection from './TimelineSection';
-import IndustriesSection from './IndustriesSection';
-import StatsSection from './StatsSection';
+import HowItWorksSection from './HowItWorksSection';
+import ExploreServicesSection from './ExploreServicesSection';
+import FriendlyTrustSection from './FriendlyTrustSection';
 import FAQSection from './FAQSection';
 import CTASection from './CTASection';
 import FooterSection from './FooterSection';
@@ -20,6 +17,7 @@ import CustomerQueuePage from './pages/CustomerQueuePage';
 import TokenStatusPage from './pages/TokenStatusPage';
 import BusinessDashboardPage from './pages/BusinessDashboardPage';
 import CustomerDashboardPage from './pages/CustomerDashboardPage';
+import QueueSimulationPage from './pages/QueueSimulationPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import BusinessRegisterPage from './pages/BusinessRegisterPage';
@@ -33,9 +31,9 @@ function ProtectedBusinessRoute({ children }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-4">
+      <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center p-4">
         <div className="text-center space-y-3">
-          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
+          <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto" />
           <p className="text-sm font-semibold text-slate-400">Verifying Business Credentials...</p>
         </div>
       </div>
@@ -57,9 +55,9 @@ function ProtectedCustomerRoute({ children }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-4">
+      <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center p-4">
         <div className="text-center space-y-3">
-          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
+          <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto" />
           <p className="text-sm font-semibold text-slate-400">Verifying Customer Account...</p>
         </div>
       </div>
@@ -78,16 +76,13 @@ function ProtectedCustomerRoute({ children }) {
  */
 function LandingPage() {
   return (
-    <div id="top" className="bg-white text-slate-900 font-sans antialiased min-h-screen relative selection:bg-blue-600 selection:text-white">
+    <div id="top" className="bg-[#F8FAFC] text-[#172033] font-sans antialiased min-h-screen relative selection:bg-[#22C55E] selection:text-white">
       <Navbar />
       <main id="main-content">
         <Hero />
-        <ProblemSection />
-        <SolutionSection />
-        <FeaturesSection />
-        <TimelineSection />
-        <IndustriesSection />
-        <StatsSection />
+        <HowItWorksSection />
+        <ExploreServicesSection />
+        <FriendlyTrustSection />
         <FAQSection />
         <CTASection />
       </main>
@@ -104,6 +99,8 @@ export default function App() {
     <AuthProvider>
       <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/demo" element={<QueueSimulationPage />} />
+        <Route path="/simulation" element={<QueueSimulationPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/register-business" element={<BusinessRegisterPage />} />
