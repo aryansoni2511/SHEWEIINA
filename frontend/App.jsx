@@ -22,6 +22,13 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import BusinessRegisterPage from './pages/BusinessRegisterPage';
 import PublicDisplayPage from './pages/PublicDisplayPage';
+// Hospital Module Route Pages
+import HospitalDiscoveryPage from './pages/HospitalDiscoveryPage';
+import HospitalRegisterPage from './pages/HospitalRegisterPage';
+import HospitalDetailsPage from './pages/HospitalDetailsPage';
+import HospitalTokenPage from './pages/HospitalTokenPage';
+import HospitalDashboardPage from './pages/HospitalDashboardPage';
+
 
 /**
  * Protected Route Wrapper for Authenticated Business Access
@@ -108,6 +115,20 @@ export default function App() {
         <Route path="/display/:businessId" element={<PublicDisplayPage />} />
         <Route path="/live/:businessId" element={<PublicDisplayPage />} />
         <Route path="/token/:tokenId" element={<TokenStatusPage />} />
+        {/* Hospital Management & OPD Queue Routes */}
+        <Route path="/hospitals" element={<HospitalDiscoveryPage />} />
+        <Route path="/register-hospital" element={<HospitalRegisterPage />} />
+        <Route path="/hospital/:hospitalId" element={<HospitalDetailsPage />} />
+        <Route path="/hospital/token/:tokenId" element={<HospitalTokenPage />} />
+        <Route
+          path="/hospital/dashboard"
+          element={
+            <ProtectedBusinessRoute>
+              <HospitalDashboardPage />
+            </ProtectedBusinessRoute>
+          }
+        />
+
         <Route
           path="/dashboard"
           element={

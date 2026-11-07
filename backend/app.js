@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import healthRoutes from './routes/healthRoutes.js';
 import queueRoutes from './routes/queueRoutes.js';
 import businessQueueRoutes from './routes/businessQueueRoutes.js';
+import hospitalRoutes from './routes/hospitalRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import customerRoutes from './routes/customerRoutes.js';
 import { requestLogger } from './middleware/logger.js';
@@ -72,6 +73,7 @@ app.use('/api/v1/auth', authRateLimiter, authRoutes);
 app.use('/api/v1/customer', generalRateLimiter, customerRoutes);
 app.use('/api/v1/queue', generalRateLimiter, queueRoutes);
 app.use('/api/v1/business', generalRateLimiter, businessQueueRoutes);
+app.use('/api/v1/hospital', generalRateLimiter, hospitalRoutes);
 
 // Fallback & Error Handlers
 app.use(notFoundHandler);

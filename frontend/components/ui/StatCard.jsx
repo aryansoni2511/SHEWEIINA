@@ -9,7 +9,7 @@ export default function StatCard({
   subtitle = null,
   icon = null,
   trend = null,
-  accent = 'indigo', // 'indigo' | 'emerald' | 'amber' | 'rose' | 'slate'
+  accent = 'emerald', // 'emerald' | 'amber' | 'rose' | 'slate' | 'indigo'
   className = '',
 }) {
   const accentStyles = {

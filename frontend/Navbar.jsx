@@ -84,6 +84,13 @@ export default function Navbar() {
             >
               Explore Services
             </a>
+            <Link
+              to="/hospitals"
+              className="px-3.5 py-2 text-sm font-semibold text-emerald-800 hover:text-emerald-950 rounded-full hover:bg-emerald-50 transition-colors flex items-center gap-1.5"
+            >
+              <span>🏥</span>
+              <span>Hospitals &amp; OPD</span>
+            </Link>
             <a
               href={getHref('#how-it-works')}
               className="px-3.5 py-2 text-sm font-medium text-slate-600 hover:text-emerald-800 rounded-full hover:bg-emerald-50/60 transition-colors"
@@ -214,6 +221,13 @@ export default function Navbar() {
             >
               About
             </a>
+            <Link
+              to="/hospitals"
+              onClick={closeMenu}
+              className="block px-4 py-2.5 rounded-xl text-base font-semibold text-slate-800 hover:bg-emerald-50 hover:text-emerald-800 transition-colors"
+            >
+              🏥 Hospitals &amp; OPD Live Queues
+            </Link>
             <Link
               to="/demo"
               onClick={closeMenu}

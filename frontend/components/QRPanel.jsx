@@ -122,16 +122,16 @@ export default function QRPanel({ onClose, businessDisplayName }) {
 
       {/* ─── Dashboard Modal ─────────────────────────────────────────────────────── */}
       <div
-        className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4"
+        className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn"
         onClick={(e) => e.target === e.currentTarget && onClose()}
       >
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl relative">
+        <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl relative text-slate-900">
 
           {/* Close button */}
           <button
             onClick={onClose}
             id="qr-panel-close"
-            className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-xl text-slate-400 hover:text-white bg-slate-950/60 hover:bg-slate-800 border border-slate-800 transition-colors"
+            className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-colors"
             aria-label="Close QR panel"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
@@ -140,12 +140,12 @@ export default function QRPanel({ onClose, businessDisplayName }) {
           {/* Header */}
           <div className="mb-6">
             <div className="flex items-center gap-3 mb-1">
-              <div className="w-10 h-10 rounded-xl bg-blue-950/80 border border-blue-800/60 flex items-center justify-center text-blue-400 shrink-0">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0">
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
               </div>
               <div>
-                <h2 className="text-lg font-bold text-white leading-tight">Customer QR Code</h2>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <h2 className="text-lg font-bold text-slate-900 leading-tight">Customer QR Code</h2>
+                <p className="text-xs text-slate-500 mt-0.5">
                   Display or print so customers can scan and join your queue directly.
                 </p>
               </div>
@@ -153,7 +153,7 @@ export default function QRPanel({ onClose, businessDisplayName }) {
           </div>
 
           {/* QR Code Display */}
-          <div className="flex flex-col items-center bg-white rounded-2xl p-6 mb-5 shadow-inner">
+          <div className="flex flex-col items-center bg-slate-50 border border-slate-200/80 rounded-2xl p-6 mb-5 shadow-inner">
             <QRCodeSVG
               value={joinUrl}
               size={200}
@@ -162,20 +162,20 @@ export default function QRPanel({ onClose, businessDisplayName }) {
               level="M"
               id="business-qr-code"
             />
-            <p className="mt-3 text-[11px] text-slate-400 font-mono text-center break-all max-w-[220px]">
+            <p className="mt-3 text-[11px] text-slate-500 font-mono text-center break-all max-w-[220px]">
               {joinUrl}
             </p>
           </div>
 
           {/* Business Badge */}
-          <div className="mb-5 px-4 py-3 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center justify-between">
+          <div className="mb-5 px-4 py-3 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 flex items-center justify-between">
             <div>
-              <div className="text-xs text-slate-400 font-medium">Business</div>
-              <div className="text-sm font-bold text-white">{businessName}</div>
+              <div className="text-[11px] text-emerald-800 font-semibold uppercase tracking-wider">Business</div>
+              <div className="text-sm font-bold text-slate-900">{businessName}</div>
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-xs font-semibold text-emerald-400">Live Queue</span>
+            <div className="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-full border border-emerald-200">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-xs font-semibold text-emerald-700">Live Queue</span>
             </div>
           </div>
 
@@ -184,10 +184,10 @@ export default function QRPanel({ onClose, businessDisplayName }) {
             <button
               id="qr-copy-url"
               onClick={handleCopy}
-              className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border text-xs font-semibold transition-all ${
+              className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl border text-xs font-semibold transition-all shadow-xs ${
                 copied
-                  ? 'bg-emerald-950/60 border-emerald-800 text-emerald-400'
-                  : 'bg-slate-950/60 border-slate-800 text-slate-300 hover:border-slate-600 hover:text-white'
+                  ? 'bg-emerald-100 border-emerald-300 text-emerald-800'
+                  : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300'
               }`}
             >
               <span className="text-lg">{copied ? '✅' : '📋'}</span>
@@ -199,7 +199,7 @@ export default function QRPanel({ onClose, businessDisplayName }) {
               href={joinUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex flex-col items-center gap-1.5 p-3 rounded-xl border bg-slate-950/60 border-slate-800 text-slate-300 hover:border-slate-600 hover:text-white text-xs font-semibold transition-all no-underline"
+              className="flex flex-col items-center gap-1.5 p-3 rounded-2xl border bg-white hover:bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300 text-xs font-semibold transition-all no-underline shadow-xs"
             >
               <span className="text-lg">🔗</span>
               <span>Open Link</span>
@@ -208,7 +208,7 @@ export default function QRPanel({ onClose, businessDisplayName }) {
             <button
               id="qr-print-poster"
               onClick={handlePrint}
-              className="flex flex-col items-center gap-1.5 p-3 rounded-xl border bg-slate-950/60 border-slate-800 text-slate-300 hover:border-slate-600 hover:text-white text-xs font-semibold transition-all"
+              className="flex flex-col items-center gap-1.5 p-3 rounded-2xl border bg-white hover:bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300 text-xs font-semibold transition-all shadow-xs"
             >
               <span className="text-lg">🖨️</span>
               <span>Print Poster</span>
@@ -216,9 +216,9 @@ export default function QRPanel({ onClose, businessDisplayName }) {
           </div>
 
           {/* Security Notice */}
-          <div className="px-4 py-3 rounded-xl bg-blue-950/30 border border-blue-900/40">
-            <p className="text-[11px] text-blue-300/80 leading-relaxed">
-              <span className="font-bold text-blue-300">🔒 Safe to share publicly.</span>{' '}
+          <div className="px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200">
+            <p className="text-[11px] text-slate-600 leading-relaxed">
+              <span className="font-bold text-emerald-700">🔒 Safe to share publicly.</span>{' '}
               This QR only contains your public queue link — no credentials, tokens, or customer data.
             </p>
           </div>

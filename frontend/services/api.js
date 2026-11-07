@@ -325,7 +325,121 @@ export async function getBusinessAnalyticsApi(period = 'today') {
   });
 }
 
+
+/* ─── Hospital & OPD API Endpoints ──────────────────────────────────────── */
+
+export async function searchHospitalsApi({ search = '', city = '', pincode = '', facility = '', type = '', userLat = '', userLng = '' } = {}) {
+  const params = new URLSearchParams();
+  if (search) params.append('search', search);
+  if (city) params.append('city', city);
+  if (pincode) params.append('pincode', pincode);
+  if (facility) params.append('facility', facility);
+  if (type) params.append('type', type);
+  if (userLat) params.append('userLat', userLat);
+  if (userLng) params.append('userLng', userLng);
+
+  const queryStr = params.toString() ? `?${params.toString()}` : '';
+  return request(`/api/v1/hospital/search${queryStr}`, { method: 'GET' });
+}
+
+export async function getHospitalDetailsApi(idOrSlug) {
+  return request(`/api/v1/hospital/details/${idOrSlug}`, { method: 'GET' });
+}
+
+export async function registerHospitalApi(data) {
+  return request('/api/v1/hospital/register-hospital', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function registerPatientApi(data) {
+  return request('/api/v1/hospital/register-patient', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function requestHospitalOpdTokenApi(data) {
+  return request('/api/v1/hospital/token/join', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getHospitalTokenApi(tokenId) {
+  return request(`/api/v1/hospital/token/${tokenId}`, { method: 'GET' });
+}
+
+export async function getHospitalDashboardApi() {
+  return request('/api/v1/hospital/dashboard', { method: 'GET' });
+}
+
+export async function createHospitalDepartmentApi(data) {
+  return request('/api/v1/hospital/departments', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateHospitalDepartmentApi(departmentId, data) {
+  return request(`/api/v1/hospital/departments/${departmentId}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function createHospitalDoctorApi(data) {
+  return request('/api/v1/hospital/doctors', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function callNextHospitalPatientApi(doctorId) {
+  return request('/api/v1/hospital/queue/next', {
+    method: 'POST',
+    body: JSON.stringify({ doctorId }),
+  });
+}
+
+export async function completeHospitalConsultationApi(doctorId) {
+  return request('/api/v1/hospital/queue/complete', {
+    method: 'POST',
+    body: JSON.stringify({ doctorId }),
+  });
+}
+
+export async function skipHospitalPatientTokenApi(doctorId, tokenId) {
+  return request('/api/v1/hospital/queue/skip', {
+    method: 'POST',
+    body: JSON.stringify({ doctorId, tokenId }),
+  });
+}
+
+export async function toggleHospitalDoctorQueueApi(doctorId, isOpen) {
+  return request('/api/v1/hospital/queue/toggle', {
+    method: 'POST',
+    body: JSON.stringify({ doctorId, isOpen }),
+  });
+}
+
 export default {
+  searchHospitalsApi,
+  getHospitalDetailsApi,
+  registerHospitalApi,
+  registerPatientApi,
+  requestHospitalOpdTokenApi,
+  getHospitalTokenApi,
+  getHospitalDashboardApi,
+  createHospitalDepartmentApi,
+  updateHospitalDepartmentApi,
+  createHospitalDoctorApi,
+  callNextHospitalPatientApi,
+  completeHospitalConsultationApi,
+  skipHospitalPatientTokenApi,
+  toggleHospitalDoctorQueueApi,
+
   getStoredToken,
   setStoredToken,
   loginApi,

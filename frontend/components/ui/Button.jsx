@@ -26,7 +26,7 @@ export default function Button({
 
   const variantClasses = {
     primary:
-      'bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm shadow-indigo-600/20 focus-visible:ring-indigo-500 disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none',
+      'bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-sm shadow-emerald-600/20 focus-visible:ring-emerald-500 disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none',
     secondary:
       'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 shadow-sm focus-visible:ring-slate-400 hover:border-slate-300 disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200',
     dark:
