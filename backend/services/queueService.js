@@ -21,6 +21,7 @@ import {
   getRecentThroughput,
   getEstimatedRevenueToday,
   getBusinessAnalytics,
+  searchBusinesses,
 } from '../models/queueModel.js';
 import {
   notifyCustomerJoinedQueue,
@@ -32,6 +33,10 @@ import {
 import realtimeService from './realtimeService.js';
 import aiService from './aiService.js';
 import messagingService from './messagingService.js';
+import { findHospitalTokenById } from '../models/hospitalModel.js';
+import { findGovernmentTokenById } from '../models/governmentModel.js';
+import { processCancelOpdToken } from './hospitalService.js';
+import { processCancelToken as processCancelGovtToken } from './governmentService.js';
 import { maskCustomerName } from '../utils/mask.js';
 import { validateName, validateBusinessName, validatePhone } from '../utils/validation.js';
 
@@ -117,6 +122,33 @@ export async function processCustomerJoinQueue({ businessId, queueId, serviceId,
 
   // 7. Calculate Position and Wait Time
   const existingTokens = await findTokensByQueueId(queue.id);
+
+  // Check duplicate active token for this customer in this queue
+  const cleanPhone = customerPhone.trim();
+  const activeDuplicate = existingTokens.find(
+    (t) =>
+      (t.status === 'WAITING' || t.status === 'SERVING') &&
+      ((t.customer_phone && t.customer_phone.trim() === cleanPhone) ||
+       (userId && t.user_id && t.user_id === userId))
+  );
+
+  if (activeDuplicate) {
+    const actionWord = activeDuplicate.status === 'SERVING' ? 'currently being served' : 'waiting';
+    const err = new ConflictError(
+      `You already have an active token (${activeDuplicate.token_number}) in this queue (${actionWord}).`
+    );
+    err.code = 'DUPLICATE_ACTIVE_TOKEN';
+    err.details = {
+      code: 'DUPLICATE_ACTIVE_TOKEN',
+      tokenId: activeDuplicate.id,
+      tokenNumber: activeDuplicate.token_number,
+      status: activeDuplicate.status,
+      queueId: queue.id,
+    };
+    err.existingToken = err.details;
+    throw err;
+  }
+
   const waitingTokens = existingTokens.filter((t) => t.status === 'WAITING');
   const maxCapacity = queue.max_daily_capacity || queue.maxDailyCapacity;
   if (maxCapacity && waitingTokens.length >= Number(maxCapacity)) {
@@ -217,19 +249,34 @@ export async function processGetTokenStatus(tokenId) {
     aiEstimatedWaitMinutes = 0;
   }
 
+  const business = token.business_id
+    ? (await findBusinessById(token.business_id)) || (await findBusinessBySlug(token.business_id))
+    : null;
+
+  const queueTokens = token.queue_id ? await findTokensByQueueId(token.queue_id) : [];
+  const activeServing = Array.isArray(queueTokens) ? queueTokens.find((t) => t.status === 'SERVING') : null;
+  const currentlyServing = activeServing ? activeServing.token_number : (token.status === 'SERVING' ? token.token_number : null);
+
   return {
     tokenId: token.id,
     tokenNumber: token.token_number,
     queueId: token.queue_id,
     businessId: token.business_id,
+    businessName: business?.name || 'Shewwina Business',
+    businessCategory: business?.category || 'business',
+    businessAddress: business?.address || null,
+    businessCity: business?.city || null,
+    businessPhone: business?.phone || null,
     customerName: token.customer_name,
     customerPhone: token.customer_phone,
     service: token.service_name || 'General Service',
+    serviceDuration: token.service_duration || 15,
     status: token.status,
     position,
     peopleAhead,
     estimatedWaitMinutes,
     aiEstimatedWaitMinutes,
+    currentlyServing,
     calledAt: token.called_at,
     servedAt: token.served_at,
     createdAt: token.created_at,
@@ -309,9 +356,10 @@ export async function processGetBusinessQueue({ businessId, queueId }) {
 }
 
 export async function processCallNextCustomer({ businessId, queueId }) {
-  const business = businessId 
-    ? (await findBusinessById(businessId)) || (await findBusinessBySlug(businessId))
-    : await findBusinessBySlug('demo');
+  if (!businessId) {
+    throw new ValidationError('businessId is required');
+  }
+  const business = (await findBusinessById(businessId)) || (await findBusinessBySlug(businessId));
 
   if (!business) {
     throw new NotFoundError(`Business not found: ${businessId}`);
@@ -394,6 +442,9 @@ export async function processGetBusinessServices(businessId) {
   }
   const business = (await findBusinessById(businessId)) || (await findBusinessBySlug(businessId));
   if (!business) {
+    if (businessId === 'demo') {
+      throw new NotFoundError('Demo business is currently not configured or available.');
+    }
     throw new NotFoundError(`Business not found: ${businessId}`);
   }
 
@@ -425,9 +476,10 @@ export async function processGetBusinessServices(businessId) {
 }
 
 export async function processCompleteService({ businessId, queueId }) {
-  const business = businessId 
-    ? (await findBusinessById(businessId)) || (await findBusinessBySlug(businessId))
-    : await findBusinessBySlug('demo');
+  if (!businessId) {
+    throw new ValidationError('businessId is required');
+  }
+  const business = (await findBusinessById(businessId)) || (await findBusinessBySlug(businessId));
 
   if (!business) {
     throw new NotFoundError(`Business not found: ${businessId}`);
@@ -488,8 +540,16 @@ export async function processCancelToken({ tokenId, userId, userPhone }) {
     throw new ValidationError('tokenId is required');
   }
 
-  const token = await findTokenById(tokenId);
+  let token = await findTokenById(tokenId);
   if (!token) {
+    const hospToken = await findHospitalTokenById(tokenId);
+    if (hospToken) {
+      return processCancelOpdToken({ userId, phone: userPhone }, tokenId);
+    }
+    const govtToken = await findGovernmentTokenById(tokenId);
+    if (govtToken) {
+      return processCancelGovtToken({ userId, phone: userPhone }, tokenId);
+    }
     throw new NotFoundError(`Token not found: ${tokenId}`);
   }
 

@@ -6,7 +6,7 @@ import { validateName, validatePhone } from '../utils/validation';
 import { getIndustryConfig } from '../config/industryTerminology';
 import LogoMark from '../components/LogoMark';
 
-// Phase 2 UI Primitives
+// Phase 1 UI Primitives
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Card from '../components/ui/Card';
@@ -34,6 +34,7 @@ export default function CustomerQueuePage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
+  const [duplicateToken, setDuplicateToken] = useState(null);
 
   // Industry-Agnostic Terminology Resolution
   const terms = getIndustryConfig(businessInfo?.category);
@@ -58,7 +59,7 @@ export default function CustomerQueuePage() {
       })
       .catch((err) => {
         if (!isMounted) return;
-        setErrorMessage(err.message || 'Unable to load business details.');
+        setErrorMessage(err.message || 'Unable to load service details.');
         setLoading(false);
       });
 
@@ -71,6 +72,7 @@ export default function CustomerQueuePage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage(null);
+    setDuplicateToken(null);
 
     // Form Validations — using shared validateName / validatePhone rules
     if (!selectedServiceId) {
@@ -111,17 +113,61 @@ export default function CustomerQueuePage() {
       const tokenData = response.data;
       navigate(`/token/${tokenData.tokenId || tokenData.tokenNumber}`);
     } catch (err) {
-      setErrorMessage(err.message || 'Failed to join queue. Please try again.');
+      const errorData = err.data || {};
+      const errorCode = errorData.code || errorData.details?.code;
+      const tokenDetails = errorData.details || errorData.existingToken;
+
+      if (
+        (errorCode === 'DUPLICATE_ACTIVE_TOKEN' ||
+          (err.status === 409 && /already have an active token/i.test(err.message || ''))) &&
+        tokenDetails?.tokenId
+      ) {
+        setDuplicateToken({
+          tokenId: tokenDetails.tokenId,
+          tokenNumber: tokenDetails.tokenNumber || null,
+          status: tokenDetails.status || 'WAITING',
+          message: err.message,
+        });
+        setErrorMessage(null);
+      } else {
+        setDuplicateToken(null);
+        setErrorMessage(err.message || 'Failed to join queue. Please try again.');
+      }
       setSubmitting(false);
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center p-4 selection:bg-[#171717] selection:text-white">
         <div className="text-center space-y-3">
-          <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-sm font-semibold text-slate-600">Loading Live Queue...</p>
+          <div className="w-10 h-10 border-3 border-[#171717] border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-sm font-semibold text-[#171717]">Connecting to Live Queue...</p>
+          <p className="text-xs text-[#78716C]">Checking real-time service counter availability</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!businessInfo && !loading) {
+    return (
+      <div className="min-h-screen bg-[#FAF8F5] relative flex flex-col items-center justify-center py-10 px-4 sm:px-6 lg:px-8 selection:bg-[#171717] selection:text-white">
+        <div className="max-w-md w-full bg-white border border-[#E7E3DC] shadow-sm rounded-3xl p-6 sm:p-8 text-center space-y-4">
+          <div className="w-12 h-12 bg-[#FAF8F5] border border-[#E7E3DC] rounded-2xl flex items-center justify-center mx-auto text-xl">
+            🎫
+          </div>
+          <h2 className="text-lg font-bold text-[#171717] font-editorial">Queue Not Found</h2>
+          <p className="text-xs text-[#78716C] leading-relaxed">
+            {errorMessage || 'The queue or service link you accessed is not currently available or active.'}
+          </p>
+          <div className="pt-2 flex flex-col sm:flex-row gap-2 justify-center">
+            <Link
+              to="/explore"
+              className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl text-xs font-semibold text-white bg-[#171717] hover:bg-[#262626] transition-colors"
+            >
+              Explore Active Queues
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -130,30 +176,20 @@ export default function CustomerQueuePage() {
   const isQueueClosed = queueInfo && queueInfo.isOpen === false;
 
   return (
-    <div className="min-h-screen bg-slate-50 relative flex flex-col items-center justify-center py-10 px-4 sm:px-6 lg:px-8 selection:bg-indigo-600 selection:text-white">
-      {/* Background ambient gradient */}
-      <div
-        className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-15%,rgba(79,70,229,0.08),rgba(255,255,255,0))] pointer-events-none"
-        aria-hidden="true"
-      />
-      <div
-        className="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_110%,rgba(99,102,241,0.05),rgba(255,255,255,0))] pointer-events-none"
-        aria-hidden="true"
-      />
-
+    <div className="min-h-screen bg-[#FAF8F5] relative flex flex-col items-center justify-center py-6 sm:py-10 px-3 sm:px-6 lg:px-8 pb-28 lg:pb-12 selection:bg-[#171717] selection:text-white">
       <div className="relative z-10 max-w-md w-full">
         {/* Main Card Container */}
-        <Card className="p-6 sm:p-8 bg-white border border-slate-200/80 shadow-xl shadow-slate-900/5 rounded-3xl">
+        <Card className="p-4 sm:p-8 bg-white border border-[#E7E3DC] shadow-sm rounded-3xl">
 
           {/* Header Branding */}
-          <div className="flex items-center justify-between border-b border-slate-100 pb-5 mb-5 gap-3">
+          <div className="flex items-center justify-between border-b border-[#E7E3DC] pb-5 mb-5 gap-3">
             <div className="flex items-center gap-3 min-w-0">
-              <LogoMark className="w-10 h-10" variant="blue" iconSize="w-5 h-5" />
+              <LogoMark className="w-9 h-9" variant="blue" iconSize="w-4.5 h-4.5" />
               <div className="min-w-0">
-                <h1 className="text-base sm:text-lg font-bold text-slate-900 leading-tight truncate">
+                <h1 className="text-base sm:text-lg font-bold text-[#171717] leading-tight truncate font-editorial">
                   {businessInfo?.name || 'Shewwina Express Queue'}
                 </h1>
-                <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5">
+                <div className="flex items-center gap-1.5 text-xs text-[#78716C] mt-0.5">
                   <span>{terms.icon} {terms.categoryName}</span>
                   {businessInfo?.city && (
                     <>
@@ -165,23 +201,23 @@ export default function CustomerQueuePage() {
               </div>
             </div>
             <Link
-              to="/"
-              className="text-xs font-semibold text-slate-400 hover:text-slate-600 p-1 rounded-lg transition-colors flex-shrink-0"
-              aria-label="Close"
+              to="/explore"
+              className="text-xs font-semibold text-[#78716C] hover:text-[#171717] p-1 rounded-lg transition-colors flex-shrink-0"
+              aria-label="Back to explore"
             >
               ✕
             </Link>
           </div>
 
           {/* Value Proposition Hero Badge */}
-          <div className="mb-5 p-3.5 rounded-2xl bg-[#DCFCE7]/60 border border-emerald-200 text-emerald-950 flex items-start gap-2.5">
+          <div className="mb-5 p-3.5 rounded-2xl bg-[#FAF8F5] border border-[#E7E3DC] text-[#171717] flex items-start gap-2.5">
             <span className="text-base mt-0.5">🎫</span>
             <div>
-              <h2 className="text-xs font-bold text-emerald-900">
+              <h2 className="text-xs font-bold text-[#171717]">
                 Join the {terms.queueTerm.toLowerCase()} without standing in line
               </h2>
-              <p className="text-[11px] text-emerald-800/80 mt-0.5 leading-relaxed">
-                You're about to join the live queue! We'll help you keep track of your turn with real-time updates.
+              <p className="text-[11px] text-[#57534E] mt-0.5 leading-relaxed">
+                Receive a digital token pass on your phone with live position sync, countdown wait time, and counter arrival alerts.
               </p>
             </div>
           </div>
@@ -190,29 +226,86 @@ export default function CustomerQueuePage() {
           {isQueueClosed && (
             <div
               role="alert"
-              className="mb-5 p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-medium flex items-center gap-2"
+              className="mb-5 p-3.5 rounded-2xl bg-[#FFFBEB] border border-[#FDE68A] text-[#92400E] text-xs font-medium flex items-center gap-2"
             >
               <span>⚠️</span>
               <span>{terms.queueTerm} is currently closed. Token registration is temporarily paused.</span>
             </div>
           )}
 
-          {/* Error Alert */}
-          {errorMessage && (
+          {/* Duplicate Active Token Recovery Alert & Action */}
+          {duplicateToken && (
             <div
               role="alert"
               aria-live="assertive"
-              className="mb-5 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium flex items-start justify-between gap-2"
+              className="mb-5 p-4 rounded-2xl bg-blue-50 border border-blue-200 text-[#1E3A8A] flex flex-col gap-3 shadow-sm"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-start gap-2.5">
+                  <span className="text-blue-600 text-lg mt-0.5">🎫</span>
+                  <div>
+                    <h4 className="text-sm font-bold text-blue-950">
+                      Active Token Already Registered
+                    </h4>
+                    <p className="text-xs text-blue-800 mt-1">
+                      {duplicateToken.tokenNumber ? (
+                        <span>
+                          You already have active Token{' '}
+                          <strong className="font-semibold text-blue-950">#{duplicateToken.tokenNumber}</strong> in this{' '}
+                          {terms.queueTerm.toLowerCase()}.
+                        </span>
+                      ) : (
+                        <span>You already have an active token in this {terms.queueTerm.toLowerCase()}.</span>
+                      )}
+                    </p>
+                    {duplicateToken.status && (
+                      <p className="text-[11px] text-blue-700 mt-1 font-medium">
+                        Current Status:{' '}
+                        <span className="uppercase font-semibold tracking-wide text-blue-900">
+                          {duplicateToken.status}
+                        </span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setDuplicateToken(null)}
+                  aria-label="Dismiss active token notification"
+                  className="text-blue-400 hover:text-blue-700 font-bold text-sm px-1 cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="pt-2 border-t border-blue-200/60">
+                <Link
+                  to={`/token/${duplicateToken.tokenId}`}
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-bold rounded-xl shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer"
+                >
+                  <span>View Active Token</span>
+                  <span aria-hidden="true">→</span>
+                </Link>
+              </div>
+            </div>
+          )}
+
+          {/* Normal Error Alert */}
+          {errorMessage && !duplicateToken && (
+            <div
+              role="alert"
+              aria-live="assertive"
+              className="mb-5 p-3.5 rounded-xl bg-[#FEF2F2] border border-[#FEE2E2] text-[#991B1B] text-xs font-medium flex items-start justify-between gap-2"
             >
               <div className="flex items-start gap-2">
-                <span className="text-rose-500 mt-0.5">⚠️</span>
+                <span className="text-[#991B1B] mt-0.5">⚠️</span>
                 <span>{errorMessage}</span>
               </div>
               <button
                 type="button"
                 onClick={() => setErrorMessage(null)}
                 aria-label="Dismiss error"
-                className="text-rose-400 hover:text-rose-600 font-bold"
+                className="text-[#991B1B] font-bold"
               >
                 ✕
               </button>
@@ -225,17 +318,17 @@ export default function CustomerQueuePage() {
             {/* Service Selection */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                <label className="block text-xs font-bold text-[#171717] uppercase tracking-wider">
                   1. Select {terms.serviceTerm}
                 </label>
-                <span className="text-[11px] text-slate-400 font-medium">
+                <span className="text-[11px] text-[#78716C] font-mono tabular-nums">
                   {services.length} available
                 </span>
               </div>
 
               <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                 {services.length === 0 ? (
-                  <div className="p-4 rounded-xl bg-slate-50 text-center text-xs text-slate-400 border border-slate-200">
+                  <div className="p-4 rounded-xl bg-[#FAF8F5] text-center text-xs text-[#78716C] border border-[#E7E3DC]">
                     No active {terms.servicePlural.toLowerCase()} listed.
                   </div>
                 ) : (
@@ -247,16 +340,16 @@ export default function CustomerQueuePage() {
                         onClick={() => setSelectedServiceId(svc.id)}
                         className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
                           isSelected
-                            ? 'border-emerald-600 bg-emerald-50/70 shadow-sm shadow-emerald-500/10 ring-2 ring-emerald-500/20'
-                            : 'border-slate-200 hover:border-slate-300 bg-slate-50/50'
+                            ? 'border-[#171717] bg-[#FAF8F5] shadow-xs ring-1 ring-[#171717]'
+                            : 'border-[#E7E3DC] hover:border-[#78716C] bg-white'
                         }`}
                       >
                         <div className="min-w-0 pr-2">
-                          <div className="text-sm font-semibold text-slate-900 truncate">
+                          <div className="text-sm font-semibold text-[#171717] truncate">
                             {svc.name}
                           </div>
-                          <div className="text-xs text-slate-500 mt-0.5 flex items-center gap-1.5">
-                            <span>⏱️ {svc.durationMinutes} mins</span>
+                          <div className="text-xs text-[#78716C] mt-0.5 flex items-center gap-1.5">
+                            <span className="font-mono tabular-nums">⏱️ {svc.durationMinutes} mins</span>
                             {svc.description && (
                               <>
                                 <span>•</span>
@@ -265,7 +358,7 @@ export default function CustomerQueuePage() {
                             )}
                           </div>
                         </div>
-                        <div className="text-sm font-bold text-indigo-600 font-mono flex-shrink-0">
+                        <div className="text-sm font-bold text-[#171717] font-mono tabular-nums flex-shrink-0">
                           {svc.price > 0 ? `₹${svc.price}` : 'Free'}
                         </div>
                       </div>
@@ -283,7 +376,7 @@ export default function CustomerQueuePage() {
                 type="text"
                 required
                 autoComplete="name"
-                placeholder="e.g. Rahul Sharma (letters only)"
+                placeholder="e.g. Rahul Sharma"
                 value={customerName}
                 error={nameError}
                 onChange={(e) => {
@@ -293,24 +386,19 @@ export default function CustomerQueuePage() {
                     setNameError(c.valid ? '' : c.message);
                   }
                 }}
-                icon={
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                }
               />
             </div>
 
             {/* Customer Phone */}
             <div>
               <Input
-                label="3. Phone Number"
+                label="3. Mobile Number"
                 id="customerPhone"
                 type="tel"
                 required
                 autoComplete="tel"
                 placeholder="e.g. 9876543210 (10 digits)"
-                helperText="For instant SMS updates when your turn arrives"
+                helperText="For SMS / WhatsApp alerts when your turn arrives"
                 value={customerPhone}
                 maxLength={10}
                 error={phoneError}
@@ -321,39 +409,42 @@ export default function CustomerQueuePage() {
                     setPhoneError(c.valid ? '' : c.message);
                   }
                 }}
-                icon={
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                  </svg>
-                }
               />
             </div>
 
             {/* Primary Action Button */}
-            <Button
+            <button
               type="submit"
-              variant="primary"
-              size="lg"
-              loading={submitting}
               disabled={submitting || isQueueClosed}
-              className="w-full font-bold shadow-md shadow-indigo-600/20 mt-4"
+              className={`w-full font-bold text-sm sm:text-base py-3.5 px-6 rounded-2xl transition-all duration-150 shadow-sm mt-4 flex items-center justify-center gap-2 active-press ${
+                submitting || isQueueClosed
+                  ? 'bg-stone-200 text-stone-400 cursor-not-allowed'
+                  : 'bg-[#2563EB] hover:bg-[#1D4ED8] text-white shadow-blue-500/20'
+              }`}
             >
-              Get Digital Waiting Pass
-            </Button>
+              {submitting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span>Joining Live Queue...</span>
+                </>
+              ) : (
+                <span>Get Digital Waiting Pass</span>
+              )}
+            </button>
           </form>
 
           {/* Footer Assurances */}
-          <div className="mt-6 pt-4 border-t border-slate-100 text-center space-y-1.5">
-            <div className="flex items-center justify-center gap-3 text-[11px] text-slate-500 font-medium">
+          <div className="mt-6 pt-4 border-t border-[#E7E3DC] text-center space-y-1.5">
+            <div className="flex items-center justify-center gap-3 text-[11px] text-[#78716C] font-medium">
               <span className="flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#16A34A]" />
                 Live Status Sync
               </span>
               <span>•</span>
               <span>No App Download Needed</span>
             </div>
-            <p className="text-[10px] text-slate-400">
-              Powered by <span className="font-semibold text-slate-600">Shewwina Customer Flow OS</span>
+            <p className="text-[10px] text-[#78716C]">
+              Powered by <span className="font-semibold text-[#171717]">SHEWWINA Customer Flow OS</span>
             </p>
           </div>
 

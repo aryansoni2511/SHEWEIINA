@@ -7,6 +7,8 @@ import {
   createBusinessWithOwner,
   findBusinessById,
 } from '../models/queueModel.js';
+import { findHospitalByAdminUserId } from '../models/hospitalModel.js';
+import { findGovernmentCentreByAdminUserId } from '../models/governmentModel.js';
 import { validateName, validateBusinessName, validatePhone } from '../utils/validation.js';
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -39,6 +41,7 @@ function generateToken(user) {
       userId: user.id,
       email: user.email,
       role: user.role,
+      phone: user.phone || null,
       businessId: user.business_id || null,
     },
     JWT_SECRET,
@@ -190,7 +193,38 @@ export async function processLogin({ email, password }) {
     throw new UnauthorizedError('Invalid email or password');
   }
 
-  const token = generateToken(user);
+  let business = null;
+  let hospital = null;
+  let centre = null;
+
+  if (user.business_id) {
+    business = await findBusinessById(user.business_id);
+  }
+  if (user.role === 'BUSINESS') {
+    // Authoritatively resolve all module ownerships without silent exclusion
+    hospital = await findHospitalByAdminUserId(user.id);
+    centre = await findGovernmentCentreByAdminUserId(user.id);
+  }
+
+  const modules = [];
+  if (hospital) modules.push('hospital');
+  if (centre) modules.push('government');
+  if (business) modules.push('business');
+  if (user.role === 'CUSTOMER') modules.push('customer');
+
+  const isMultiModule = modules.length > 1;
+  const primaryModule = modules.length === 1 ? modules[0] : (isMultiModule ? 'multi' : (user.role === 'BUSINESS' ? 'business' : 'customer'));
+
+  const tokenPayload = {
+    userId: user.id,
+    email: user.email,
+    role: user.role,
+    businessId: user.business_id || hospital?.id || centre?.id || null,
+  };
+  if (hospital) tokenPayload.hospitalId = hospital.id;
+  if (centre) tokenPayload.centreId = centre.id;
+
+  const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 
   return {
     user: {
@@ -199,7 +233,15 @@ export async function processLogin({ email, password }) {
       email: user.email,
       phone: user.phone,
       role: user.role,
-      businessId: user.business_id,
+      businessId: user.business_id || null,
+      hospitalId: hospital?.id || null,
+      centreId: centre?.id || null,
+      module: primaryModule,
+      modules,
+      isMultiModule,
+      hospital: hospital ? { id: hospital.id, name: hospital.name, slug: hospital.slug } : null,
+      centre: centre ? { id: centre.id, name: centre.name, slug: centre.slug } : null,
+      business: business ? { id: business.id, name: business.name, slug: business.slug, category: business.category } : null,
       // password_hash is intentionally omitted
     },
     token,
@@ -215,9 +257,26 @@ export async function processGetMe(userId) {
   }
 
   let business = null;
+  let hospital = null;
+  let centre = null;
+
   if (user.business_id) {
     business = await findBusinessById(user.business_id);
   }
+  if (user.role === 'BUSINESS') {
+    // Authoritatively resolve all module ownerships without silent exclusion
+    hospital = await findHospitalByAdminUserId(userId);
+    centre = await findGovernmentCentreByAdminUserId(userId);
+  }
+
+  const modules = [];
+  if (hospital) modules.push('hospital');
+  if (centre) modules.push('government');
+  if (business) modules.push('business');
+  if (user.role === 'CUSTOMER') modules.push('customer');
+
+  const isMultiModule = modules.length > 1;
+  const primaryModule = modules.length === 1 ? modules[0] : (isMultiModule ? 'multi' : (user.role === 'BUSINESS' ? 'business' : 'customer'));
 
   return {
     id: user.id,
@@ -225,9 +284,15 @@ export async function processGetMe(userId) {
     email: user.email,
     phone: user.phone,
     role: user.role,
-    businessId: user.business_id,
-    // password_hash intentionally omitted
-    business: business ? { id: business.id, name: business.name, slug: business.slug } : null,
+    businessId: user.business_id || null,
+    hospitalId: hospital?.id || null,
+    centreId: centre?.id || null,
+    module: primaryModule,
+    modules,
+    isMultiModule,
+    business: business ? { id: business.id, name: business.name, slug: business.slug, category: business.category } : null,
+    hospital: hospital ? { id: hospital.id, name: hospital.name, slug: hospital.slug } : null,
+    centre: centre ? { id: centre.id, name: centre.name, slug: centre.slug } : null,
   };
 }
 

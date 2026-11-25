@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   getCustomerProfileApi,
@@ -13,16 +13,22 @@ import {
 import { subscribeQueueRealtime } from '../services/realtime';
 import LogoMark from '../components/LogoMark';
 
-// Phase 2 UI Primitives
+// Phase 1 UI Primitives
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
-import Badge from '../components/ui/Badge';
+import Badge, { StatusBadge } from '../components/ui/Badge';
 import EmptyState from '../components/ui/EmptyState';
 import Modal from '../components/ui/Modal';
 
 export default function CustomerDashboardPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const currentTab = searchParams.get('tab') || 'active';
+  const setActiveTab = (tab) => {
+    setSearchParams({ tab });
+  };
 
   const [profile, setProfile] = useState(null);
   const [activeToken, setActiveToken] = useState(null);
@@ -138,61 +144,58 @@ export default function CustomerDashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center p-4 selection:bg-[#171717] selection:text-white">
         <div className="text-center space-y-3">
-          <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-sm font-semibold text-slate-600">Loading Customer Dashboard...</p>
+          <div className="w-10 h-10 border-3 border-[#171717] border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-sm font-semibold text-[#171717]">Loading Customer Workspace...</p>
+          <p className="text-xs text-[#78716C]">Connecting your queues and pass records</p>
         </div>
       </div>
     );
   }
 
+  const isServing = activeToken?.status === 'SERVING';
+  const isWaiting = activeToken?.status === 'WAITING';
+
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-indigo-600 selection:text-white">
+    <div className="min-h-screen bg-[#FAF8F5] text-[#171717] font-sans selection:bg-[#171717] selection:text-white">
       {/* Top Sticky Header */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200 shadow-sm">
+      <header className="sticky top-0 z-40 bg-[#FAF8F5]/95 backdrop-blur border-b border-[#E7E3DC] shadow-xs">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 gap-4">
 
             <div className="flex items-center gap-3 min-w-0">
               <Link to="/" className="flex-shrink-0" aria-label="Shewwina Home">
-                <LogoMark className="w-9 h-9" variant="blue" iconSize="w-4.5 h-4.5" />
+                <LogoMark className="w-8 h-8" variant="blue" iconSize="w-4 h-4" />
               </Link>
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <h1 className="font-display font-bold text-base sm:text-lg text-slate-900 truncate tracking-tight">
-                    Welcome, {profile?.name || user?.name || 'Customer'}
+                  <h1 className="font-editorial font-bold text-base sm:text-lg text-[#171717] truncate tracking-tight">
+                    {profile?.name || user?.name || 'Customer'}
                   </h1>
-                  <Badge variant="indigo" size="sm" className="hidden sm:inline-flex">
+                  <Badge variant="neutral" size="sm" className="hidden sm:inline-flex">
                     Customer Account
                   </Badge>
                 </div>
-                <p className="text-xs text-slate-500 truncate">
-                  {profile?.email}
+                <p className="text-xs text-[#78716C] truncate font-mono">
+                  {profile?.email || user?.email}
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-2 flex-shrink-0">
               <Link
-                to="/"
-                className="inline-flex items-center justify-center font-medium rounded-xl transition-all text-xs gap-1.5 min-h-[32px] px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 shadow-sm hover:border-slate-300"
+                to="/explore"
+                className="inline-flex items-center justify-center font-medium rounded-xl transition-all text-xs gap-1.5 min-h-[34px] px-3.5 py-1.5 bg-white hover:bg-[#F5F2EB] text-[#171717] border border-[#E7E3DC] shadow-xs"
               >
-                <svg className="w-3.5 h-3.5 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><path d="M9 22V12h6v10" />
-                </svg>
-                <span>Home</span>
+                <span>Explore Services</span>
               </Link>
 
               <Button
-                variant="destructive"
+                variant="outline"
                 size="sm"
                 onClick={handleLogout}
-                icon={
-                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" />
-                  </svg>
-                }
+                className="text-[#991B1B] border-[#FEE2E2] hover:bg-[#FEF2F2]"
               >
                 Log Out
               </Button>
@@ -203,13 +206,61 @@ export default function CustomerDashboardPage() {
       </header>
 
       {/* Main Workspace */}
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 pb-28 lg:pb-12">
+
+        {/* Mobile-Friendly Segmented View Switcher */}
+        <div className="flex items-center gap-1 bg-[#EAE6DF] p-1.5 rounded-2xl w-full max-w-md mx-auto sm:mx-0 shadow-xs">
+          <button
+            type="button"
+            onClick={() => setActiveTab('active')}
+            className={`flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all ${
+              currentTab === 'active' || (!['history', 'notifications', 'profile'].includes(currentTab))
+                ? 'bg-white text-[#171717] shadow-xs'
+                : 'text-[#57534E] hover:text-[#171717]'
+            }`}
+          >
+            <span>🎫 Active Pass</span>
+            {activeToken && (
+              <span className="w-2 h-2 rounded-full bg-[#15803D] animate-pulse" />
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('history')}
+            className={`flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all ${
+              currentTab === 'history'
+                ? 'bg-white text-[#171717] shadow-xs'
+                : 'text-[#57534E] hover:text-[#171717]'
+            }`}
+          >
+            <span>⏳ History</span>
+            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-[#E7E3DC] text-[#57534E]">
+              {tokensHistory.length}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('notifications')}
+            className={`flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all ${
+              currentTab === 'notifications'
+                ? 'bg-white text-[#171717] shadow-xs'
+                : 'text-[#57534E] hover:text-[#171717]'
+            }`}
+          >
+            <span>🔔 Alerts</span>
+            {unreadCount > 0 && (
+              <span className="w-2 h-2 rounded-full bg-[#C25E38]" />
+            )}
+          </button>
+        </div>
 
         {/* Error Feedback */}
         {errorMessage && (
           <div
             role="alert"
-            className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center justify-between shadow-sm animate-fadeIn"
+            className="p-4 rounded-2xl bg-[#FEF2F2] border border-[#FEE2E2] text-[#991B1B] text-xs font-semibold flex items-center justify-between shadow-xs animate-fadeIn"
           >
             <span>⚠️ {errorMessage}</span>
             <button onClick={() => setErrorMessage(null)} className="font-bold">✕</button>
@@ -220,10 +271,10 @@ export default function CustomerDashboardPage() {
         {cancelFeedback && (
           <div
             role="status"
-            className={`p-4 rounded-2xl border text-xs font-semibold flex items-center justify-between shadow-sm animate-fadeIn ${
+            className={`p-4 rounded-2xl border text-xs font-semibold flex items-center justify-between shadow-xs animate-fadeIn ${
               cancelFeedback.includes('failed')
-                ? 'bg-rose-50 border-rose-200 text-rose-800'
-                : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                ? 'bg-[#FEF2F2] border-[#FEE2E2] text-[#991B1B]'
+                : 'bg-[#F0FDF4] border-[#DCFCE7] text-[#166534]'
             }`}
           >
             <span>{cancelFeedback}</span>
@@ -233,10 +284,10 @@ export default function CustomerDashboardPage() {
 
         {/* PRIMARY FOCUS: Active Queue Pass Hero Section */}
         <section aria-label="Active Queue Pass">
-          <Card className="p-6 sm:p-8 bg-white border border-slate-200/80 shadow-md shadow-slate-900/5 relative overflow-hidden">
-            <div className="flex items-center justify-between mb-5 border-b border-slate-100 pb-3">
+          <Card className="p-6 sm:p-8 bg-white border border-[#E7E3DC] shadow-sm rounded-3xl relative overflow-hidden">
+            <div className="flex items-center justify-between mb-5 border-b border-[#E7E3DC] pb-3">
               <div className="flex items-center gap-2">
-                <span className="text-xs uppercase font-bold text-slate-500 tracking-wider">
+                <span className="text-xs uppercase font-bold text-[#78716C] tracking-wider">
                   Active Digital Waiting Pass
                 </span>
                 {activeToken && (
@@ -247,91 +298,97 @@ export default function CustomerDashboardPage() {
               </div>
 
               {activeToken && (
-                <span className="text-xs font-mono text-slate-400">
-                  Auto-syncing (8s)
+                <span className="text-xs font-mono text-[#78716C] tabular-nums">
+                  Auto-syncing (SSE / 8s)
                 </span>
               )}
             </div>
 
             {activeToken ? (
-              <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 bg-slate-50/70 border border-slate-200/80 rounded-3xl p-6 sm:p-8 relative">
-
-                {/* Left Ticket Info */}
-                <div className="space-y-2">
-                  <div className="text-xs text-slate-500 font-medium">
-                    Business: <strong className="text-slate-900 font-bold text-sm">{activeToken.businessName}</strong>
+              <div className="bg-[#FAF8F5] border border-[#E7E3DC] rounded-3xl p-6 sm:p-8 relative">
+                {isServing && (
+                  <div
+                    role="alert"
+                    aria-live="assertive"
+                    className="mb-5 p-3.5 rounded-2xl bg-[#F0FDF4] border-2 border-[#16A34A] text-[#166534] font-bold text-center text-xs sm:text-sm animate-pulse"
+                  >
+                    🎉 YOUR TURN! Please proceed to the service desk now.
                   </div>
+                )}
 
-                  <div className="flex items-baseline gap-4 pt-1">
-                    <span className="text-4xl sm:text-5xl font-black text-slate-900 font-mono tracking-tight">
-                      #{activeToken.tokenNumber}
-                    </span>
-                    <Badge
-                      variant={activeToken.status === 'SERVING' ? 'emerald' : 'amber'}
-                      size="md"
-                      dot
-                    >
-                      {activeToken.status === 'SERVING' ? 'YOUR TURN · SERVING' : 'WAITING IN LINE'}
-                    </Badge>
-                  </div>
+                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
 
-                  <p className="text-xs text-slate-600">
-                    Service: <strong className="text-slate-800 font-semibold">{activeToken.serviceName}</strong>
-                  </p>
-                </div>
-
-                {/* Right KPIs and Actions */}
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full lg:w-auto">
-                  <div className="grid grid-cols-2 gap-3 text-center">
-                    <div className="p-3 bg-white rounded-2xl border border-slate-200 shadow-sm min-w-[100px]">
-                      <span className="text-[10px] text-slate-500 uppercase font-bold block">People Ahead</span>
-                      <span className="text-2xl font-black font-mono text-slate-900 mt-0.5 block">
-                        {activeToken.peopleAhead ?? 0}
-                      </span>
+                  {/* Left Ticket Info */}
+                  <div className="space-y-2">
+                    <div className="text-xs text-[#78716C] font-medium">
+                      Provider: <strong className="text-[#171717] font-bold text-sm">{activeToken.businessName}</strong>
                     </div>
 
-                    <div className="p-3 bg-indigo-50/60 rounded-2xl border border-indigo-100 min-w-[100px]">
-                      <span className="text-[10px] text-indigo-700 uppercase font-bold block">Est. Wait</span>
-                      <span className="text-2xl font-black font-mono text-indigo-600 mt-0.5 block">
-                        ~{activeToken.estimatedWaitMinutes ?? 0}m
+                    <div className="flex items-baseline gap-4 pt-1">
+                      <span className="font-editorial font-bold text-4xl sm:text-5xl text-[#171717] tracking-tight tabular-nums">
+                        #{activeToken.tokenNumber}
                       </span>
+                      <StatusBadge status={activeToken.status} size="md" />
                     </div>
+
+                    <p className="text-xs text-[#57534E]">
+                      Service: <strong className="text-[#171717] font-semibold">{activeToken.serviceName}</strong>
+                    </p>
                   </div>
 
-                  <div className="flex flex-col gap-2">
-                    <Link
-                      to={`/token/${activeToken.tokenId}`}
-                      className="inline-flex items-center justify-center font-bold rounded-xl text-xs gap-2 min-h-[40px] px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm shadow-indigo-600/20 text-center transition-all"
-                    >
-                      <span>Track Live Pass →</span>
-                    </Link>
+                  {/* Right KPIs and Actions */}
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full lg:w-auto">
+                    <div className="grid grid-cols-2 gap-3 text-center">
+                      <div className="p-3.5 bg-white rounded-2xl border border-[#E7E3DC] shadow-xs min-w-[105px]">
+                        <span className="text-[10px] text-[#78716C] uppercase font-bold block">People Ahead</span>
+                        <span className="text-2xl font-bold font-mono text-[#171717] tabular-nums mt-0.5 block">
+                          {activeToken.peopleAhead ?? 0}
+                        </span>
+                      </div>
 
-                    {activeToken.status === 'WAITING' && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setShowConfirmModal(true)}
-                        disabled={cancelling}
-                        className="text-rose-700 border-rose-200 hover:bg-rose-50"
+                      <div className="p-3.5 bg-white rounded-2xl border border-[#E7E3DC] shadow-xs min-w-[105px]">
+                        <span className="text-[10px] text-[#78716C] uppercase font-bold block">Est. Wait</span>
+                        <span className="text-2xl font-bold font-mono text-[#C25E38] tabular-nums mt-0.5 block">
+                          ~{activeToken.estimatedWaitMinutes ?? 0}m
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <Link
+                        to={`/token/${activeToken.tokenId}`}
+                        className="inline-flex items-center justify-center font-bold rounded-xl text-xs gap-2 min-h-[40px] px-5 py-2.5 bg-[#171717] hover:bg-[#262626] text-white shadow-xs text-center transition-all"
                       >
-                        {cancelling ? 'Cancelling...' : 'Cancel Queue Token'}
-                      </Button>
-                    )}
-                  </div>
-                </div>
+                        <span>Open Digital Pass →</span>
+                      </Link>
 
+                      {activeToken.status === 'WAITING' && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowConfirmModal(true)}
+                          disabled={cancelling}
+                          className="text-[#991B1B] border-[#FEE2E2] hover:bg-[#FEF2F2]"
+                        >
+                          {cancelling ? 'Cancelling...' : 'Cancel Queue Token'}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                </div>
               </div>
             ) : (
               <EmptyState
-                title="You're not waiting anywhere right now."
-                description="Check in at your favorite salon, clinic, or service branch to get a digital queue ticket and skip physical waiting."
+                title="You're not waiting in any queue right now."
+                description="Explore certified hospitals, citizen facilitation kendras, clinics and salons to join a queue and track your live turn."
                 className="py-10"
                 action={
                   <Link
-                    to="/join/demo"
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md shadow-indigo-600/20 transition-all"
+                    to="/explore"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#171717] hover:bg-[#262626] text-white text-xs font-bold rounded-xl shadow-xs transition-all"
                   >
-                    <span>Find a Queue (Demo)</span>
+                    <span>Explore Services &amp; Find a Queue</span>
                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                     </svg>
@@ -344,17 +401,17 @@ export default function CustomerDashboardPage() {
 
         {/* Notifications Section */}
         <section aria-label="Customer Notifications">
-          <Card className="p-6 border border-slate-200/80 shadow-sm space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <Card className="p-6 sm:p-8 bg-white border border-[#E7E3DC] shadow-sm rounded-3xl space-y-4">
+            <div className="flex items-center justify-between border-b border-[#E7E3DC] pb-3">
               <div className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg className="w-4 h-4 text-[#78716C]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0" />
                 </svg>
-                <h2 className="text-xs uppercase font-bold text-slate-500 tracking-wider">
-                  Notifications
+                <h2 className="text-xs uppercase font-bold text-[#78716C] tracking-wider">
+                  In-App Notifications
                 </h2>
                 {unreadCount > 0 && (
-                  <Badge variant="indigo" size="sm">
+                  <Badge variant="terracotta" size="sm">
                     {unreadCount} unread
                   </Badge>
                 )}
@@ -364,7 +421,7 @@ export default function CustomerDashboardPage() {
                 <button
                   type="button"
                   onClick={handleMarkAllAsRead}
-                  className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold transition-colors"
+                  className="text-xs text-[#C25E38] hover:text-[#944428] font-semibold transition-colors"
                 >
                   Mark all as read
                 </button>
@@ -372,8 +429,8 @@ export default function CustomerDashboardPage() {
             </div>
 
             {notifications.length === 0 ? (
-              <div className="py-6 text-center text-xs text-slate-400">
-                No notifications yet. Real-time updates when your turn approaches will arrive here.
+              <div className="py-6 text-center text-xs text-[#78716C]">
+                No notifications yet. Real-time alerts when your turn approaches or when you are called will arrive here.
               </div>
             ) : (
               <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
@@ -384,20 +441,20 @@ export default function CustomerDashboardPage() {
                       key={n.id}
                       className={`p-3.5 rounded-2xl border transition-all flex items-start justify-between gap-3 ${
                         isUnread
-                          ? 'bg-indigo-50/40 border-indigo-200/70 shadow-sm'
-                          : 'bg-slate-50/50 border-slate-200/60 opacity-85'
+                          ? 'bg-[#FAF8F5] border-[#E7E3DC] shadow-xs'
+                          : 'bg-white border-[#E7E3DC]/70 opacity-80'
                       }`}
                     >
                       <div className="flex items-start gap-3">
                         <div
                           className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm flex-shrink-0 ${
                             n.type === 'CUSTOMER_CALLED'
-                              ? 'bg-emerald-100 text-emerald-700'
+                              ? 'bg-[#F0FDF4] text-[#166534]'
                               : n.type === 'YOUR_TURN_APPROACHING'
-                              ? 'bg-amber-100 text-amber-700'
+                              ? 'bg-[#FFFBEB] text-[#92400E]'
                               : n.type === 'SERVICE_COMPLETED'
-                              ? 'bg-indigo-100 text-indigo-700'
-                              : 'bg-slate-100 text-slate-700'
+                              ? 'bg-[#FAF8F5] text-[#171717]'
+                              : 'bg-[#FAF8F5] text-[#57534E]'
                           }`}
                         >
                           {n.type === 'CUSTOMER_CALLED'
@@ -410,15 +467,15 @@ export default function CustomerDashboardPage() {
                         </div>
                         <div className="space-y-0.5">
                           <div className="flex items-center gap-2">
-                            <span className={`text-xs font-bold ${isUnread ? 'text-slate-900' : 'text-slate-700'}`}>
+                            <span className={`text-xs font-semibold ${isUnread ? 'text-[#171717]' : 'text-[#57534E]'}`}>
                               {n.title}
                             </span>
                             {isUnread && (
-                              <span className="w-1.5 h-1.5 rounded-full bg-indigo-600" />
+                              <span className="w-1.5 h-1.5 rounded-full bg-[#C25E38]" />
                             )}
                           </div>
-                          <p className="text-xs text-slate-600 leading-relaxed">{n.message}</p>
-                          <span className="text-[10px] text-slate-400 font-mono block">
+                          <p className="text-xs text-[#57534E] leading-relaxed">{n.message}</p>
+                          <span className="text-[10px] text-[#78716C] font-mono block tabular-nums">
                             {n.createdAt
                               ? new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                               : ''}
@@ -430,7 +487,7 @@ export default function CustomerDashboardPage() {
                         <button
                           type="button"
                           onClick={() => handleMarkAsRead(n.id)}
-                          className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 px-2.5 py-1 bg-white border border-slate-200 rounded-lg hover:border-slate-300 transition-colors flex-shrink-0"
+                          className="text-[11px] font-semibold text-[#171717] hover:text-[#C25E38] px-2.5 py-1 bg-white border border-[#E7E3DC] rounded-lg hover:border-[#171717] transition-colors flex-shrink-0"
                         >
                           Mark read
                         </button>
@@ -445,66 +502,89 @@ export default function CustomerDashboardPage() {
 
         {/* Token History & Past Visits */}
         <section aria-label="Visit History">
-          <Card className="p-6 border border-slate-200/80 shadow-sm">
-            <h2 className="text-xs uppercase font-bold text-slate-500 tracking-wider mb-4">
+          <Card className="p-6 sm:p-8 bg-white border border-[#E7E3DC] shadow-sm rounded-3xl">
+            <h2 className="text-xs uppercase font-bold text-[#78716C] tracking-wider mb-4">
               Queue History &amp; Completed Visits ({tokensHistory.length})
             </h2>
 
             {tokensHistory.length === 0 ? (
               <EmptyState
                 title="No past queue token records found."
-                description="Your past visits, queue passes, and completed services will log here."
+                description="Your past visits, consultation passes, and completed services will log here."
                 className="py-8"
               />
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-200">
-                    <tr>
-                      <th className="p-3">Token #</th>
-                      <th className="p-3">Business</th>
-                      <th className="p-3">Service</th>
-                      <th className="p-3">Joined Time</th>
-                      <th className="p-3 text-right">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 font-medium">
-                    {tokensHistory.map((t) => (
-                      <tr key={t.tokenId} className="hover:bg-slate-50/70 transition-colors">
-                        <td className="p-3.5 font-mono font-bold text-slate-900 text-sm">
-                          #{t.tokenNumber}
-                        </td>
-                        <td className="p-3.5 text-slate-900 font-semibold">
+              <div>
+                {/* Mobile Cards Layout (< md) */}
+                <div className="block md:hidden space-y-3">
+                  {tokensHistory.map((t) => (
+                    <div
+                      key={t.tokenId}
+                      className="p-4 rounded-2xl bg-[#FAF8F5] border border-[#E7E3DC] space-y-2 hover:border-[#2563EB] transition-colors"
+                    >
+                      <div className="flex items-center justify-between pb-2 border-b border-[#E7E3DC]/70">
+                        <div className="flex items-center gap-2">
+                          <span className="font-editorial font-bold text-lg text-[#171717] tabular-nums">
+                            #{t.tokenNumber}
+                          </span>
+                          <span className="text-[10px] text-[#78716C] font-mono">
+                            {t.createdAt
+                              ? new Date(t.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                              : ''}
+                          </span>
+                        </div>
+                        <StatusBadge status={t.status} size="sm" />
+                      </div>
+
+                      <div>
+                        <h4 className="text-sm font-bold text-[#171717]">
                           {t.businessName}
-                        </td>
-                        <td className="p-3.5 text-slate-600">
-                          {t.serviceName}
-                        </td>
-                        <td className="p-3.5 text-slate-500 font-mono">
-                          {t.createdAt
-                            ? new Date(t.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                            : 'N/A'}
-                        </td>
-                        <td className="p-3.5 text-right">
-                          <Badge
-                            variant={
-                              t.status === 'SERVING'
-                                ? 'emerald'
-                                : t.status === 'SERVED'
-                                ? 'slate'
-                                : t.status === 'WAITING'
-                                ? 'amber'
-                                : 'rose'
-                            }
-                            size="sm"
-                          >
-                            {t.status}
-                          </Badge>
-                        </td>
+                        </h4>
+                        <p className="text-xs text-[#57534E] mt-0.5">
+                          Service: <span className="font-medium text-[#171717]">{t.serviceName}</span>
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop Table View (>= md) */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-[#FAF8F5] text-[#78716C] font-bold uppercase tracking-wider border-b border-[#E7E3DC]">
+                      <tr>
+                        <th className="p-3">Token #</th>
+                        <th className="p-3">Provider</th>
+                        <th className="p-3">Service</th>
+                        <th className="p-3">Joined Time</th>
+                        <th className="p-3 text-right">Status</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-[#E7E3DC]/60 font-medium">
+                      {tokensHistory.map((t) => (
+                        <tr key={t.tokenId} className="hover:bg-[#FAF8F5]/80 transition-colors">
+                          <td className="p-3.5 font-mono font-bold text-[#171717] text-sm tabular-nums">
+                            #{t.tokenNumber}
+                          </td>
+                          <td className="p-3.5 text-[#171717] font-semibold">
+                            {t.businessName}
+                          </td>
+                          <td className="p-3.5 text-[#57534E]">
+                            {t.serviceName}
+                          </td>
+                          <td className="p-3.5 text-[#78716C] font-mono tabular-nums">
+                            {t.createdAt
+                              ? new Date(t.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                              : 'N/A'}
+                          </td>
+                          <td className="p-3.5 text-right">
+                            <StatusBadge status={t.status} size="sm" />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </Card>
@@ -520,7 +600,7 @@ export default function CustomerDashboardPage() {
         description={`Are you sure you want to cancel token #${activeToken?.tokenNumber}? You will forfeit your position in line.`}
         maxWidth="max-w-xs"
       >
-        <div className="flex gap-2 pt-2">
+        <div className="flex gap-2 pt-3">
           <Button
             variant="secondary"
             size="sm"

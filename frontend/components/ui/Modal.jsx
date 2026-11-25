@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 
 /**
- * Reusable accessible Modal dialog component
+ * Reusable accessible Modal dialog component with Editorial styling
  */
 export default function Modal({
   isOpen,
@@ -34,7 +34,7 @@ export default function Modal({
     <div className="fixed inset-0 z-50 overflow-y-auto">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
+        className="fixed inset-0 bg-[#171717]/50 backdrop-blur-xs transition-opacity"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -42,20 +42,20 @@ export default function Modal({
       {/* Modal Container */}
       <div className="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
         <div
-          className={`relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all w-full ${maxWidth} border border-slate-200/80 animate-fade-in ${className}`}
+          className={`relative transform overflow-hidden rounded-2xl bg-white text-left shadow-modal transition-all w-full ${maxWidth} border border-[#E7E3DC] animate-fade-in ${className}`}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
           {(title || onClose) && (
-            <div className="px-6 pt-5 pb-4 border-b border-slate-100 flex items-start justify-between gap-4">
+            <div className="px-6 pt-5 pb-4 border-b border-[#F0ECE4] flex items-start justify-between gap-4">
               <div>
                 {title && (
-                  <h3 className="text-base font-semibold text-slate-900">
+                  <h3 className="text-base font-semibold text-[#171717] tracking-tight">
                     {title}
                   </h3>
                 )}
                 {description && (
-                  <p className="mt-1 text-xs text-slate-500 leading-relaxed">
+                  <p className="mt-1 text-xs text-[#6B665E] leading-relaxed">
                     {description}
                   </p>
                 )}
@@ -64,7 +64,7 @@ export default function Modal({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="rounded-lg p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                  className="rounded-xl p-1.5 text-[#78716C] hover:text-[#171717] hover:bg-[#F5F2EB] focus:outline-none transition-colors"
                   aria-label="Close modal"
                 >
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -76,7 +76,7 @@ export default function Modal({
           )}
 
           {/* Body */}
-          <div className="px-6 py-4">{children}</div>
+          <div className="p-6">{children}</div>
         </div>
       </div>
     </div>

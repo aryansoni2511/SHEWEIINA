@@ -1,11 +1,11 @@
 import React from 'react';
 
 /**
- * Reusable EmptyState component with clean illustrations and clear next action
+ * Reusable EmptyState component with Editorial design tokens
  */
 export default function EmptyState({
-  title = 'No items found',
-  description = 'There are no items to display at this moment.',
+  title = 'No records found',
+  description = 'There are no active entries to display right now.',
   icon = null,
   action = null,
   className = '',
@@ -14,10 +14,10 @@ export default function EmptyState({
     <div
       className={`py-12 px-4 text-center flex flex-col items-center justify-center ${className}`}
     >
-      <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mb-3">
+      <div className="w-12 h-12 rounded-2xl bg-[#F5F2EB] text-[#78716C] border border-[#E7E3DC] flex items-center justify-center mb-3">
         {icon || (
           <svg
-            className="w-6 h-6"
+            className="w-5 h-5 text-[#78716C]"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -31,8 +31,8 @@ export default function EmptyState({
           </svg>
         )}
       </div>
-      <h4 className="text-sm font-semibold text-slate-800">{title}</h4>
-      <p className="mt-1 text-xs text-slate-500 max-w-sm leading-relaxed">
+      <h4 className="text-sm font-semibold text-[#171717]">{title}</h4>
+      <p className="mt-1 text-xs text-[#6B665E] max-w-sm leading-relaxed">
         {description}
       </p>
       {action && <div className="mt-4">{action}</div>}

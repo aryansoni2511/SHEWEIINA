@@ -23,7 +23,10 @@ export function authenticateToken(req, res, next) {
       userId: decoded.userId,
       email: decoded.email,
       role: decoded.role,
+      phone: decoded.phone || null,
       businessId: decoded.businessId || null,
+      centreId: decoded.centreId || null,
+      hospitalId: decoded.hospitalId || null,
     };
     next();
   } catch (err) {

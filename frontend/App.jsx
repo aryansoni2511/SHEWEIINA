@@ -22,12 +22,20 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import BusinessRegisterPage from './pages/BusinessRegisterPage';
 import PublicDisplayPage from './pages/PublicDisplayPage';
+import ExplorePage from './pages/ExplorePage';
 // Hospital Module Route Pages
 import HospitalDiscoveryPage from './pages/HospitalDiscoveryPage';
 import HospitalRegisterPage from './pages/HospitalRegisterPage';
 import HospitalDetailsPage from './pages/HospitalDetailsPage';
 import HospitalTokenPage from './pages/HospitalTokenPage';
 import HospitalDashboardPage from './pages/HospitalDashboardPage';
+// Government & Citizen Services Route Pages
+import GovernmentDiscoveryPage from './pages/GovernmentDiscoveryPage';
+import GovernmentServiceDetailsPage from './pages/GovernmentServiceDetailsPage';
+import GovernmentTokenPage from './pages/GovernmentTokenPage';
+import GovernmentRegisterCentrePage from './pages/GovernmentRegisterCentrePage';
+import GovernmentDashboardPage from './pages/GovernmentDashboardPage';
+import MobileBottomNav from './components/navigation/MobileBottomNav';
 
 
 /**
@@ -82,13 +90,15 @@ function ProtectedCustomerRoute({ children }) {
  * Landing Page Assembly Component
  */
 function LandingPage() {
+  const [heroFilter, setHeroFilter] = React.useState({});
+
   return (
-    <div id="top" className="bg-[#F8FAFC] text-[#172033] font-sans antialiased min-h-screen relative selection:bg-[#22C55E] selection:text-white">
+    <div id="top" className="bg-[#FAF8F5] text-[#171717] font-sans antialiased min-h-screen relative selection:bg-[#171717] selection:text-white">
       <Navbar />
       <main id="main-content">
-        <Hero />
+        <Hero onSearchSubmit={(filter) => setHeroFilter(filter)} />
         <HowItWorksSection />
-        <ExploreServicesSection />
+        <ExploreServicesSection initialFilter={heroFilter} />
         <FriendlyTrustSection />
         <FAQSection />
         <CTASection />
@@ -106,6 +116,7 @@ export default function App() {
     <AuthProvider>
       <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/explore" element={<ExplorePage />} />
         <Route path="/demo" element={<QueueSimulationPage />} />
         <Route path="/simulation" element={<QueueSimulationPage />} />
         <Route path="/login" element={<LoginPage />} />
@@ -129,6 +140,20 @@ export default function App() {
           }
         />
 
+        {/* Government & Citizen Services Queue Routes */}
+        <Route path="/government-services" element={<GovernmentDiscoveryPage />} />
+        <Route path="/government-services/service/:slug" element={<GovernmentServiceDetailsPage />} />
+        <Route path="/government/token/:tokenId" element={<GovernmentTokenPage />} />
+        <Route path="/register-government-centre" element={<GovernmentRegisterCentrePage />} />
+        <Route
+          path="/government/dashboard"
+          element={
+            <ProtectedBusinessRoute>
+              <GovernmentDashboardPage />
+            </ProtectedBusinessRoute>
+          }
+        />
+
         <Route
           path="/dashboard"
           element={
@@ -146,6 +171,7 @@ export default function App() {
           }
         />
       </Routes>
+      <MobileBottomNav />
     </AuthProvider>
   );
 }

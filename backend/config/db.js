@@ -46,6 +46,21 @@ export async function query(text, params = []) {
 }
 
 /**
+ * Checks out a client from the PostgreSQL connection pool for atomic transactions.
+ * Returns null in dev/test fallback mode.
+ * Must be released with client.release() in a finally block!
+ */
+export async function getClient() {
+  if (pool) {
+    return await pool.connect();
+  }
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Database client checkout error: PostgreSQL connection pool is not available in production.');
+  }
+  return null;
+}
+
+/**
  * Checks PostgreSQL database connection health & reports status without exposing credentials
  */
 export async function checkDatabaseConnection() {
@@ -79,5 +94,6 @@ export async function checkDatabaseConnection() {
 
 export default {
   query,
+  getClient,
   checkDatabaseConnection,
 };

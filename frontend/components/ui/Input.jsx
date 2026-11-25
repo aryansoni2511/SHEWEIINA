@@ -1,7 +1,7 @@
 import React from 'react';
 
 /**
- * Reusable Input component with consistent label, error, and focus styling
+ * Reusable Input component with Editorial styling
  */
 export default function Input({
   label,
@@ -23,14 +23,14 @@ export default function Input({
       {label && (
         <label
           htmlFor={inputId}
-          className="block text-xs font-semibold text-slate-700 mb-1.5"
+          className="block text-xs font-semibold text-[#171717] mb-1.5"
         >
-          {label} {required && <span className="text-rose-500">*</span>}
+          {label} {required && <span className="text-[#B91C1C]">*</span>}
         </label>
       )}
       <div className="relative rounded-xl">
         {icon && (
-          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#78716C]">
             {icon}
           </div>
         )}
@@ -41,11 +41,11 @@ export default function Input({
           aria-invalid={!!error}
           className={`w-full ${
             icon ? 'pl-10' : 'pl-3.5'
-          } ${rightElement ? 'pr-11' : 'pr-3.5'} py-2.5 bg-white border text-sm text-slate-900 rounded-xl placeholder:text-slate-400 focus:outline-none focus:ring-2 transition-all ${
+          } ${rightElement ? 'pr-11' : 'pr-3.5'} py-2.5 bg-white border text-sm text-[#171717] rounded-xl placeholder:text-[#A8A196] focus:outline-none transition-all ${
             error
-              ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/20'
-              : 'border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/20 hover:border-slate-300'
-          } disabled:bg-slate-50 disabled:text-slate-500 disabled:border-slate-200 ${className}`}
+              ? 'border-[#B91C1C] focus:border-[#B91C1C] focus:ring-1 focus:ring-[#B91C1C]'
+              : 'border-[#E7E3DC] focus:border-[#171717] focus:ring-1 focus:ring-[#171717] hover:border-[#D8D2C5]'
+          } disabled:bg-[#FAF8F5] disabled:text-[#A8A196] disabled:border-[#E7E3DC] ${className}`}
           {...props}
         />
         {rightElement && (
@@ -55,7 +55,7 @@ export default function Input({
         )}
       </div>
       {error && (
-        <p className="mt-1.5 text-xs text-rose-600 font-medium flex items-center gap-1">
+        <p className="mt-1.5 text-xs text-[#B91C1C] font-medium flex items-center gap-1">
           <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
             <path
               fillRule="evenodd"
@@ -66,8 +66,8 @@ export default function Input({
           <span>{error}</span>
         </p>
       )}
-      {!error && helperText && (
-        <p className="mt-1.5 text-xs text-slate-500">{helperText}</p>
+      {helperText && !error && (
+        <p className="mt-1.5 text-xs text-[#6B665E]">{helperText}</p>
       )}
     </div>
   );

@@ -1,4 +1,5 @@
 import { successResponse } from '../utils/response.js';
+import { searchBusinesses } from '../models/queueModel.js';
 import {
   processGetBusinessQueue,
   processCallNextCustomer,
@@ -46,6 +47,16 @@ export async function handleGetBusinessServices(req, res, next) {
     const includeInactive = req.user?.role === 'BUSINESS' && req.query.includeInactive === 'true';
     const servicesData = await processGetBusinessServices(businessId, includeInactive);
     return successResponse(res, 'Business services retrieved successfully', servicesData, 200);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function handleGetBusinessDirectory(req, res, next) {
+  try {
+    const { category, city, search } = req.query;
+    const businesses = await searchBusinesses({ category, city, search });
+    return successResponse(res, 'Active business directory retrieved', { businesses }, 200);
   } catch (error) {
     next(error);
   }

@@ -22,7 +22,7 @@ export function globalErrorHandler(err, req, res, next) {
 
   if (isKnownError) {
     // Known business logic error — safe to show the message to the client
-    return errorResponse(res, err.message, err.statusCode);
+    return errorResponse(res, err.message, err.statusCode, err.details || err.existingToken);
   }
 
   // Unknown/unexpected error — log full details internally, show generic response

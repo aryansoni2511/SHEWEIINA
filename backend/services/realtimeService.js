@@ -34,7 +34,7 @@ class RealtimeService extends EventEmitter {
   /**
    * Register a new SSE subscriber response stream
    */
-  registerClient({ res, businessId = null, tokenId = null, isPublic = false }) {
+  registerClient({ res, businessId = null, tokenId = null, queueId = null, module = 'salon', isPublic = false }) {
     const clientId = `client_${Date.now()}_${this.clientIdCounter++}`;
 
     const client = {
@@ -42,6 +42,8 @@ class RealtimeService extends EventEmitter {
       res,
       businessId: businessId ? String(businessId) : null,
       tokenId: tokenId ? String(tokenId) : null,
+      queueId: queueId ? String(queueId) : null,
+      module: module || 'salon',
       isPublic: Boolean(isPublic),
       connectedAt: new Date(),
     };
@@ -54,6 +56,8 @@ class RealtimeService extends EventEmitter {
       subscribedAt: client.connectedAt.toISOString(),
       businessId: client.businessId,
       tokenId: client.tokenId,
+      queueId: client.queueId,
+      module: client.module,
       isPublic: client.isPublic,
     });
 
@@ -86,13 +90,17 @@ class RealtimeService extends EventEmitter {
   /**
    * Broadcast a queue update event to interested clients
    * Scoped strictly:
+   * - Module isolation: Hospital, Government, and Salon/Clinic never cross-pollinate
    * - Business & Public TV display subscribers receive events matching their businessId
    * - Customer subscribers receive events matching their tokenId OR if queue recalculated
+   * - Strictly queue-scoped: general queue events only deliver if client belongs to same queue/business
    * - Zero PII: Only status codes, token numbers, sequence counters, and timestamps
    */
-  broadcastQueueEvent({ businessId, queueId = null, tokenId = null, type, data = {} }) {
+  broadcastQueueEvent({ businessId, queueId = null, tokenId = null, type, module = 'salon', data = {} }) {
+    const targetModule = module || 'salon';
     const payload = {
       type,
+      module: targetModule,
       businessId: businessId ? String(businessId) : null,
       queueId: queueId ? String(queueId) : null,
       tokenId: tokenId ? String(tokenId) : null,
@@ -101,21 +109,38 @@ class RealtimeService extends EventEmitter {
     };
 
     for (const client of this.clients.values()) {
+      // 0. Strict module isolation
+      if (client.module && targetModule && client.module !== targetModule) {
+        continue;
+      }
+
       let shouldDeliver = false;
 
       // 1. Business Dashboard or Public Display subscriber: matches businessId
       if (client.businessId && String(client.businessId) === String(businessId)) {
-        shouldDeliver = true;
+        if (!client.queueId || (queueId && String(client.queueId) === String(queueId))) {
+          shouldDeliver = true;
+        }
       }
 
       // 2. Customer Token subscriber:
-      // - matches exact tokenId
-      // - OR if the event is a general queue recalculation / next called / skip for this queue
+      // - Direct delivery: matches exact tokenId
+      // - Queue-scoped delivery: queue event strictly matching client.queueId or client.businessId
       if (client.tokenId) {
         if (tokenId && String(client.tokenId) === String(tokenId)) {
           shouldDeliver = true;
-        } else if (['CUSTOMER_CALLED', 'CUSTOMER_SKIPPED', 'SERVICE_COMPLETED', 'QUEUE_CANCELLED', 'QUEUE_SETTINGS_UPDATED', 'CUSTOMER_JOINED'].includes(type)) {
-          shouldDeliver = true;
+        } else if (
+          ['CUSTOMER_CALLED', 'CUSTOMER_SKIPPED', 'SERVICE_COMPLETED', 'QUEUE_CANCELLED', 'QUEUE_SETTINGS_UPDATED', 'CUSTOMER_JOINED'].includes(type) ||
+          type.startsWith('HOSPITAL_') ||
+          type.startsWith('GOVERNMENT_')
+        ) {
+          const queueMatch = client.queueId && queueId && String(client.queueId) === String(queueId);
+          const bizMatch = client.businessId && businessId && String(client.businessId) === String(businessId);
+          // If client has queueId/businessId scope, enforce match.
+          // Otherwise, if client only has tokenId without scope, deliver only if targetModule matches.
+          if (queueMatch || bizMatch || (!client.queueId && !client.businessId)) {
+            shouldDeliver = true;
+          }
         }
       }
 

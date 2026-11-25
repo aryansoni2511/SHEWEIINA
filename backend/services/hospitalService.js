@@ -27,6 +27,7 @@ import {
   callNextDoctorToken,
   completeDoctorServingToken,
   skipDoctorToken,
+  cancelHospitalToken,
 } from '../models/hospitalModel.js';
 import { createUser, findUserByEmail } from '../models/queueModel.js';
 import { realtimeService } from './realtimeService.js';
@@ -422,10 +423,53 @@ export async function processGetHospitalDetails(idOrSlug) {
 }
 
 /**
+ * Authorization Helper: Resolve authorized hospital ID strictly from verified database ownership
+ */
+export async function resolveAuthorizedHospitalId(user) {
+  if (!user || !user.userId) {
+    throw new ForbiddenError('Authentication required.');
+  }
+
+  // 1. If an explicit hospital is claimed in user claims, verify database ownership of that specific hospital
+  const candidateId = user.hospitalId || user.businessId;
+  if (candidateId) {
+    const hospital = await findHospitalById(candidateId);
+    if (hospital) {
+      if (hospital.admin_user_id && String(hospital.admin_user_id) === String(user.userId)) {
+        return hospital.id;
+      }
+      // The candidateId matches an existing hospital not owned by this authenticated user
+      throw new ForbiddenError('You do not have administrative access to this hospital.');
+    }
+  }
+
+  // 2. Otherwise resolve hospital directly by verified admin_user_id database relationship
+  const hospital = await findHospitalByAdminUserId(user.userId);
+  if (hospital && hospital.admin_user_id && String(hospital.admin_user_id) === String(user.userId)) {
+    return hospital.id;
+  }
+
+  throw new ForbiddenError('You do not have administrative access to any hospital.');
+}
+
+function extractUserAndData(userOrData, maybeData) {
+  if (maybeData !== undefined) {
+    return { user: userOrData, data: maybeData || {} };
+  }
+  if (userOrData && typeof userOrData === 'object' && (userOrData.userId || userOrData.role || userOrData.hospitalId || userOrData.businessId)) {
+    return { user: userOrData, data: userOrData };
+  }
+  return { user: null, data: userOrData || {} };
+}
+
+/**
  * 5. Department Management
  */
-export async function processCreateDepartment({ hospitalId, name, code = '', description = '', floorRoom = '' }) {
-  if (!hospitalId) throw new ValidationError('Hospital ID is required.');
+export async function processCreateDepartment(userOrData, maybeData) {
+  const { user, data } = extractUserAndData(userOrData, maybeData);
+  const hospitalId = await resolveAuthorizedHospitalId(user);
+  const { name, code = '', description = '', floorRoom = '' } = data;
+
   if (!name || name.trim().length < 2) {
     throw new ValidationError('Department name is required.');
   }
@@ -434,9 +478,21 @@ export async function processCreateDepartment({ hospitalId, name, code = '', des
   return dept;
 }
 
-export async function processUpdateDepartment({ id, hospitalId, name, code, description, floorRoom, isActive }) {
-  if (!id || !hospitalId) throw new ValidationError('Department ID and Hospital ID are required.');
-  const updated = await updateDepartment(id, hospitalId, { name, code, description, floorRoom, isActive });
+export async function processUpdateDepartment(userOrData, maybeData) {
+  const { user, data } = extractUserAndData(userOrData, maybeData);
+  const id = data.id || data.departmentId;
+  if (!id) throw new ValidationError('Department ID is required.');
+  const hospitalId = await resolveAuthorizedHospitalId(user);
+
+  const existingDept = await findDepartmentById(id);
+  if (!existingDept) {
+    throw new NotFoundError('Department not found.');
+  }
+  if (existingDept.hospital_id !== hospitalId) {
+    throw new ForbiddenError('You are not authorized to modify departments belonging to another hospital.');
+  }
+
+  const updated = await updateDepartment(id, hospitalId, data);
   if (!updated) throw new NotFoundError('Department not found or could not be updated.');
   return updated;
 }
@@ -444,19 +500,22 @@ export async function processUpdateDepartment({ id, hospitalId, name, code, desc
 /**
  * 6. Doctor Management
  */
-export async function processCreateDoctor({
-  hospitalId,
-  departmentId,
-  name,
-  qualification,
-  specialization = '',
-  roomNumber,
-  consultationDuration = 15,
-  consultationFee = 0,
-  availability = 'Mon - Sat (09:00 AM - 01:00 PM)',
-  tokenPrefix = null,
-}) {
-  if (!hospitalId) throw new ValidationError('Hospital ID is required.');
+export async function processCreateDoctor(userOrData, maybeData) {
+  const { user, data } = extractUserAndData(userOrData, maybeData);
+  const hospitalId = await resolveAuthorizedHospitalId(user);
+
+  const {
+    departmentId,
+    name,
+    qualification,
+    specialization = '',
+    roomNumber,
+    consultationDuration = 15,
+    consultationFee = 0,
+    availability = 'Mon - Sat (09:00 AM - 01:00 PM)',
+    tokenPrefix = null,
+  } = data;
+
   if (!departmentId) throw new ValidationError('Department ID is required.');
   if (!name || name.trim().length < 2) throw new ValidationError('Doctor name is required.');
   if (!qualification || qualification.trim().length < 2) {
@@ -464,6 +523,14 @@ export async function processCreateDoctor({
   }
   if (!roomNumber || roomNumber.trim().length < 1) {
     throw new ValidationError('OPD room/cabin number is required.');
+  }
+
+  const dept = await findDepartmentById(departmentId);
+  if (!dept) {
+    throw new NotFoundError('Department not found.');
+  }
+  if (dept.hospital_id !== hospitalId) {
+    throw new ForbiddenError('You are not authorized to add doctors to a department belonging to another hospital.');
   }
 
   const duration = Number(consultationDuration) || 15;
@@ -511,6 +578,9 @@ export async function processRequestOpdToken({
   // Validate Doctor & Queue
   const doctor = await findDoctorById(doctorId);
   if (!doctor) throw new NotFoundError(`Doctor not found with ID: ${doctorId}`);
+  if (doctor.hospital_id !== hospitalId) {
+    throw new ValidationError('Selected doctor does not belong to the specified hospital.');
+  }
   if (!doctor.is_active) throw new ValidationError('Selected doctor is currently not accepting OPD consultations.');
 
   const queue = await findDoctorQueueByDoctorId(doctorId);
@@ -533,9 +603,19 @@ export async function processRequestOpdToken({
       t.patient_phone === cleanPhone
   );
   if (activeDuplicate) {
-    throw new ConflictError(
+    const err = new ConflictError(
       `You already have an active token (${activeDuplicate.token_number}) in Dr. ${doctor.name}'s OPD queue.`
     );
+    err.code = 'DUPLICATE_ACTIVE_TOKEN';
+    err.details = {
+      code: 'DUPLICATE_ACTIVE_TOKEN',
+      tokenId: activeDuplicate.id,
+      tokenNumber: activeDuplicate.token_number,
+      status: activeDuplicate.status,
+      queueId: queue.id,
+      doctorId: doctor.id,
+    };
+    throw err;
   }
 
   // Register or resolve patient record
@@ -569,16 +649,16 @@ export async function processRequestOpdToken({
     estimatedWaitMinutes,
   });
 
-  // Realtime Broadcast
+  // Realtime Broadcast (Zero PII, Scoped Module)
   realtimeService.broadcastQueueEvent({
     businessId: doctor.hospital_id,
     queueId: queue.id,
+    tokenId: token.id,
     type: 'HOSPITAL_PATIENT_JOINED',
+    module: 'hospital',
     data: {
-      tokenId: token.id,
       tokenNumber: token.token_number,
       doctorName: doctor.name,
-      patientName: token.patient_name,
       position: token.position,
       estimatedWaitMinutes,
     },
@@ -607,13 +687,20 @@ export async function processRequestOpdToken({
 /**
  * 8. Call Next Patient for Doctor
  */
-export async function processCallNextPatient({ hospitalId, doctorId }) {
-  if (!hospitalId || !doctorId) {
-    throw new ValidationError('Hospital ID and Doctor ID are required.');
+export async function processCallNextPatient(userOrData, maybeData) {
+  const { user, data } = extractUserAndData(userOrData, maybeData);
+  const { doctorId } = data;
+  if (!doctorId) {
+    throw new ValidationError('Doctor ID is required.');
   }
+  const hospitalId = await resolveAuthorizedHospitalId(user);
 
   const doctor = await findDoctorById(doctorId);
   if (!doctor) throw new NotFoundError('Doctor not found.');
+
+  if (doctor.hospital_id !== hospitalId) {
+    throw new ForbiddenError('You are not authorized to operate doctor queues belonging to another hospital.');
+  }
 
   const queue = await findDoctorQueueByDoctorId(doctorId);
   if (!queue) throw new NotFoundError(`OPD Queue not found for Dr. ${doctor.name}`);
@@ -623,16 +710,16 @@ export async function processCallNextPatient({ hospitalId, doctorId }) {
     throw new NotFoundError(`No waiting patients in Dr. ${doctor.name}'s OPD queue.`);
   }
 
-  // Realtime Broadcast
+  // Realtime Broadcast (Zero PII, Scoped Module)
   realtimeService.broadcastQueueEvent({
     businessId: hospitalId,
     queueId: queue.id,
+    tokenId: calledToken.id,
     type: 'HOSPITAL_PATIENT_CALLED',
+    module: 'hospital',
     data: {
-      tokenId: calledToken.id,
       tokenNumber: calledToken.token_number,
       doctorName: doctor.name,
-      patientName: calledToken.patient_name,
       roomNumber: doctor.room_number,
     },
   });
@@ -650,9 +737,19 @@ export async function processCallNextPatient({ hospitalId, doctorId }) {
 /**
  * 9. Complete Doctor Consultation
  */
-export async function processCompleteConsultation({ hospitalId, doctorId }) {
-  if (!hospitalId || !doctorId) {
-    throw new ValidationError('Hospital ID and Doctor ID are required.');
+export async function processCompleteConsultation(userOrData, maybeData) {
+  const { user, data } = extractUserAndData(userOrData, maybeData);
+  const { doctorId } = data;
+  if (!doctorId) {
+    throw new ValidationError('Doctor ID is required.');
+  }
+  const hospitalId = await resolveAuthorizedHospitalId(user);
+
+  const doctor = await findDoctorById(doctorId);
+  if (!doctor) throw new NotFoundError('Doctor not found.');
+
+  if (doctor.hospital_id !== hospitalId) {
+    throw new ForbiddenError('You are not authorized to complete consultations for another hospital.');
   }
 
   const queue = await findDoctorQueueByDoctorId(doctorId);
@@ -666,9 +763,10 @@ export async function processCompleteConsultation({ hospitalId, doctorId }) {
   realtimeService.broadcastQueueEvent({
     businessId: hospitalId,
     queueId: queue.id,
+    tokenId: completed.id,
     type: 'HOSPITAL_CONSULTATION_COMPLETED',
+    module: 'hospital',
     data: {
-      tokenId: completed.id,
       tokenNumber: completed.token_number,
     },
   });
@@ -679,9 +777,27 @@ export async function processCompleteConsultation({ hospitalId, doctorId }) {
 /**
  * 10. Skip Patient Token
  */
-export async function processSkipPatientToken({ hospitalId, doctorId, tokenId }) {
-  if (!hospitalId || !doctorId || !tokenId) {
-    throw new ValidationError('Hospital ID, Doctor ID, and Token ID are required.');
+export async function processSkipPatientToken(userOrData, maybeData) {
+  const { user, data } = extractUserAndData(userOrData, maybeData);
+  const { doctorId, tokenId } = data;
+  if (!doctorId || !tokenId) {
+    throw new ValidationError('Doctor ID and Token ID are required.');
+  }
+  const hospitalId = await resolveAuthorizedHospitalId(user);
+
+  const doctor = await findDoctorById(doctorId);
+  if (!doctor) throw new NotFoundError('Doctor not found.');
+
+  if (doctor.hospital_id !== hospitalId) {
+    throw new ForbiddenError('You are not authorized to skip tokens belonging to another hospital.');
+  }
+
+  const token = await findHospitalTokenById(tokenId);
+  if (!token) {
+    throw new NotFoundError('Token not found.');
+  }
+  if (token.hospital_id !== hospitalId || token.doctor_id !== doctor.id) {
+    throw new ForbiddenError('You are not authorized to skip this token.');
   }
 
   const queue = await findDoctorQueueByDoctorId(doctorId);
@@ -692,32 +808,119 @@ export async function processSkipPatientToken({ hospitalId, doctorId, tokenId })
     throw new NotFoundError('Token not found or could not be skipped.');
   }
 
+  // Realtime Broadcast: Notify customer and hospital dashboard (Zero PII, Scoped Module)
+  realtimeService.broadcastQueueEvent({
+    businessId: hospitalId,
+    queueId: queue.id,
+    tokenId: skipped.id,
+    type: 'HOSPITAL_PATIENT_SKIPPED',
+    module: 'hospital',
+    data: {
+      tokenNumber: skipped.token_number,
+      doctorName: doctor.name,
+      status: 'SKIPPED',
+    },
+  });
+
   return skipped;
 }
 
 /**
  * 11. Toggle Doctor Queue Open/Closed
  */
-export async function processToggleDoctorQueue({ hospitalId, doctorId, isOpen }) {
-  if (!hospitalId || !doctorId) {
-    throw new ValidationError('Hospital ID and Doctor ID are required.');
+export async function processToggleDoctorQueue(userOrData, maybeData) {
+  const { user, data } = extractUserAndData(userOrData, maybeData);
+  const { doctorId, isOpen } = data;
+  if (!doctorId) {
+    throw new ValidationError('Doctor ID is required.');
+  }
+  const hospitalId = await resolveAuthorizedHospitalId(user);
+
+  const doctor = await findDoctorById(doctorId);
+  if (!doctor) throw new NotFoundError('Doctor not found.');
+
+  if (doctor.hospital_id !== hospitalId) {
+    throw new ForbiddenError('You are not authorized to toggle doctor queues belonging to another hospital.');
   }
 
   const queue = await findDoctorQueueByDoctorId(doctorId);
   if (!queue) throw new NotFoundError('Doctor OPD Queue not found.');
 
   const updated = await toggleDoctorQueueStatus(queue.id, hospitalId, Boolean(isOpen));
+
+  // Realtime Broadcast: Notify subscribers of queue status change (Zero PII, Scoped Module)
+  realtimeService.broadcastQueueEvent({
+    businessId: hospitalId,
+    queueId: queue.id,
+    type: 'HOSPITAL_QUEUE_UPDATED',
+    module: 'hospital',
+    data: {
+      doctorId: doctor.id,
+      doctorName: doctor.name,
+      isOpen: Boolean(updated.is_open),
+    },
+  });
+
   return updated;
+}
+
+/**
+ * Cancel OPD Token (Patient workflow)
+ */
+export async function processCancelOpdToken(user, tokenId) {
+  if (!tokenId) throw new ValidationError('Token ID is required.');
+  const token = await findHospitalTokenById(tokenId);
+  if (!token) throw new NotFoundError('Token not found.');
+
+  if (token.status === 'CANCELLED') throw new ValidationError('Token is already cancelled');
+  if (token.status === 'SERVING') throw new ValidationError('Cannot cancel a token currently being served');
+  if (token.status === 'SERVED') throw new ValidationError('Cannot cancel a completed service token');
+  if (token.status !== 'WAITING') throw new ValidationError('Only waiting tokens can be cancelled');
+
+  if (user) {
+    const userPhone = user.phone;
+    const isOwner = (user.userId && token.user_id && String(token.user_id) === String(user.userId)) ||
+                    (userPhone && token.patient_phone && token.patient_phone === userPhone);
+    if (!isOwner) throw new ForbiddenError('You can only cancel your own token.');
+  }
+
+  const cancelled = await cancelHospitalToken(tokenId, token.hospital_id);
+
+  // Realtime Broadcast (Zero PII, Scoped Module)
+  realtimeService.broadcastQueueEvent({
+    businessId: token.hospital_id,
+    queueId: token.queue_id,
+    tokenId: token.id,
+    type: 'HOSPITAL_TOKEN_CANCELLED',
+    module: 'hospital',
+    data: {
+      tokenNumber: token.token_number,
+      status: 'CANCELLED',
+    },
+  });
+
+  return cancelled;
 }
 
 /**
  * 12. Hospital Admin Dashboard
  */
-export async function processGetHospitalDashboard(hospitalId) {
-  if (!hospitalId) throw new ValidationError('Hospital ID is required.');
+export async function processGetHospitalDashboard(userOrData, requestedHospitalId = null) {
+  let authorizedHospitalId;
 
-  const hospital = (await findHospitalById(hospitalId)) || (await findHospitalBySlug(hospitalId));
-  if (!hospital) throw new NotFoundError(`Hospital not found: ${hospitalId}`);
+  if (userOrData && typeof userOrData === 'object' && (userOrData.userId || userOrData.role || userOrData.hospitalId || userOrData.businessId)) {
+    authorizedHospitalId = await resolveAuthorizedHospitalId(userOrData);
+    if (requestedHospitalId && requestedHospitalId !== authorizedHospitalId) {
+      throw new ForbiddenError('You are not authorized to access another hospital’s dashboard.');
+    }
+  } else if (typeof userOrData === 'string') {
+    authorizedHospitalId = userOrData;
+  } else {
+    throw new ForbiddenError('Authentication required.');
+  }
+
+  const hospital = (await findHospitalById(authorizedHospitalId)) || (await findHospitalBySlug(authorizedHospitalId));
+  if (!hospital) throw new NotFoundError(`Hospital not found: ${authorizedHospitalId}`);
 
   const departments = await findDepartmentsByHospitalId(hospital.id, true);
   const doctors = await findDoctorsByHospitalId(hospital.id, null, true);
@@ -791,6 +994,7 @@ export async function processGetHospitalDashboard(hospitalId) {
 }
 
 export default {
+  resolveAuthorizedHospitalId,
   processRegisterHospital,
   processRegisterPatient,
   processSearchHospitals,

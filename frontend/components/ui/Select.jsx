@@ -1,7 +1,7 @@
 import React from 'react';
 
 /**
- * Reusable Select component with clean custom styling and error state
+ * Reusable Select component with Editorial styling and custom arrow
  */
 export default function Select({
   label,
@@ -21,9 +21,9 @@ export default function Select({
       {label && (
         <label
           htmlFor={selectId}
-          className="block text-xs font-semibold text-slate-700 mb-1.5"
+          className="block text-xs font-semibold text-[#171717] mb-1.5"
         >
-          {label} {required && <span className="text-rose-500">*</span>}
+          {label} {required && <span className="text-[#B91C1C]">*</span>}
         </label>
       )}
       <div className="relative rounded-xl">
@@ -31,23 +31,23 @@ export default function Select({
           id={selectId}
           required={required}
           aria-invalid={!!error}
-          className={`w-full appearance-none pl-3.5 pr-10 py-2.5 bg-white border text-sm text-slate-900 rounded-xl focus:outline-none focus:ring-2 transition-all cursor-pointer ${
+          className={`w-full appearance-none pl-3.5 pr-10 py-2.5 bg-white border text-sm text-[#171717] rounded-xl focus:outline-none transition-all cursor-pointer ${
             error
-              ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/20'
-              : 'border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/20 hover:border-slate-300'
-          } disabled:bg-slate-50 disabled:text-slate-500 disabled:border-slate-200 ${className}`}
+              ? 'border-[#B91C1C] focus:border-[#B91C1C] focus:ring-1 focus:ring-[#B91C1C]'
+              : 'border-[#E7E3DC] focus:border-[#171717] focus:ring-1 focus:ring-[#171717] hover:border-[#D8D2C5]'
+          } disabled:bg-[#FAF8F5] disabled:text-[#A8A196] disabled:border-[#E7E3DC] ${className}`}
           {...props}
         >
           {children}
         </select>
-        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
+        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-[#78716C]">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
           </svg>
         </div>
       </div>
       {error && (
-        <p className="mt-1.5 text-xs text-rose-600 font-medium flex items-center gap-1">
+        <p className="mt-1.5 text-xs text-[#B91C1C] font-medium flex items-center gap-1">
           <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
             <path
               fillRule="evenodd"
@@ -58,8 +58,8 @@ export default function Select({
           <span>{error}</span>
         </p>
       )}
-      {!error && helperText && (
-        <p className="mt-1.5 text-xs text-slate-500">{helperText}</p>
+      {helperText && !error && (
+        <p className="mt-1.5 text-xs text-[#6B665E]">{helperText}</p>
       )}
     </div>
   );

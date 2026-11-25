@@ -3,6 +3,7 @@ import {
   handleGetBusinessQueue,
   handleCallNextCustomer,
   handleGetBusinessServices,
+  handleGetBusinessDirectory,
   handleCompleteService,
   handleGetBusinessProfile,
   handleUpdateBusinessProfile,
@@ -21,6 +22,9 @@ const router = Router();
 
 // Public Business Services lookup (for customers joining queue)
 router.get('/services', handleGetBusinessServices);
+
+// Public Active Business Directory (for customer discovery across Salon, Clinic, etc.)
+router.get('/directory', handleGetBusinessDirectory);
 
 // Protected Business Analytics Endpoint (Requires BUSINESS role & tenant isolation)
 router.get('/analytics', authenticateToken, requireRole('BUSINESS'), requireBusinessTenant, handleGetBusinessAnalytics);

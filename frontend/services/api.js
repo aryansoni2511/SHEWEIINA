@@ -143,6 +143,18 @@ export async function getBusinessServices(businessId = 'demo', includeInactive =
 }
 
 /**
+ * Fetch Active Business Directory (for customer discovery across Salon, Clinic, etc.)
+ */
+export async function getBusinessDirectoryApi({ category, city, search } = {}) {
+  const params = [];
+  if (category) params.push(`category=${encodeURIComponent(category)}`);
+  if (city) params.push(`city=${encodeURIComponent(city)}`);
+  if (search) params.push(`search=${encodeURIComponent(search)}`);
+  const query = params.length > 0 ? `?${params.join('&')}` : '';
+  return request(`/api/v1/business/directory${query}`, { method: 'GET' });
+}
+
+/**
  * Customer Join Queue API
  */
 export async function joinQueue({ businessId, queueId, serviceId, customerName, customerPhone }) {
@@ -424,7 +436,108 @@ export async function toggleHospitalDoctorQueueApi(doctorId, isOpen) {
   });
 }
 
+/* ─── Government & Citizen Services API Endpoints ───────────────────────── */
+
+export async function getGovernmentServicesApi(category = '') {
+  const queryStr = category ? `?category=${encodeURIComponent(category)}` : '';
+  return request(`/api/v1/government/services${queryStr}`, { method: 'GET' });
+}
+
+export async function getGovernmentServiceDetailsApi(slug) {
+  return request(`/api/v1/government/services/${encodeURIComponent(slug)}`, { method: 'GET' });
+}
+
+export async function searchGovernmentCentresApi({ search = '', category = '', city = '', pincode = '', userLat = '', userLng = '' } = {}) {
+  const params = new URLSearchParams();
+  if (search) params.append('search', search);
+  if (category) params.append('category', category);
+  if (city) params.append('city', city);
+  if (pincode) params.append('pincode', pincode);
+  if (userLat) params.append('userLat', userLat);
+  if (userLng) params.append('userLng', userLng);
+
+  const queryStr = params.toString() ? `?${params.toString()}` : '';
+  return request(`/api/v1/government/centres${queryStr}`, { method: 'GET' });
+}
+
+export async function getGovernmentCentreDetailsApi(idOrSlug) {
+  return request(`/api/v1/government/centres/${encodeURIComponent(idOrSlug)}`, { method: 'GET' });
+}
+
+export async function registerGovernmentCentreApi(data) {
+  return request('/api/v1/government/register-centre', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function requestGovernmentTokenApi(data) {
+  return request('/api/v1/government/token/join', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getGovernmentTokenApi(tokenId) {
+  return request(`/api/v1/government/token/${encodeURIComponent(tokenId)}`, { method: 'GET' });
+}
+
+export async function getGovernmentDashboardApi() {
+  return request('/api/v1/government/dashboard', { method: 'GET' });
+}
+
+export async function createGovernmentCounterApi(data) {
+  return request('/api/v1/government/counters', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function toggleGovernmentCounterApi(counterId, isOpen) {
+  return request('/api/v1/government/counters/toggle', {
+    method: 'POST',
+    body: JSON.stringify({ counterId, isOpen }),
+  });
+}
+
+export async function callNextGovernmentCitizenApi(counterId) {
+  return request('/api/v1/government/queue/next', {
+    method: 'POST',
+    body: JSON.stringify({ counterId }),
+  });
+}
+
+export async function completeGovernmentTokenApi(tokenId) {
+  return request('/api/v1/government/queue/complete', {
+    method: 'POST',
+    body: JSON.stringify({ tokenId }),
+  });
+}
+
+export async function skipGovernmentTokenApi(tokenId) {
+  return request('/api/v1/government/queue/skip', {
+    method: 'POST',
+    body: JSON.stringify({ tokenId }),
+  });
+}
+
 export default {
+  // Government APIs
+  getGovernmentServicesApi,
+  getGovernmentServiceDetailsApi,
+  searchGovernmentCentresApi,
+  getGovernmentCentreDetailsApi,
+  registerGovernmentCentreApi,
+  requestGovernmentTokenApi,
+  getGovernmentTokenApi,
+  getGovernmentDashboardApi,
+  createGovernmentCounterApi,
+  toggleGovernmentCounterApi,
+  callNextGovernmentCitizenApi,
+  completeGovernmentTokenApi,
+  skipGovernmentTokenApi,
+
+  // Hospital APIs
   searchHospitalsApi,
   getHospitalDetailsApi,
   registerHospitalApi,
@@ -464,6 +577,7 @@ export default {
   getBusinessAnalyticsApi,
   checkHealth,
   getBusinessServices,
+  getBusinessDirectoryApi,
   joinQueue,
   getTokenStatus,
   cancelQueueTokenApi,

@@ -5,13 +5,16 @@ import {
   handleCancelToken,
   handleGetPublicQueueDisplay,
 } from '../controllers/queueController.js';
-import { handleQueueStream } from '../controllers/realtimeController.js';
+import { handleQueueStream, handleCreateStreamTicket } from '../controllers/realtimeController.js';
 import { authenticateToken, requireRole } from '../middleware/authMiddleware.js';
 import { queueJoinRateLimiter } from '../middleware/rateLimiter.js';
 
 const router = Router();
 
-// Public Realtime Queue Event Stream (SSE)
+// Authenticated Stream Ticket Exchange Endpoint
+router.post('/stream-ticket', authenticateToken, handleCreateStreamTicket);
+
+// Realtime Queue Event Stream (SSE)
 router.get('/stream', handleQueueStream);
 
 // Public Customer & Waiting Room Display Endpoints

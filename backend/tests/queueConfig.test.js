@@ -139,7 +139,6 @@ test('Phase 5C Queue Configuration API Suite', async (t) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${custToken}`,
         },
         body: JSON.stringify({
           businessId: bizAId,
@@ -158,7 +157,6 @@ test('Phase 5C Queue Configuration API Suite', async (t) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${custToken}`,
         },
         body: JSON.stringify({
           businessId: bizAId,
@@ -170,6 +168,8 @@ test('Phase 5C Queue Configuration API Suite', async (t) => {
       });
 
       assert.strictEqual(res.status, 409);
+      const body = await res.json();
+      assert.match(body.message, /maximum daily capacity/i);
     });
 
     // 6. Business A closes the queue

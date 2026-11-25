@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { resolveDashboardRoute } from '../utils/navigation';
 import LogoMark from '../components/LogoMark';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
@@ -27,11 +28,34 @@ export default function LoginPage() {
     try {
       const res = await login(email, password);
       const user = res.data.user;
-      if (user.role === 'BUSINESS') {
-        navigate(from && from !== '/' && !from.startsWith('/customer') ? from : '/dashboard');
-      } else {
-        navigate(from && from !== '/dashboard' ? from : '/customer/dashboard');
+      const targetDashboard = resolveDashboardRoute(user);
+
+      // Validate redirect destination against user's verified role and module
+      let destination = targetDashboard;
+      if (from && from !== '/' && from !== '/login') {
+        const isCustomerRoute = from.startsWith('/customer');
+        const isHospitalRoute = from.startsWith('/hospital');
+        const isGovtRoute = from.startsWith('/government');
+
+        if (user.role === 'CUSTOMER') {
+          if (!isHospitalRoute && !isGovtRoute && from !== '/dashboard') {
+            destination = from;
+          }
+        } else if (user.isMultiModule) {
+          if (isHospitalRoute && user.hospitalId) destination = from;
+          else if (isGovtRoute && user.centreId) destination = from;
+          else if (from === '/dashboard' && user.businessId) destination = from;
+          else destination = targetDashboard;
+        } else if (user.hospitalId || user.module === 'hospital') {
+          destination = from.startsWith('/hospital') ? from : '/hospital/dashboard';
+        } else if (user.centreId || user.module === 'government') {
+          destination = from.startsWith('/government') ? from : '/government/dashboard';
+        } else if (user.role === 'BUSINESS' && !isCustomerRoute && !isHospitalRoute && !isGovtRoute) {
+          destination = from;
+        }
       }
+
+      navigate(destination);
     } catch (err) {
       setError(err.message || 'Login failed. Please check your credentials.');
       setLoading(false);

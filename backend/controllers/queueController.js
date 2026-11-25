@@ -5,6 +5,7 @@ import {
   processCancelToken,
   processGetPublicQueueDisplay,
 } from '../services/queueService.js';
+import { findUserById } from '../models/queueModel.js';
 
 import jwt from 'jsonwebtoken';
 
@@ -54,7 +55,13 @@ export async function handleCancelToken(req, res, next) {
   try {
     const tokenId = req.body?.tokenId || req.params?.tokenId;
     const userId = req.user?.userId;
-    const userPhone = req.user?.phone;
+    let userPhone = req.user?.phone;
+    if (!userPhone && userId) {
+      try {
+        const user = await findUserById(userId);
+        if (user) userPhone = user.phone;
+      } catch (_) {}
+    }
 
     const cancelData = await processCancelToken({ tokenId, userId, userPhone });
     return successResponse(res, 'Token cancelled successfully', cancelData, 200);

@@ -13,6 +13,7 @@ import {
   toggleHospitalDoctorQueueApi,
 } from '../services/api';
 import Button from '../components/ui/Button';
+import { subscribeQueueRealtime } from '../services/realtime';
 import { Badge } from '../components/ui/Badge';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
@@ -20,24 +21,66 @@ import Modal from '../components/ui/Modal';
 import { Card } from '../components/ui/Card';
 import StatCard from '../components/ui/StatCard';
 import EmptyState from '../components/ui/EmptyState';
+import {
+  Stethoscope,
+  Building2,
+  UserCheck,
+  FileText,
+  ExternalLink,
+  ArrowRight,
+  Landmark,
+  LogOut,
+} from 'lucide-react';
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Hospital Administration Dashboard — Clinical Blue / Editorial Identity
+   All state management, polling (15s), queue operations, CRUD modals preserved
+───────────────────────────────────────────────────────────────────────── */
+
+/* Sidebar nav item helper */
+function NavItem({ active, onClick, icon, label, badge }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all text-left text-xs ${
+        active
+          ? 'font-semibold bg-[#EFF6FF] text-[#1E40AF] border border-[#BFDBFE] shadow-xs'
+          : 'text-[#57534E] hover:text-[#171717] hover:bg-[#F5F2EB]'
+      }`}
+    >
+      <div className="flex items-center gap-2.5">
+        <span className="flex-shrink-0">{icon}</span>
+        <span>{label}</span>
+      </div>
+      {badge !== undefined && badge !== null && (
+        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+          active ? 'bg-[#DBEAFE] text-[#1E40AF]' : 'bg-[#E7E3DC] text-[#57534E]'
+        }`}>
+          {badge}
+        </span>
+      )}
+    </button>
+  );
+}
 
 export default function HospitalDashboardPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const [activeSection, setActiveSection] = useState('queues'); // 'queues' | 'departments' | 'doctors' | 'profile'
+  const [activeSection, setActiveSection] = useState('queues');
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [feedbackMessage, setFeedbackMessage] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Department Modals
+  // Department modal
   const [isDeptModalOpen, setIsDeptModalOpen] = useState(false);
   const [deptForm, setDeptForm] = useState({ name: '', code: '', description: '', floorRoom: '' });
   const [deptErrors, setDeptErrors] = useState({});
 
-  // Doctor Modals
+  // Doctor modal
   const [isDoctorModalOpen, setIsDoctorModalOpen] = useState(false);
   const [doctorForm, setDoctorForm] = useState({
     name: '',
@@ -51,7 +94,7 @@ export default function HospitalDashboardPage() {
   });
   const [doctorErrors, setDoctorErrors] = useState({});
 
-  // Fetch Dashboard data
+  /* ── API: Fetch Dashboard (preserved) ─────────────────────────────── */
   const fetchDashboard = async (silent = false) => {
     if (!silent) setLoading(true);
     setErrorMessage(null);
@@ -71,16 +114,38 @@ export default function HospitalDashboardPage() {
     fetchDashboard();
     const interval = setInterval(() => {
       fetchDashboard(true);
-    }, 15000); // 15s polling sync
+    }, 15000); // 15s polling — preserved
     return () => clearInterval(interval);
   }, []);
+
+  // Live SSE Stream for Hospital Operator Dashboard
+  useEffect(() => {
+    let isMounted = true;
+    let unsubscribe = () => {};
+
+    if (dashboardData?.hospital?.id) {
+      unsubscribe = subscribeQueueRealtime({
+        businessId: dashboardData.hospital.id,
+        onUpdate: () => {
+          if (isMounted) {
+            fetchDashboard(true);
+          }
+        },
+      });
+    }
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, [dashboardData?.hospital?.id]);
 
   const showNotification = (msg) => {
     setFeedbackMessage(msg);
     setTimeout(() => setFeedbackMessage(null), 4000);
   };
 
-  // Queue Operations
+  /* ── Queue Operations (preserved exactly) ─────────────────────────── */
   const handleCallNext = async (doctorId, doctorName) => {
     try {
       const res = await callNextHospitalPatientApi(doctorId);
@@ -122,7 +187,7 @@ export default function HospitalDashboardPage() {
     }
   };
 
-  // Create Department
+  /* ── Department CRUD (preserved exactly) ─────────────────────────── */
   const handleSaveDepartment = async (e) => {
     e.preventDefault();
     if (!deptForm.name.trim()) {
@@ -146,7 +211,7 @@ export default function HospitalDashboardPage() {
     }
   };
 
-  // Create Doctor
+  /* ── Doctor CRUD (preserved exactly) ─────────────────────────────── */
   const handleSaveDoctor = async (e) => {
     e.preventDefault();
     const errors = {};
@@ -185,12 +250,16 @@ export default function HospitalDashboardPage() {
     navigate('/login');
   };
 
+  /* ── Loading ────────────────────────────────────────────────────────── */
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6">
-        <div className="text-center space-y-3">
-          <div className="w-12 h-12 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-sm font-semibold text-slate-600">Loading Hospital Administration Dashboard...</p>
+      <div className="min-h-screen flex items-center justify-center p-6" style={{ background: '#F0F9FF' }}>
+        <div className="text-center space-y-4">
+          <div
+            className="w-14 h-14 border-4 border-t-transparent rounded-full animate-spin mx-auto"
+            style={{ borderColor: '#0891B2', borderTopColor: 'transparent' }}
+          />
+          <p className="text-sm font-semibold text-slate-600">Loading Hospital OPD Dashboard...</p>
         </div>
       </div>
     );
@@ -199,121 +268,103 @@ export default function HospitalDashboardPage() {
   const { hospital, summary, departments = [], doctorStations = [] } = dashboardData || {};
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex text-slate-900 selection:bg-emerald-600 selection:text-white">
-      {/* ─── Persistent Left Sidebar (Desktop) ───────────────────────────── */}
-      <aside className="hidden lg:flex w-64 flex-col border-r border-slate-200/80 bg-white min-h-screen sticky top-0 h-screen overflow-y-auto shrink-0 z-30">
-        {/* Brand & Hospital Banner */}
-        <div className="p-5 border-b border-slate-100 flex items-center gap-3">
-          <LogoMark className="w-9 h-9" variant="emerald" iconSize="w-5 h-5" />
+    <div
+      className="min-h-screen flex text-[#171717] bg-[#FAF8F5] selection:bg-[#1E3A8A] selection:text-white"
+    >
+
+      {/* ── Persistent Left Sidebar (Desktop) ─────────────────────────── */}
+      <aside className="hidden lg:flex w-64 flex-col border-r border-[#E7E3DC] bg-white min-h-screen sticky top-0 h-screen overflow-y-auto shrink-0 z-30">
+
+        {/* Brand bar with editorial navy accent */}
+        <div className="p-5 border-b border-[#F0ECE4] flex items-center gap-3 bg-[#FAF8F5]">
+          <div className="w-10 h-10 rounded-2xl bg-[#EFF6FF] border border-[#BFDBFE] text-[#1E40AF] flex items-center justify-center font-bold text-lg shrink-0">
+            <Building2 className="w-5 h-5 text-[#1E40AF]" />
+          </div>
           <div className="min-w-0">
-            <h2 className="font-display font-extrabold text-sm text-slate-900 truncate">
-              {hospital?.name || 'Shewwina Hospital'}
+            <h2 className="font-display font-bold text-sm text-[#171717] truncate">
+              {hospital?.name || 'Hospital Dashboard'}
             </h2>
-            <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider block">
-              Hospital Admin OPD
+            <span className="text-[10px] font-semibold text-[#1E40AF] uppercase tracking-wider block">
+              Hospital Admin · OPD
             </span>
           </div>
         </div>
 
-        {/* Navigation Section Items */}
-        <div className="p-3 space-y-1.5 flex-1">
-          <button
-            type="button"
-            onClick={() => setActiveSection('queues')}
-            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl transition-all ${
-              activeSection === 'queues'
-                ? 'bg-emerald-50 text-emerald-900 font-bold shadow-xs border border-emerald-200/70'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
-            }`}
-          >
-            <div className="flex items-center gap-2.5 text-xs">
-              <span>🩺</span>
-              <span>OPD Live Queues</span>
-            </div>
-            {summary?.totalWaiting > 0 && (
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
-                {summary.totalWaiting}
+        {/* Multi-Module Switcher for dual-admin users */}
+        {user?.isMultiModule && (
+          <div className="p-3 bg-[#EFF6FF] border-b border-[#BFDBFE]">
+            <span className="text-[10px] font-semibold text-[#1E40AF] uppercase tracking-wider block mb-1.5">
+              Multi-Module Operator
+            </span>
+            <Link
+              to="/government/dashboard"
+              className="flex items-center justify-between p-2 rounded-lg bg-white border border-[#BFDBFE] text-xs font-semibold text-[#0F172A] hover:bg-[#F8FAFC] transition-colors"
+            >
+              <span className="flex items-center gap-1.5">
+                <Landmark className="w-3.5 h-3.5" />
+                <span>Govt Kendra</span>
               </span>
-            )}
-          </button>
+              <ArrowRight className="w-3 h-3 text-[#78716C]" />
+            </Link>
+          </div>
+        )}
 
-          <button
-            type="button"
+        {/* Nav items */}
+        <div className="p-3 space-y-1 flex-1">
+          <NavItem
+            active={activeSection === 'queues'}
+            onClick={() => setActiveSection('queues')}
+            icon={<Stethoscope className="w-4 h-4 text-[#1E40AF]" />}
+            label="OPD Live Queues"
+            badge={summary?.totalWaiting > 0 ? summary.totalWaiting : null}
+          />
+          <NavItem
+            active={activeSection === 'departments'}
             onClick={() => setActiveSection('departments')}
-            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl transition-all ${
-              activeSection === 'departments'
-                ? 'bg-emerald-50 text-emerald-900 font-bold shadow-xs border border-emerald-200/70'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
-            }`}
-          >
-            <div className="flex items-center gap-2.5 text-xs">
-              <span>🏢</span>
-              <span>Departments</span>
-            </div>
-            <span className="text-[10px] font-semibold text-slate-400">
-              {departments.length}
-            </span>
-          </button>
-
-          <button
-            type="button"
+            icon={<Building2 className="w-4 h-4 text-[#1E40AF]" />}
+            label="Departments"
+            badge={departments.length}
+          />
+          <NavItem
+            active={activeSection === 'doctors'}
             onClick={() => setActiveSection('doctors')}
-            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl transition-all ${
-              activeSection === 'doctors'
-                ? 'bg-emerald-50 text-emerald-900 font-bold shadow-xs border border-emerald-200/70'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
-            }`}
-          >
-            <div className="flex items-center gap-2.5 text-xs">
-              <span>👨‍⚕️</span>
-              <span>Doctors &amp; Queues</span>
-            </div>
-            <span className="text-[10px] font-semibold text-slate-400">
-              {doctorStations.length}
-            </span>
-          </button>
-
-          <button
-            type="button"
+            icon={<UserCheck className="w-4 h-4 text-[#1E40AF]" />}
+            label="Doctors & Queues"
+            badge={doctorStations.length}
+          />
+          <NavItem
+            active={activeSection === 'profile'}
             onClick={() => setActiveSection('profile')}
-            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl transition-all ${
-              activeSection === 'profile'
-                ? 'bg-emerald-50 text-emerald-900 font-bold shadow-xs border border-emerald-200/70'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
-            }`}
-          >
-            <div className="flex items-center gap-2.5 text-xs">
-              <span>📋</span>
-              <span>Hospital Profile</span>
-            </div>
-          </button>
+            icon={<FileText className="w-4 h-4 text-[#1E40AF]" />}
+            label="Hospital Profile"
+            badge={null}
+          />
 
+          {/* External links */}
           <div className="pt-4 pb-1">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3">
+            <span className="text-[10px] font-semibold text-[#78716C] uppercase tracking-wider px-3">
               Patient View
             </span>
           </div>
-
           <Link
             to={`/hospital/${hospital?.slug || hospital?.id}`}
             target="_blank"
-            className="w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-xs"
+            className="w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-[#57534E] hover:text-[#171717] hover:bg-[#F5F2EB] text-xs transition-colors"
           >
             <span>Public OPD Page</span>
-            <span>↗</span>
+            <ExternalLink className="w-3.5 h-3.5 text-[#78716C]" />
           </Link>
-
           <Link
             to="/hospitals"
             target="_blank"
-            className="w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-xs"
+            className="w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-[#57534E] hover:text-[#171717] hover:bg-[#F5F2EB] text-xs transition-colors"
           >
             <span>Hospital Directory</span>
-            <span>↗</span>
+            <ExternalLink className="w-3.5 h-3.5 text-[#78716C]" />
           </Link>
         </div>
 
-        {/* Sidebar Footer */}
+        {/* Sidebar footer */}
         <div className="p-4 border-t border-slate-100 flex items-center justify-between text-xs">
           <div>
             <span className="font-bold text-slate-800 block truncate">{user?.name || 'Administrator'}</span>
@@ -322,60 +373,108 @@ export default function HospitalDashboardPage() {
           <button
             type="button"
             onClick={handleLogout}
-            className="text-rose-600 hover:text-rose-700 font-bold text-xs"
+            className="text-rose-600 hover:text-rose-700 font-bold text-xs transition-colors"
           >
             Log Out
           </button>
         </div>
       </aside>
 
-      {/* ─── Main Content Workspace ───────────────────────────────────────── */}
+      {/* ── Main Content Workspace ─────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Top Header */}
+
+        {/* Sticky top header */}
         <header className="sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-6 py-4 flex items-center justify-between gap-4">
-          <div>
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-              {hospital?.name || 'Hospital Dashboard'}
-            </span>
-            <h1 className="font-display font-extrabold text-base sm:text-lg text-slate-900 tracking-tight">
-              {activeSection === 'queues' && 'OPD Doctor Live Queue Stations'}
-              {activeSection === 'departments' && 'Clinical Departments Management'}
-              {activeSection === 'doctors' && 'Doctors & Dedicated OPD Queues'}
-              {activeSection === 'profile' && 'Hospital Profile & Facilities'}
-            </h1>
+          {/* Mobile menu + title */}
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="lg:hidden p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+            <div>
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                {hospital?.name || 'Hospital Dashboard'}
+              </span>
+              <h1 className="font-display font-extrabold text-base sm:text-lg text-slate-900 tracking-tight">
+                {activeSection === 'queues' && 'OPD Live Queue Stations'}
+                {activeSection === 'departments' && 'Clinical Departments'}
+                {activeSection === 'doctors' && 'Doctors & OPD Queues'}
+                {activeSection === 'profile' && 'Hospital Profile'}
+              </h1>
+            </div>
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Realtime Live Pulse */}
-            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-semibold">
+            {/* Live sync pulse */}
+            <div
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border"
+              style={{ background: '#ECFEFF', color: '#0E7490', borderColor: '#A5F3FC' }}
+            >
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                <span
+                  className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"
+                  style={{ background: '#06B6D4' }}
+                />
+                <span className="relative inline-flex rounded-full h-2 w-2" style={{ background: '#0891B2' }} />
               </span>
               <span>Live Queue Sync</span>
             </div>
 
+            {/* Refresh button */}
             <button
               type="button"
               onClick={() => fetchDashboard(false)}
-              className="p-2 rounded-xl text-slate-600 hover:bg-slate-100 border border-slate-200"
-              title="Refresh Queue Stations"
+              className="p-2 rounded-xl text-slate-600 hover:bg-slate-100 border border-slate-200 transition-colors"
+              title="Refresh Dashboard"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M23 4v6h-6M1 20v-6h6" /><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
+                <path d="M23 4v6h-6M1 20v-6h6" />
+                <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
               </svg>
             </button>
           </div>
         </header>
 
-        {/* Feedback / Notification alerts */}
+        {/* Mobile menu dropdown */}
+        {mobileMenuOpen && (
+          <div className="lg:hidden bg-white border-b border-slate-200 p-3 space-y-1">
+            {[
+              { id: 'queues', icon: '🩺', label: 'OPD Live Queues' },
+              { id: 'departments', icon: '🏢', label: 'Departments' },
+              { id: 'doctors', icon: '👨‍⚕️', label: 'Doctors & Queues' },
+              { id: 'profile', icon: '📋', label: 'Hospital Profile' },
+            ].map(({ id, icon, label }) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => { setActiveSection(id); setMobileMenuOpen(false); }}
+                className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                  activeSection === id ? 'text-white' : 'text-slate-700 hover:bg-slate-50'
+                }`}
+                style={activeSection === id ? { background: 'linear-gradient(135deg, #0E7490, #0891B2)' } : {}}
+              >
+                <span>{icon}</span>
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Notification banners */}
         {feedbackMessage && (
-          <div className="mx-6 mt-4 p-3.5 rounded-2xl bg-emerald-700 text-white text-xs font-semibold shadow-md flex items-center justify-between animate-fadeIn">
+          <div
+            className="mx-6 mt-4 p-3.5 rounded-2xl text-white text-xs font-semibold shadow-md flex items-center justify-between"
+            style={{ background: 'linear-gradient(135deg, #0E7490, #0891B2)' }}
+          >
             <span>✅ {feedbackMessage}</span>
             <button type="button" onClick={() => setFeedbackMessage(null)}>✕</button>
           </div>
         )}
-
         {errorMessage && (
           <div className="mx-6 mt-4 p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center justify-between">
             <span>⚠️ {errorMessage}</span>
@@ -384,7 +483,8 @@ export default function HospitalDashboardPage() {
         )}
 
         <main className="p-6 space-y-6">
-          {/* Top Metric Cards */}
+
+          {/* ── Stat Cards ──────────────────────────────────────────────── */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard
               title="Patients Waiting"
@@ -401,22 +501,22 @@ export default function HospitalDashboardPage() {
               icon={<span className="text-lg">✅</span>}
             />
             <StatCard
-              title="Currently with Doctor"
+              title="In Doctor's Cabin"
               value={String(summary?.totalServing || 0)}
-              subtitle="In doctor cabins"
+              subtitle="Currently being seen"
               accent="indigo"
               icon={<span className="text-lg">🔔</span>}
             />
             <StatCard
               title="Active OPD Queues"
               value={`${summary?.openQueuesCount || 0} / ${doctorStations.length}`}
-              subtitle="Accepting walk-in tokens"
+              subtitle="Accepting new tokens"
               accent="slate"
               icon={<span className="text-lg">🩺</span>}
             />
           </div>
 
-          {/* ─── 1. OPD LIVE QUEUE STATIONS VIEW ─────────────────────────── */}
+          {/* ── 1. OPD LIVE QUEUE STATIONS ──────────────────────────────── */}
           {activeSection === 'queues' && (
             <div className="space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -425,14 +525,12 @@ export default function HospitalDashboardPage() {
                     Doctor OPD Queue Stations
                   </h2>
                   <p className="text-xs text-slate-500">
-                    Each doctor has a dedicated queue. Call next patient, mark completed, or pause queue.
+                    Call next patient, mark consultation complete, or pause any queue.
                   </p>
                 </div>
-
                 <div className="flex items-center gap-2">
-                  <Button
-                    variant="secondary"
-                    size="sm"
+                  <button
+                    type="button"
                     onClick={() => {
                       if (departments.length === 0) {
                         setIsDeptModalOpen(true);
@@ -441,176 +539,191 @@ export default function HospitalDashboardPage() {
                         setIsDoctorModalOpen(true);
                       }
                     }}
+                    className="px-4 py-2 rounded-xl text-xs font-bold text-white transition-all hover:opacity-90 shadow-sm"
+                    style={{ background: 'linear-gradient(135deg, #0E7490, #0891B2)' }}
                   >
                     + Register Doctor
-                  </Button>
+                  </button>
                 </div>
               </div>
 
-              {/* Stations Grid */}
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                 {doctorStations.length === 0 ? (
                   <div className="col-span-full">
                     <EmptyState
                       title="No Doctor OPD Queues"
-                      description="Get started by registering doctors and departments for this hospital."
+                      description="Start by adding clinical departments, then register doctors to activate live OPD queues."
                       action={
-                        <Button variant="primary" size="sm" onClick={() => setIsDoctorModalOpen(true)}>
-                          + Add Doctor
-                        </Button>
+                        <button
+                          type="button"
+                          onClick={() => setIsDeptModalOpen(true)}
+                          className="mt-3 px-5 py-2.5 rounded-xl text-xs font-bold text-white"
+                          style={{ background: 'linear-gradient(135deg, #0E7490, #0891B2)' }}
+                        >
+                          + Add Department First
+                        </button>
                       }
                     />
                   </div>
                 ) : (
                   doctorStations.map((station) => {
-                    const isQueueOpen = station.isQueueOpen;
-                    const serving = station.servingToken;
-                    const waitingList = station.waitingTokens || [];
+                    const isQueueOpen  = station.isQueueOpen;
+                    const serving      = station.servingToken;
+                    const waitingList  = station.waitingTokens || [];
 
                     return (
                       <Card
                         key={station.doctorId}
-                        className="rounded-3xl bg-white border border-slate-200/90 shadow-xs overflow-hidden flex flex-col justify-between"
+                        className="rounded-3xl bg-white border border-slate-200/90 shadow-sm overflow-hidden flex flex-col"
                       >
-                        <div>
-                          {/* Station Header */}
-                          <div className="p-5 border-b border-slate-100 flex items-start justify-between gap-3 bg-slate-50/50">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="inline-block px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                                  {station.departmentName}
-                                </span>
-                                <span className="text-xs font-mono font-bold text-slate-500">
-                                  Cabin: {station.roomNumber}
-                                </span>
-                              </div>
-                              <h3 className="font-display font-extrabold text-base text-slate-900 mt-1">
-                                {station.doctorName}
-                              </h3>
-                              <span className="text-xs text-slate-500 block">
-                                {station.qualification} • {station.specialization}
+                        {/* Station header */}
+                        <div
+                          className="p-5 border-b border-slate-100 flex items-start justify-between gap-3"
+                          style={{ background: '#F8FAFC' }}
+                        >
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <span
+                                className="inline-block px-2.5 py-0.5 rounded-md text-[10px] font-bold border"
+                                style={{ background: '#ECFEFF', color: '#0E7490', borderColor: '#A5F3FC' }}
+                              >
+                                {station.departmentName}
+                              </span>
+                              <span className="text-xs font-mono font-bold text-slate-500">
+                                Cabin: {station.roomNumber}
                               </span>
                             </div>
-
-                            {/* Queue Toggle switch */}
-                            <button
-                              type="button"
-                              onClick={() => handleToggleQueue(station.doctorId, isQueueOpen, station.doctorName)}
-                              className={`px-3 py-1 rounded-full text-xs font-bold transition-all border ${
-                                isQueueOpen
-                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
-                                  : 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
-                              }`}
-                            >
-                              {isQueueOpen ? '● Queue Open' : '⏸ Paused'}
-                            </button>
-                          </div>
-
-                          {/* Active Serving Patient Box */}
-                          <div className="p-5 border-b border-slate-100 bg-emerald-50/30">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                              Now in Cabin
+                            <h3 className="font-display font-extrabold text-base text-slate-900">
+                              {station.doctorName}
+                            </h3>
+                            <span className="text-xs text-slate-500">
+                              {station.qualification}{station.specialization ? ` · ${station.specialization}` : ''}
                             </span>
-
-                            {serving ? (
-                              <div className="flex items-center justify-between gap-4">
-                                <div>
-                                  <div className="font-mono font-black text-2xl text-emerald-900">
-                                    #{serving.token_number}
-                                  </div>
-                                  <strong className="text-xs font-bold text-slate-800 block">
-                                    {serving.patient_name}
-                                  </strong>
-                                  <span className="text-[11px] font-mono text-slate-500">
-                                    📞 {serving.patient_phone}
-                                  </span>
-                                </div>
-
-                                <Button
-                                  type="button"
-                                  variant="primary"
-                                  size="sm"
-                                  onClick={() => handleCompleteConsultation(station.doctorId, station.doctorName)}
-                                  className="font-bold text-xs bg-slate-900 hover:bg-slate-800"
-                                >
-                                  ✓ Complete Visit
-                                </Button>
-                              </div>
-                            ) : (
-                              <div className="py-2 text-xs text-slate-500 italic flex items-center justify-between">
-                                <span>Doctor cabin is currently ready for the next patient.</span>
-                              </div>
-                            )}
                           </div>
 
-                          {/* Waiting Patient List */}
-                          <div className="p-5">
-                            <div className="flex items-center justify-between pb-3">
-                              <span className="text-xs font-bold text-slate-600">
-                                Waiting Patients ({waitingList.length})
-                              </span>
-                              <span className="text-[11px] text-emerald-800 font-semibold">
-                                {waitingList.length > 0 ? `~${station.estimatedWaitMinutes}m wait load` : 'No wait'}
-                              </span>
-                            </div>
-
-                            {waitingList.length === 0 ? (
-                              <p className="text-xs text-slate-400 italic py-4 text-center">
-                                No patients currently waiting in this queue.
-                              </p>
-                            ) : (
-                              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                                {waitingList.map((tok, idx) => (
-                                  <div
-                                    key={tok.id}
-                                    className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between text-xs hover:bg-slate-100/70 transition-colors"
-                                  >
-                                    <div className="flex items-center gap-2.5">
-                                      <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-700 font-bold text-[10px] flex items-center justify-center shrink-0">
-                                        {idx + 1}
-                                      </span>
-                                      <div>
-                                        <strong className="text-slate-900 font-mono block">
-                                          #{tok.token_number}
-                                        </strong>
-                                        <span className="text-[11px] text-slate-600">
-                                          {tok.patient_name} ({tok.patient_phone})
-                                        </span>
-                                      </div>
-                                    </div>
-
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-[10px] text-slate-400 font-mono">
-                                        ~{tok.estimated_wait_minutes}m
-                                      </span>
-                                      <button
-                                        type="button"
-                                        onClick={() => handleSkipToken(station.doctorId, tok.id, tok.token_number)}
-                                        className="text-[11px] font-semibold text-slate-400 hover:text-amber-700 p-1"
-                                        title="Skip patient token"
-                                      >
-                                        Skip
-                                      </button>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
+                          {/* Queue toggle */}
+                          <button
+                            type="button"
+                            onClick={() => handleToggleQueue(station.doctorId, isQueueOpen, station.doctorName)}
+                            className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border shrink-0 ${
+                              isQueueOpen
+                                ? 'border-cyan-200 hover:bg-cyan-100'
+                                : 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
+                            }`}
+                            style={isQueueOpen ? { background: '#ECFEFF', color: '#0E7490' } : {}}
+                          >
+                            {isQueueOpen ? '● Queue Open' : '⏸ Paused'}
+                          </button>
                         </div>
 
-                        {/* Station Action Station */}
-                        <div className="p-4 border-t border-slate-100 bg-slate-50/70">
-                          <Button
+                        {/* Currently serving patient */}
+                        <div
+                          className="p-5 border-b border-slate-100"
+                          style={{ background: '#F0FDFA' }}
+                        >
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
+                            Now in Cabin
+                          </span>
+                          {serving ? (
+                            <div className="flex items-center justify-between gap-4">
+                              <div>
+                                <div className="font-mono font-black text-2xl" style={{ color: '#0E7490' }}>
+                                  #{serving.token_number}
+                                </div>
+                                <strong className="text-xs font-bold text-slate-800 block">
+                                  {serving.patient_name}
+                                </strong>
+                                <span className="text-[11px] font-mono text-slate-500">
+                                  📞 {serving.patient_phone}
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleCompleteConsultation(station.doctorId, station.doctorName)}
+                                className="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-slate-800 hover:bg-slate-700 transition-colors shadow-sm"
+                              >
+                                ✓ Complete
+                              </button>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-slate-400 italic py-1">
+                              Doctor is ready — no patient currently in cabin.
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Waiting patients list */}
+                        <div className="p-5 flex-1">
+                          <div className="flex items-center justify-between pb-3">
+                            <span className="text-xs font-bold text-slate-600">
+                              Waiting ({waitingList.length})
+                            </span>
+                            <span
+                              className="text-[11px] font-semibold"
+                              style={{ color: '#0891B2' }}
+                            >
+                              {waitingList.length > 0 ? `~${station.estimatedWaitMinutes}m load` : 'No queue'}
+                            </span>
+                          </div>
+
+                          {waitingList.length === 0 ? (
+                            <p className="text-xs text-slate-400 italic text-center py-4">
+                              No patients waiting in this queue.
+                            </p>
+                          ) : (
+                            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                              {waitingList.map((tok, idx) => (
+                                <div
+                                  key={tok.id}
+                                  className="p-2.5 rounded-xl border flex items-center justify-between text-xs hover:bg-slate-50 transition-colors"
+                                  style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}
+                                >
+                                  <div className="flex items-center gap-2.5">
+                                    <span
+                                      className="w-5 h-5 rounded-full font-bold text-[10px] flex items-center justify-center shrink-0 text-white"
+                                      style={{ background: '#0891B2' }}
+                                    >
+                                      {idx + 1}
+                                    </span>
+                                    <div>
+                                      <strong className="text-slate-900 font-mono block">
+                                        #{tok.token_number}
+                                      </strong>
+                                      <span className="text-[11px] text-slate-600">
+                                        {tok.patient_name} ({tok.patient_phone})
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[10px] text-slate-400 font-mono">
+                                      ~{tok.estimated_wait_minutes}m
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleSkipToken(station.doctorId, tok.id, tok.token_number)}
+                                      className="text-[11px] font-semibold text-slate-400 hover:text-amber-700 transition-colors p-1"
+                                      title="Skip this patient token"
+                                    >
+                                      Skip
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Call next CTA */}
+                        <div className="p-4 border-t border-slate-100" style={{ background: '#F8FAFC' }}>
+                          <button
                             type="button"
-                            variant="primary"
-                            size="md"
                             disabled={!isQueueOpen || waitingList.length === 0}
                             onClick={() => handleCallNext(station.doctorId, station.doctorName)}
-                            className="w-full font-bold shadow-xs py-2.5"
+                            className="w-full py-3 rounded-2xl text-xs font-bold text-white transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+                            style={{ background: 'linear-gradient(135deg, #0E7490, #0891B2)' }}
                           >
                             🔔 Call Next Patient ({waitingList.length})
-                          </Button>
+                          </button>
                         </div>
                       </Card>
                     );
@@ -620,7 +733,7 @@ export default function HospitalDashboardPage() {
             </div>
           )}
 
-          {/* ─── 2. DEPARTMENTS MANAGEMENT VIEW ──────────────────────────── */}
+          {/* ── 2. DEPARTMENTS MANAGEMENT ──────────────────────────────── */}
           {activeSection === 'departments' && (
             <div className="space-y-6">
               <div className="flex items-center justify-between">
@@ -629,152 +742,228 @@ export default function HospitalDashboardPage() {
                     Clinical Departments
                   </h2>
                   <p className="text-xs text-slate-500">
-                    Manage hospital clinical departments, floor allocation, and specialties.
+                    Manage hospital departments, floor allocation, and specialties.
                   </p>
                 </div>
-
-                <Button variant="primary" size="sm" onClick={() => setIsDeptModalOpen(true)}>
+                <button
+                  type="button"
+                  onClick={() => setIsDeptModalOpen(true)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-white transition-all hover:opacity-90 shadow-sm"
+                  style={{ background: 'linear-gradient(135deg, #0E7490, #0891B2)' }}
+                >
                   + Add Department
-                </Button>
+                </button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {departments.map((dept) => (
-                  <Card key={dept.id} className="p-6 rounded-3xl bg-white border border-slate-200/90 shadow-xs space-y-3">
-                    <div className="flex items-start justify-between">
-                      <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                        Code: {dept.code || 'GEN'}
-                      </span>
-                      <Badge variant="emerald" size="sm">Active</Badge>
-                    </div>
+              {departments.length === 0 ? (
+                <EmptyState
+                  title="No departments yet"
+                  description="Add your first clinical department to start registering doctors and OPD queues."
+                  action={
+                    <button
+                      type="button"
+                      onClick={() => setIsDeptModalOpen(true)}
+                      className="mt-3 px-5 py-2.5 rounded-xl text-xs font-bold text-white"
+                      style={{ background: 'linear-gradient(135deg, #0E7490, #0891B2)' }}
+                    >
+                      + Add First Department
+                    </button>
+                  }
+                />
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {departments.map((dept) => (
+                    <Card
+                      key={dept.id}
+                      className="p-6 rounded-3xl bg-white border border-slate-200/90 shadow-sm space-y-3 hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div
+                          className="w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-base border"
+                          style={{ background: '#ECFEFF', borderColor: '#A5F3FC', color: '#0E7490' }}
+                        >
+                          🏢
+                        </div>
+                        <span
+                          className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border"
+                          style={{ background: '#ECFEFF', color: '#0E7490', borderColor: '#A5F3FC' }}
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#06B6D4' }} />
+                          Active
+                        </span>
+                      </div>
 
-                    <h3 className="font-display font-bold text-base text-slate-900">
-                      {dept.name}
-                    </h3>
+                      <div>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                          Code: {dept.code || 'GEN'}
+                        </span>
+                        <h3 className="font-display font-bold text-base text-slate-900 mt-0.5">
+                          {dept.name}
+                        </h3>
+                        <p className="text-xs text-slate-500 leading-relaxed mt-1">
+                          {dept.description || 'General outpatient specialty department.'}
+                        </p>
+                      </div>
 
-                    <p className="text-xs text-slate-500 leading-relaxed">
-                      {dept.description || 'General outpatient specialty department.'}
-                    </p>
-
-                    <div className="pt-2 border-t border-slate-100 text-xs text-slate-600">
-                      <span>Location: <strong>{dept.floor_room || 'OPD Wing'}</strong></span>
-                    </div>
-                  </Card>
-                ))}
-              </div>
+                      <div className="pt-2 border-t border-slate-100 text-xs text-slate-600">
+                        <span>
+                          Floor / Location: <strong>{dept.floor_room || 'OPD Wing'}</strong>
+                        </span>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
-          {/* ─── 3. DOCTORS MANAGEMENT VIEW ──────────────────────────────── */}
+          {/* ── 3. DOCTORS TABLE VIEW ──────────────────────────────────── */}
           {activeSection === 'doctors' && (
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="font-display font-extrabold text-lg text-slate-900 tracking-tight">
-                    Registered Doctors &amp; OPD Counters
+                    Registered Doctors & OPD Counters
                   </h2>
                   <p className="text-xs text-slate-500">
-                    Each doctor has dedicated queue parameters, duration, room number, and consultation fees.
+                    Each doctor has a dedicated queue with custom duration, room, and fees.
                   </p>
                 </div>
-
-                <Button
-                  variant="primary"
-                  size="sm"
+                <button
+                  type="button"
                   onClick={() => {
                     setDoctorForm((prev) => ({ ...prev, departmentId: departments[0]?.id || '' }));
                     setIsDoctorModalOpen(true);
                   }}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-white transition-all hover:opacity-90 shadow-sm"
+                  style={{ background: 'linear-gradient(135deg, #0E7490, #0891B2)' }}
                 >
                   + Add Doctor
-                </Button>
+                </button>
               </div>
 
-              <div className="overflow-x-auto rounded-3xl border border-slate-200 bg-white">
+              <div className="rounded-3xl border border-slate-200 bg-white overflow-x-auto shadow-sm">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
-                    <tr className="border-b border-slate-100 bg-slate-50/70 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                    <tr
+                      className="border-b border-slate-100 text-[11px] font-bold text-slate-400 uppercase tracking-wider"
+                      style={{ background: '#F8FAFC' }}
+                    >
                       <th className="py-3 px-4">Doctor Name</th>
                       <th className="py-3 px-4">Department</th>
                       <th className="py-3 px-4">Room</th>
-                      <th className="py-3 px-4">Consultation Time</th>
+                      <th className="py-3 px-4">Consult Time</th>
                       <th className="py-3 px-4">Fee</th>
-                      <th className="py-3 px-4">Queue Status</th>
+                      <th className="py-3 px-4">Queue</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {doctorStations.map((station) => (
-                      <tr key={station.doctorId} className="hover:bg-slate-50/70 transition-colors">
-                        <td className="py-3.5 px-4">
-                          <strong className="text-slate-900 block">{station.doctorName}</strong>
-                          <span className="text-[11px] text-slate-400">{station.qualification}</span>
-                        </td>
-                        <td className="py-3.5 px-4 font-semibold text-emerald-800">
-                          {station.departmentName}
-                        </td>
-                        <td className="py-3.5 px-4 font-mono font-bold text-slate-700">
-                          {station.roomNumber}
-                        </td>
-                        <td className="py-3.5 px-4 font-mono">
-                          {station.consultationDurationMinutes} mins / patient
-                        </td>
-                        <td className="py-3.5 px-4 font-semibold text-slate-900">
-                          ₹{station.consultationFee || 500}
-                        </td>
-                        <td className="py-3.5 px-4">
-                          {station.isQueueOpen ? (
-                            <Badge variant="emerald" size="sm" dot>Open</Badge>
-                          ) : (
-                            <Badge variant="amber" size="sm" dot>Paused</Badge>
-                          )}
+                    {doctorStations.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="py-12 text-center text-xs text-slate-400">
+                          No doctors registered yet. Add departments first, then register doctors.
                         </td>
                       </tr>
-                    ))}
+                    ) : (
+                      doctorStations.map((station) => (
+                        <tr key={station.doctorId} className="hover:bg-slate-50/70 transition-colors">
+                          <td className="py-3.5 px-4">
+                            <strong className="text-slate-900 block">{station.doctorName}</strong>
+                            <span className="text-[11px] text-slate-400">{station.qualification}</span>
+                          </td>
+                          <td className="py-3.5 px-4 font-semibold" style={{ color: '#0E7490' }}>
+                            {station.departmentName}
+                          </td>
+                          <td className="py-3.5 px-4 font-mono font-bold text-slate-700">
+                            {station.roomNumber}
+                          </td>
+                          <td className="py-3.5 px-4 font-mono text-slate-700">
+                            {station.consultationDurationMinutes} mins
+                          </td>
+                          <td className="py-3.5 px-4 font-semibold text-slate-900">
+                            ₹{station.consultationFee || 500}
+                          </td>
+                          <td className="py-3.5 px-4">
+                            {station.isQueueOpen ? (
+                              <span
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold border"
+                                style={{ background: '#ECFEFF', color: '#0E7490', borderColor: '#A5F3FC' }}
+                              >
+                                <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: '#06B6D4' }} />
+                                Open
+                              </span>
+                            ) : (
+                              <Badge variant="amber" size="sm" dot>Paused</Badge>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
             </div>
           )}
 
-          {/* ─── 4. HOSPITAL PROFILE VIEW ────────────────────────────────── */}
+          {/* ── 4. HOSPITAL PROFILE ────────────────────────────────────── */}
           {activeSection === 'profile' && (
             <div className="max-w-2xl space-y-6">
               <div>
                 <h2 className="font-display font-extrabold text-lg text-slate-900 tracking-tight">
-                  Hospital Profile &amp; Location
+                  Hospital Profile & Location
                 </h2>
                 <p className="text-xs text-slate-500">
-                  Registered institution information visible on patient search directory.
+                  Registered institution information displayed on patient search directory.
                 </p>
               </div>
 
-              <Card className="p-6 rounded-3xl bg-white border border-slate-200/90 shadow-xs space-y-4 text-xs">
-                <div className="grid grid-cols-2 gap-4 pb-4 border-b border-slate-100">
-                  <div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase block">Hospital Name</span>
-                    <strong className="text-slate-900 text-sm mt-0.5 block">{hospital?.name}</strong>
+              <Card className="p-6 rounded-3xl bg-white border border-slate-200/90 shadow-sm space-y-5 text-xs">
+                {/* Hospital identity */}
+                <div className="flex items-center gap-4 pb-4 border-b border-slate-100">
+                  <div
+                    className="w-14 h-14 rounded-2xl flex items-center justify-center font-bold text-2xl border shrink-0"
+                    style={{ background: '#ECFEFF', borderColor: '#A5F3FC' }}
+                  >
+                    🏥
                   </div>
                   <div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase block">Registration License</span>
-                    <strong className="text-slate-900 text-sm mt-0.5 block">{hospital?.registrationNumber}</strong>
+                    <strong className="text-slate-900 text-base block">{hospital?.name}</strong>
+                    <span
+                      className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border mt-1"
+                      style={{ background: '#ECFEFF', color: '#0E7490', borderColor: '#A5F3FC' }}
+                    >
+                      {hospital?.hospitalType || 'Multi-Specialty'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Info grid */}
+                <div className="grid grid-cols-2 gap-4 pb-4 border-b border-slate-100">
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase block">Registration No.</span>
+                    <strong className="text-slate-900 mt-0.5 block">{hospital?.registrationNumber}</strong>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase block">OPD Hours</span>
+                    <span className="text-slate-700 mt-0.5 block">{hospital?.openingHours || '—'}</span>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 pb-4 border-b border-slate-100">
                   <div>
                     <span className="text-[10px] font-bold text-slate-400 uppercase block">Contact Phone</span>
-                    <span className="text-slate-800 font-mono block mt-0.5">{hospital?.phone}</span>
+                    <span className="text-slate-800 font-mono mt-0.5 block">{hospital?.phone}</span>
                   </div>
                   <div>
                     <span className="text-[10px] font-bold text-slate-400 uppercase block">Official Email</span>
-                    <span className="text-slate-800 font-mono block mt-0.5">{hospital?.email}</span>
+                    <span className="text-slate-800 font-mono mt-0.5 block break-all">{hospital?.email}</span>
                   </div>
                 </div>
 
                 <div className="pb-4 border-b border-slate-100">
                   <span className="text-[10px] font-bold text-slate-400 uppercase block">Address</span>
                   <p className="text-slate-700 mt-0.5 leading-relaxed">
-                    {hospital?.address}, {hospital?.city} - {hospital?.pincode}, {hospital?.state}
+                    {hospital?.address}, {hospital?.city} — {hospital?.pincode}, {hospital?.state}
                   </p>
                 </div>
 
@@ -782,7 +971,11 @@ export default function HospitalDashboardPage() {
                   <span className="text-[10px] font-bold text-slate-400 uppercase block mb-2">Facilities</span>
                   <div className="flex flex-wrap gap-2">
                     {hospital?.facilities?.map((f) => (
-                      <span key={f} className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200/60 font-medium">
+                      <span
+                        key={f}
+                        className="px-2.5 py-1 rounded-lg font-medium border text-xs"
+                        style={{ background: '#ECFEFF', color: '#0E7490', borderColor: '#A5F3FC' }}
+                      >
                         ✓ {f}
                       </span>
                     ))}
@@ -794,7 +987,7 @@ export default function HospitalDashboardPage() {
         </main>
       </div>
 
-      {/* Modal: Add Department */}
+      {/* ── Modal: Add Department ─────────────────────────────────────────── */}
       {isDeptModalOpen && (
         <Modal
           isOpen={isDeptModalOpen}
@@ -812,7 +1005,6 @@ export default function HospitalDashboardPage() {
               onChange={(e) => setDeptForm({ ...deptForm, name: e.target.value })}
               error={deptErrors.name}
             />
-
             <div className="grid grid-cols-2 gap-3">
               <Input
                 label="Department Code"
@@ -820,7 +1012,6 @@ export default function HospitalDashboardPage() {
                 value={deptForm.code}
                 onChange={(e) => setDeptForm({ ...deptForm, code: e.target.value })}
               />
-
               <Input
                 label="Floor / Room Allocation"
                 placeholder="e.g. 1st Floor, Wing B"
@@ -828,27 +1019,29 @@ export default function HospitalDashboardPage() {
                 onChange={(e) => setDeptForm({ ...deptForm, floorRoom: e.target.value })}
               />
             </div>
-
             <Input
               label="Description / Scope"
               placeholder="e.g. Primary pediatric OPD, immunizations"
               value={deptForm.description}
               onChange={(e) => setDeptForm({ ...deptForm, description: e.target.value })}
             />
-
             <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
               <Button type="button" variant="secondary" size="sm" onClick={() => setIsDeptModalOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" variant="primary" size="sm" className="font-bold">
+              <button
+                type="submit"
+                className="px-4 py-2 rounded-xl text-xs font-bold text-white hover:opacity-90"
+                style={{ background: 'linear-gradient(135deg, #0E7490, #0891B2)' }}
+              >
                 Save Department
-              </Button>
+              </button>
             </div>
           </form>
         </Modal>
       )}
 
-      {/* Modal: Add Doctor */}
+      {/* ── Modal: Add Doctor ─────────────────────────────────────────────── */}
       {isDoctorModalOpen && (
         <Modal
           isOpen={isDoctorModalOpen}
@@ -866,7 +1059,6 @@ export default function HospitalDashboardPage() {
               onChange={(e) => setDoctorForm({ ...doctorForm, name: e.target.value })}
               error={doctorErrors.name}
             />
-
             <div className="grid grid-cols-2 gap-3">
               <Select
                 label="Department"
@@ -881,35 +1073,31 @@ export default function HospitalDashboardPage() {
                   </option>
                 ))}
               </Select>
-
               <Input
                 label="Qualification"
                 required
-                placeholder="e.g. MBBS, MD (Medicine)"
+                placeholder="e.g. MBBS, MD"
                 value={doctorForm.qualification}
                 onChange={(e) => setDoctorForm({ ...doctorForm, qualification: e.target.value })}
                 error={doctorErrors.qualification}
               />
             </div>
-
             <div className="grid grid-cols-2 gap-3">
               <Input
-                label="Specialization / Sub-specialty"
-                placeholder="e.g. Diabetologist, Senior Consultant"
+                label="Specialization"
+                placeholder="e.g. Diabetologist"
                 value={doctorForm.specialization}
                 onChange={(e) => setDoctorForm({ ...doctorForm, specialization: e.target.value })}
               />
-
               <Input
-                label="OPD Cabin / Room Number"
+                label="OPD Cabin / Room"
                 required
-                placeholder="e.g. Cabin 104, 1st Floor"
+                placeholder="e.g. Cabin 104"
                 value={doctorForm.roomNumber}
                 onChange={(e) => setDoctorForm({ ...doctorForm, roomNumber: e.target.value })}
                 error={doctorErrors.roomNumber}
               />
             </div>
-
             <div className="grid grid-cols-2 gap-3">
               <Input
                 label="Avg Consultation Time (mins)"
@@ -917,7 +1105,6 @@ export default function HospitalDashboardPage() {
                 value={doctorForm.consultationDuration}
                 onChange={(e) => setDoctorForm({ ...doctorForm, consultationDuration: Number(e.target.value) })}
               />
-
               <Input
                 label="Consultation Fee (₹)"
                 type="number"
@@ -925,20 +1112,22 @@ export default function HospitalDashboardPage() {
                 onChange={(e) => setDoctorForm({ ...doctorForm, consultationFee: Number(e.target.value) })}
               />
             </div>
-
             <Input
               label="Availability Schedule"
               value={doctorForm.availability}
               onChange={(e) => setDoctorForm({ ...doctorForm, availability: e.target.value })}
             />
-
             <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
               <Button type="button" variant="secondary" size="sm" onClick={() => setIsDoctorModalOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" variant="primary" size="sm" className="font-bold">
-                Register Doctor &amp; Queue
-              </Button>
+              <button
+                type="submit"
+                className="px-4 py-2 rounded-xl text-xs font-bold text-white hover:opacity-90"
+                style={{ background: 'linear-gradient(135deg, #0E7490, #0891B2)' }}
+              >
+                Register Doctor & Queue
+              </button>
             </div>
           </form>
         </Modal>
@@ -946,4 +1135,3 @@ export default function HospitalDashboardPage() {
     </div>
   );
 }
-

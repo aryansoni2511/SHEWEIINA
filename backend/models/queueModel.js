@@ -1,4 +1,4 @@
-import { query } from '../config/db.js';
+import { query, getClient } from '../config/db.js';
 
 /**
  * Queue Model — Data Access Layer for Shewwina Core Queue System
@@ -120,9 +120,21 @@ const mockStore = {
 };
 
 let customQueryHandler = null;
+let customQueueClientHandler = null;
 
 export function setCustomQueryHandler(handler) {
   customQueryHandler = handler;
+}
+
+export function setCustomQueueClientHandler(handler) {
+  customQueueClientHandler = handler;
+}
+
+async function getDbClient() {
+  if (customQueueClientHandler) {
+    return customQueueClientHandler();
+  }
+  return await getClient();
 }
 
 async function runQuery(text, params = []) {
@@ -172,6 +184,59 @@ export async function findBusinessBySlug(slug) {
   }
   guardProduction();
   return mockStore.businesses.find((b) => b.slug === slug || b.id === slug) || null;
+}
+
+export async function searchBusinesses({ category = '', city = '', search = '' } = {}) {
+  const cat = (category || '').trim().toLowerCase();
+  const c = (city || '').trim().toLowerCase();
+  const s = (search || '').trim().toLowerCase();
+
+  try {
+    const res = await runQuery(
+      `SELECT id, name, slug, category, address, city, phone, is_active, created_at
+       FROM businesses
+       WHERE is_active = TRUE
+         AND ($1 = '' OR LOWER(category) = $1)
+         AND ($2 = '' OR LOWER(city) ILIKE '%' || $2 || '%')
+         AND ($3 = '' OR LOWER(name) ILIKE '%' || $3 || '%')
+       ORDER BY name ASC;`,
+      [cat, c, s]
+    );
+    if (res && res.rows) {
+      const seen = new Set();
+      const deduped = [];
+      for (const b of res.rows) {
+        const key = b.id || b.slug;
+        if (key && !seen.has(key)) {
+          seen.add(key);
+          deduped.push(b);
+        }
+      }
+      return deduped;
+    }
+  } catch (err) {
+    if (process.env.NODE_ENV === 'production') throw err;
+  }
+
+  guardProduction();
+  const filtered = mockStore.businesses.filter((b) => {
+    if (b.is_active === false) return false;
+    if (cat && b.category?.toLowerCase() !== cat) return false;
+    if (c && !b.city?.toLowerCase().includes(c)) return false;
+    if (s && !b.name?.toLowerCase().includes(s)) return false;
+    return true;
+  });
+
+  const seen = new Set();
+  const deduped = [];
+  for (const b of filtered) {
+    const key = b.id || b.slug;
+    if (key && !seen.has(key)) {
+      seen.add(key);
+      deduped.push(b);
+    }
+  }
+  return deduped;
 }
 
 export async function findQueueById(queueId) {
@@ -333,86 +398,192 @@ export async function toggleServiceStatus(serviceId, businessId, isActive) {
 export async function createToken({ queueId, businessId, serviceId, customerName, customerPhone, estimatedWaitMinutes = 15, userId = null, servicePriceAtJoin = null }) {
   const isDbEligible = isValidUuid(queueId) && isValidUuid(businessId) && (!serviceId || isValidUuid(serviceId)) && (!userId || isValidUuid(userId));
 
-  let sequenceNumber;
-  if (isDbEligible) {
-    const seqRes = await query(
-      'UPDATE queues SET current_sequence = current_sequence + 1 WHERE id = $1 RETURNING current_sequence;',
-      [queueId]
-    );
-    if (seqRes && seqRes.rows.length > 0) {
-      sequenceNumber = seqRes.rows[0].current_sequence;
-    }
-  }
-  if (!sequenceNumber) {
-    guardProduction();
-    const queue = mockStore.queues.find((q) => q.id === queueId);
-    if (queue) {
-      queue.current_sequence += 1;
-      sequenceNumber = queue.current_sequence;
-    } else {
-      sequenceNumber = mockStore.tokens.length + 1;
-    }
-  }
-
-  const queueObj = await findQueueById(queueId);
-  const prefix = queueObj?.token_prefix || queueObj?.tokenPrefix || 'S';
-  const tokenNumber = `${prefix}-${100 + sequenceNumber}`;
-
-  let position;
-  if (isDbEligible) {
-    const countRes = await query(
-      "SELECT COUNT(*)::int as waiting_count FROM tokens WHERE queue_id = $1 AND status = 'WAITING';",
-      [queueId]
-    );
-    if (countRes && countRes.rows.length > 0) {
-      position = countRes.rows[0].waiting_count + 1;
-    }
-  }
-  if (position === undefined) {
-    guardProduction();
-    position = mockStore.tokens.filter((t) => (t.queue_id === queueId || t.business_id === businessId) && t.status === 'WAITING').length + 1;
-  }
-
   // Normalise price snapshot: null if not provided or invalid
   const priceSnapshot = (servicePriceAtJoin !== null && servicePriceAtJoin !== undefined && !isNaN(Number(servicePriceAtJoin)))
     ? Number(servicePriceAtJoin)
     : null;
 
   if (isDbEligible) {
-    const insertRes = await query(
-      `INSERT INTO tokens (queue_id, business_id, service_id, customer_name, customer_phone, token_number, sequence_number, status, position, estimated_wait_minutes, user_id, service_price_at_join)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, 'WAITING', $8, $9, $10, $11)
-       RETURNING *;`,
-      [queueId, businessId, serviceId, customerName, customerPhone, tokenNumber, sequenceNumber, position, estimatedWaitMinutes, userId, priceSnapshot]
-    );
+    const client = await getDbClient();
+    if (client) {
+      try {
+        await client.query('BEGIN');
 
-    if (insertRes && insertRes.rows.length > 0) {
-      return insertRes.rows[0];
+        // 1. Lock queue row with FOR UPDATE to prevent race conditions
+        const qLock = await client.query(
+          `SELECT id, token_prefix, current_sequence, is_open, max_daily_capacity
+           FROM queues
+           WHERE id = $1
+           FOR UPDATE;`,
+          [queueId]
+        );
+
+        if (qLock.rows.length === 0) {
+          throw new Error(`Queue not found: ${queueId}`);
+        }
+
+        const queueRow = qLock.rows[0];
+        if (!queueRow.is_open) {
+          const err = new Error('Queue is currently closed. Cannot join at this time.');
+          err.statusCode = 409;
+          err.name = 'ConflictError';
+          throw err;
+        }
+
+        // 2. Count waiting tokens for capacity & position under row lock, while checking for active duplicates
+        const cleanPhone = customerPhone.trim();
+        const validUserId = (userId && isValidUuid(userId)) ? userId : null;
+        const countRes = await client.query(
+          `SELECT COUNT(*)::int as waiting_count,
+                  MAX(CASE WHEN status IN ('WAITING', 'SERVING') AND (customer_phone = $2 OR ($3::uuid IS NOT NULL AND user_id = $3::uuid)) THEN token_number END) as duplicate_token_number,
+                  MAX(CASE WHEN status IN ('WAITING', 'SERVING') AND (customer_phone = $2 OR ($3::uuid IS NOT NULL AND user_id = $3::uuid)) THEN status END) as duplicate_status,
+                  MAX(CASE WHEN status IN ('WAITING', 'SERVING') AND (customer_phone = $2 OR ($3::uuid IS NOT NULL AND user_id = $3::uuid)) THEN id::text END) as duplicate_token_id
+           FROM tokens
+           WHERE queue_id = $1;`,
+          [queueId, cleanPhone, validUserId]
+        );
+
+        const row = countRes.rows[0] || {};
+        if (row.duplicate_token_number) {
+          const actionWord = row.duplicate_status === 'SERVING' ? 'currently being served' : 'waiting';
+          const err = new Error(
+            `You already have an active token (${row.duplicate_token_number}) in this queue (${actionWord}).`
+          );
+          err.statusCode = 409;
+          err.name = 'ConflictError';
+          err.code = 'DUPLICATE_ACTIVE_TOKEN';
+          err.details = {
+            code: 'DUPLICATE_ACTIVE_TOKEN',
+            tokenId: row.duplicate_token_id,
+            tokenNumber: row.duplicate_token_number,
+            status: row.duplicate_status,
+            queueId,
+          };
+          err.existingToken = err.details;
+          throw err;
+        }
+
+        const waitingCount = row.waiting_count || 0;
+        const maxCap = queueRow.max_daily_capacity || 200;
+        if (maxCap && waitingCount >= maxCap) {
+          const err = new Error('Queue has reached its maximum daily capacity. Cannot join at this time.');
+          err.statusCode = 409;
+          err.name = 'ConflictError';
+          throw err;
+        }
+
+        const position = waitingCount + 1;
+
+        // 3. Atomically increment sequence inside transaction
+        const seqRes = await client.query(
+          `UPDATE queues
+           SET current_sequence = current_sequence + 1, updated_at = CURRENT_TIMESTAMP
+           WHERE id = $1
+           RETURNING current_sequence;`,
+          [queueId]
+        );
+
+        const sequenceNumber = seqRes.rows[0].current_sequence;
+        const prefix = queueRow.token_prefix || 'S';
+        const tokenNumber = `${prefix}-${100 + sequenceNumber}`;
+
+        // 4. Insert token atomically
+        const insertRes = await client.query(
+          `INSERT INTO tokens (queue_id, business_id, service_id, customer_name, customer_phone, token_number, sequence_number, status, position, estimated_wait_minutes, user_id, service_price_at_join)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, 'WAITING', $8, $9, $10, $11)
+           RETURNING *;`,
+          [queueId, businessId, serviceId, customerName.trim(), customerPhone.trim(), tokenNumber, sequenceNumber, position, estimatedWaitMinutes, userId, priceSnapshot]
+        );
+
+        await client.query('COMMIT');
+        return insertRes.rows[0];
+      } catch (err) {
+        await client.query('ROLLBACK');
+        throw err;
+      } finally {
+        client.release();
+      }
     }
   }
+
+  // Fallback in-memory mock store
   guardProduction();
+  const queue = mockStore.queues.find((q) => q.id === queueId);
+  const previousSequence = queue ? queue.current_sequence : 0;
+  let sequenceNumber;
 
-  const newToken = {
-    id: `token-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-    queue_id: queueId,
-    business_id: businessId,
-    service_id: serviceId,
-    user_id: userId,
-    customer_name: customerName,
-    customer_phone: customerPhone,
-    token_number: tokenNumber,
-    sequence_number: sequenceNumber,
-    status: 'WAITING',
-    position,
-    estimated_wait_minutes: estimatedWaitMinutes,
-    service_price_at_join: priceSnapshot,
-    called_at: null,
-    served_at: null,
-    created_at: new Date().toISOString(),
-  };
+  // Prevent duplicate active token in mock store
+  const cleanPhone = customerPhone.trim();
+  const existingActive = mockStore.tokens.find(
+    (t) =>
+      t.queue_id === queueId &&
+      (t.status === 'WAITING' || t.status === 'SERVING') &&
+      ((t.customer_phone && t.customer_phone.trim() === cleanPhone) ||
+       (userId && t.user_id && t.user_id === userId))
+  );
 
-  mockStore.tokens.push(newToken);
-  return newToken;
+  if (existingActive) {
+    const actionWord = existingActive.status === 'SERVING' ? 'currently being served' : 'waiting';
+    const err = new Error(
+      `You already have an active token (${existingActive.token_number}) in this queue (${actionWord}).`
+    );
+    err.statusCode = 409;
+    err.name = 'ConflictError';
+    err.code = 'DUPLICATE_ACTIVE_TOKEN';
+    err.details = {
+      code: 'DUPLICATE_ACTIVE_TOKEN',
+      tokenId: existingActive.id,
+      tokenNumber: existingActive.token_number,
+      status: existingActive.status,
+      queueId,
+    };
+    err.existingToken = err.details;
+    throw err;
+  }
+
+  try {
+    if (queue) {
+      queue.current_sequence += 1;
+      sequenceNumber = queue.current_sequence;
+    } else {
+      sequenceNumber = mockStore.tokens.length + 1;
+    }
+
+    const queueObj = await findQueueById(queueId);
+    const prefix = queueObj?.token_prefix || queueObj?.tokenPrefix || 'S';
+    const tokenNumber = `${prefix}-${100 + sequenceNumber}`;
+
+    const position = mockStore.tokens.filter(
+      (t) => (t.queue_id === queueId || t.business_id === businessId) && t.status === 'WAITING'
+    ).length + 1;
+
+    const newToken = {
+      id: `token-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      queue_id: queueId,
+      business_id: businessId,
+      service_id: serviceId,
+      user_id: userId,
+      customer_name: customerName.trim(),
+      customer_phone: customerPhone.trim(),
+      token_number: tokenNumber,
+      sequence_number: sequenceNumber,
+      status: 'WAITING',
+      position,
+      estimated_wait_minutes: estimatedWaitMinutes,
+      service_price_at_join: priceSnapshot,
+      called_at: null,
+      served_at: null,
+      created_at: new Date().toISOString(),
+    };
+
+    mockStore.tokens.push(newToken);
+    return newToken;
+  } catch (err) {
+    if (queue) {
+      queue.current_sequence = previousSequence;
+    }
+    throw err;
+  }
 }
 
 export async function findTokenById(tokenId) {
@@ -492,32 +663,53 @@ export async function getPeopleAheadCount(queueId, tokenSequenceNumber) {
  * Ensures only ONE token is active SERVING at a time per queue.
  */
 export async function callNextWaitingToken(queueId, businessId) {
-  if (isValidUuid(queueId)) {
-    // 1. Mark any existing SERVING token as SERVED
-    await query(
-      `UPDATE tokens
-       SET status = 'SERVED', served_at = CURRENT_TIMESTAMP
-       WHERE queue_id = $1 AND status = 'SERVING';`,
-      [queueId]
-    );
+  const isDbEligible = isValidUuid(queueId) || Boolean(customQueueClientHandler);
+  if (isDbEligible) {
+    const client = await getDbClient();
+    if (client) {
+      try {
+        await client.query('BEGIN');
 
-    // 2. Atomically pick & update the next WAITING token to SERVING
-    const nextRes = await query(
-      `UPDATE tokens
-       SET status = 'SERVING', called_at = CURRENT_TIMESTAMP, position = 0, estimated_wait_minutes = 0
-       WHERE id = (
-         SELECT id FROM tokens
-         WHERE queue_id = $1 AND status = 'WAITING'
-         ORDER BY sequence_number ASC
-         FOR UPDATE SKIP LOCKED
-         LIMIT 1
-       )
-       RETURNING *;`,
-      [queueId]
-    );
+        // 1. Lock queue row with FOR UPDATE to serialize concurrent NEXT operations on this queue
+        await client.query(
+          `SELECT id FROM queues WHERE id = $1 FOR UPDATE;`,
+          [queueId]
+        );
 
-    if (nextRes) {
-      return nextRes.rows[0] || null;
+        // 2. Mark any existing SERVING token as SERVED
+        await client.query(
+          `UPDATE tokens
+           SET status = 'SERVED', served_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+           WHERE queue_id = $1 AND status = 'SERVING';`,
+          [queueId]
+        );
+
+        // 3. Atomically pick & update the next WAITING token to SERVING
+        const nextRes = await client.query(
+          `UPDATE tokens
+           SET status = 'SERVING', called_at = CURRENT_TIMESTAMP, position = 0, estimated_wait_minutes = 0, updated_at = CURRENT_TIMESTAMP
+           WHERE id = (
+             SELECT id FROM tokens
+             WHERE queue_id = $1 AND status = 'WAITING'
+             ORDER BY sequence_number ASC
+             LIMIT 1
+             FOR UPDATE
+           )
+           RETURNING *;`,
+          [queueId]
+        );
+
+        await client.query('COMMIT');
+        if (nextRes && nextRes.rows && nextRes.rows[0]) {
+          return nextRes.rows[0];
+        }
+        return null;
+      } catch (err) {
+        await client.query('ROLLBACK');
+        throw err;
+      } finally {
+        client.release();
+      }
     }
   }
   guardProduction();
@@ -762,7 +954,7 @@ export async function findTokensByUserId(userId, userPhone = null) {
   const cleanPhone = userPhone ? userPhone.trim() : null;
   if (isValidUuid(userId)) {
     const res = await query(
-      `SELECT t.*, b.name as business_name, s.name as service_name
+      `SELECT t.*, b.name as business_name, b.category as business_category, s.name as service_name
        FROM tokens t
        LEFT JOIN businesses b ON t.business_id = b.id
        LEFT JOIN services s ON t.service_id = s.id
@@ -773,7 +965,7 @@ export async function findTokensByUserId(userId, userPhone = null) {
     if (res) return res.rows;
   } else if (cleanPhone) {
     const res = await query(
-      `SELECT t.*, b.name as business_name, s.name as service_name
+      `SELECT t.*, b.name as business_name, b.category as business_category, s.name as service_name
        FROM tokens t
        LEFT JOIN businesses b ON t.business_id = b.id
        LEFT JOIN services s ON t.service_id = s.id
@@ -792,7 +984,8 @@ export async function findTokensByUserId(userId, userPhone = null) {
       const svc = mockStore.services.find((s) => s.id === t.service_id);
       return {
         ...t,
-        business_name: biz ? biz.name : 'Shewwina Salon',
+        business_name: biz ? biz.name : 'Shewwina Business',
+        business_category: biz ? biz.category : 'salon',
         service_name: svc ? svc.name : 'General Service',
       };
     })
@@ -1837,5 +2030,7 @@ export default {
   getRecentThroughput,
   getEstimatedRevenueToday,
   getBusinessAnalytics,
+  searchBusinesses,
   setCustomQueryHandler,
+  setCustomQueueClientHandler,
 };

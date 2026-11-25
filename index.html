@@ -15,10 +15,10 @@
   <meta property="og:description" content="Manage appointments and live queues digitally. Reduce waiting time by 30% and boost customer satisfaction." />
   <meta property="og:type" content="website" />
 
-  <!-- Google Fonts: Plus Jakarta Sans & Inter -->
+  <!-- Google Fonts: Newsreader (Editorial Serif), Plus Jakarta Sans & Inter (UI Sans), JetBrains Mono (Tabular Figures) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -27,49 +27,83 @@
       theme: {
         extend: {
           fontFamily: {
-            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
-            display: ['Plus Jakarta Sans', 'Inter', 'sans-serif'],
+            sans: ['Plus Jakarta Sans', 'Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+            display: ['Newsreader', 'Georgia', 'serif'],
+            serif: ['Newsreader', 'Georgia', 'serif'],
             mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
           },
           colors: {
+            editorial: {
+              ivory: '#FAF8F5',
+              surface: '#FFFFFF',
+              border: '#E7E3DC',
+              charcoal: '#171717',
+              muted: '#6B665E',
+              subtle: '#F4F0E8',
+              accent: '#262626',
+            },
+            hospital: {
+              DEFAULT: '#1E3A8A',
+              light: '#3B82F6',
+              surface: '#F8FAFC',
+              border: '#E2E8F0',
+            },
+            government: {
+              DEFAULT: '#0F172A',
+              saffron: '#D97706',
+              surface: '#F8FAFC',
+              border: '#E2E8F0',
+            },
+            clinic: {
+              DEFAULT: '#0F766E',
+              light: '#14B8A6',
+              surface: '#F0FDFA',
+              border: '#CCFBF1',
+            },
+            salon: {
+              DEFAULT: '#78350F',
+              accent: '#B45309',
+              surface: '#FFFBEB',
+              border: '#FEF3C7',
+            },
             brand: {
-              50: '#f0fdf4',
-              100: '#dcfce7', /* Soft green */
-              200: '#bbf7d0',
-              300: '#86efac',
-              400: '#4ade80',
-              500: '#22c55e', /* Bright accent green */
-              600: '#16a34a',
-              700: '#15803d',
-              800: '#166534', /* Primary green */
-              900: '#14532d',
-              950: '#052e16',
+              50: '#FAF8F5',
+              100: '#F4F0E8',
+              200: '#E7E3DC',
+              300: '#D5CEC2',
+              400: '#A89F91',
+              500: '#736B5E',
+              600: '#524B40',
+              700: '#3D372E',
+              800: '#26221C',
+              900: '#171512',
+              950: '#0C0A09',
             },
             primary: {
-              DEFAULT: '#166534',
-              hover: '#14532d',
-              accent: '#22c55e',
-              soft: '#dcfce7',
+              DEFAULT: '#171717',
+              hover: '#262626',
+              accent: '#C25E38',
+              soft: '#F4F0E8',
             },
             surface: {
-              subtle: '#f8fafc', /* Main background */
-              card: '#ffffff',   /* White cards */
-              border: '#e2e8f0',
-              dark: '#172033',   /* Main text / dark surface */
-              darkCard: '#1e293b',
-              darkBorder: '#334155',
+              subtle: '#FAF8F5',
+              card: '#FFFFFF',
+              border: '#E7E3DC',
+              dark: '#171717',
+              darkCard: '#1C1917',
+              darkBorder: '#292524',
             },
             app: {
-              bg: '#f8fafc',
-              text: '#172033',
-              muted: '#64748b',
+              bg: '#FAF8F5',
+              text: '#171717',
+              muted: '#6B665E',
             }
           },
           boxShadow: {
-            subtle: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-            card: '0 1px 3px 0 rgba(23, 32, 51, 0.06), 0 1px 2px -1px rgba(23, 32, 51, 0.06)',
-            'card-hover': '0 10px 25px -3px rgba(22, 101, 52, 0.08), 0 4px 6px -4px rgba(22, 101, 52, 0.04)',
-            modal: '0 20px 25px -5px rgba(23, 32, 51, 0.15), 0 8px 10px -6px rgba(23, 32, 51, 0.1)',
+            subtle: '0 1px 2px 0 rgba(0, 0, 0, 0.03)',
+            card: '0 1px 3px 0 rgba(23, 23, 23, 0.04), 0 1px 2px -1px rgba(23, 23, 23, 0.04)',
+            'card-hover': '0 8px 24px -4px rgba(23, 23, 23, 0.08), 0 2px 6px -2px rgba(23, 23, 23, 0.04)',
+            modal: '0 20px 25px -5px rgba(23, 23, 23, 0.12), 0 8px 10px -6px rgba(23, 23, 23, 0.08)',
           },
           animation: {
             'fade-in': 'fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards',
@@ -95,7 +129,7 @@
     }
   </script>
 </head>
-<body id="top" class="bg-[#F8FAFC] text-[#172033] font-sans antialiased min-h-screen relative selection:bg-[#22C55E] selection:text-white">
+<body id="top" class="bg-[#FAF8F5] text-[#171717] font-sans antialiased min-h-screen relative selection:bg-[#171717] selection:text-white">
   <div id="root"></div>
   <script type="module" src="/frontend/main.jsx"></script>
 </body>

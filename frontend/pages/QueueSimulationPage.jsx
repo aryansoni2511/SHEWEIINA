@@ -581,32 +581,31 @@ export default function QueueSimulationPage() {
           )}
         </div>
 
-        {/* ── College Presentation Guide Note ─────────────────── */}
+        {/* ── Interactive Simulation Guide Note ─────────────────── */}
         <div className="mt-8 p-5 rounded-3xl bg-white border border-slate-200 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h4 className="text-sm font-bold text-[#172033] flex items-center gap-2">
-              <span>📘 How to Explain This Simulation to Your Teacher</span>
+              <span>📘 Interactive Queue State Simulation Guide</span>
             </h4>
             <p className="text-xs text-[#64748B] mt-1 max-w-2xl leading-relaxed">
               This interactive playground isolates the queue state machine: tokens transition strictly from
               <code className="text-emerald-800 bg-emerald-50 px-1 py-0.5 rounded font-mono mx-1">WAITING</code> →
               <code className="text-emerald-800 bg-emerald-50 px-1 py-0.5 rounded font-mono mx-1">SERVING</code> →
               <code className="text-emerald-800 bg-emerald-50 px-1 py-0.5 rounded font-mono mx-1">SERVED</code>.
-              Wait times are estimated based on active queue length multiplied by average duration.
+              Estimated wait times update dynamically based on active queue length multiplied by average duration.
             </p>
           </div>
-          <a
-            href="#faq"
-            onClick={(e) => {
-              e.preventDefault();
+          <button
+            type="button"
+            onClick={() => {
               alert(
-                'Presentation Tip for Teacher:\n1. Click "Call Next" to show how D-102 (Priya) is called.\n2. Click "Mark Served" to show transition to completed.\n3. Add a new customer to show sequential token generation.\n4. Show that Live database tokens are completely isolated.'
+                'Simulation Workflow:\n1. Click "Call Next" to advance the queue.\n2. Click "Mark Served" to complete the active consultation.\n3. Add a demo customer to test sequential token generation.\n4. Live database tokens remain completely isolated.'
               );
             }}
             className="px-4 py-2 text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl shrink-0 transition-colors"
           >
-            Show Teacher Script
-          </a>
+            Simulation Workflow
+          </button>
         </div>
       </main>
 

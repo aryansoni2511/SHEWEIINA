@@ -1,32 +1,120 @@
-/* Shewwina SaaS Design System Utilities */
+/* ─────────────────────────────────────────────────────────────────────────────
+   SHEWWINA — Premium Editorial Design System & Platform Tokens
+   Palette: Ivory, Warm White, Stone, Charcoal, Muted Accents & Industry Accents
+───────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Surfaces & Backgrounds */
+  --color-bg-ivory: #FAF8F5;
+  --color-surface-warm: #FFFFFF;
+  --color-surface-subtle: #F4F0E8;
+  --color-surface-elevated: #FFFFFF;
+
+  /* Borders & Dividers */
+  --color-border-stone: #E7E3DC;
+  --color-border-subtle: #F0ECE4;
+  --color-border-dark: #292524;
+
+  /* Typography */
+  --color-text-primary: #171717;
+  --color-text-secondary: #57534E;
+  --color-text-muted: #78716C;
+  --color-text-inverse: #FFFFFF;
+
+  /* Editorial Accents */
+  --color-accent: #262626;
+  --color-accent-terracotta: #C25E38;
+
+  /* Industry Module Accents */
+  --color-hospital: #1E3A8A;
+  --color-hospital-subtle: #EFF6FF;
+  --color-government: #0F172A;
+  --color-government-saffron: #D97706;
+  --color-government-subtle: #F8FAFC;
+  --color-clinic: #0F766E;
+  --color-clinic-subtle: #F0FDFA;
+  --color-salon: #78350F;
+  --color-salon-subtle: #FFFBEB;
+
+  /* Semantics */
+  --color-success: #15803D;
+  --color-warning: #B45309;
+  --color-error: #B91C1C;
+  --color-info: #1D4ED8;
+
+  /* Mobile-First Interactive Blue Accent */
+  --color-mobile-blue: #2563EB;
+  --color-mobile-blue-dark: #1D4ED8;
+  --color-mobile-blue-subtle: #EFF6FF;
+  --color-mobile-blue-border: #BFDBFE;
+}
+
+/* ── Mobile-First Touch & Layout Optimizations ────────────────────────────── */
+html, body {
+  -webkit-tap-highlight-color: transparent;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Hide scrollbar for smooth horizontal touch carousels/pill tracks */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Mobile Safe Area Padding */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 16px);
+}
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* Touch active scale effect for buttons */
+.active-press:active {
+  transform: scale(0.97);
+  transition: transform 0.1s ease;
+}
+
+/* Tabular figures for tokens, queue sequences, clocks, metrics and currency */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* Editorial display font utility */
+.font-editorial {
+  font-family: 'Newsreader', Georgia, serif;
+}
 
 /* Smooth focus rings for keyboard navigation / accessibility */
 :focus-visible {
-  outline: 2px solid #22c55e;
+  outline: 2px solid #171717;
   outline-offset: 2px;
 }
 
-/* Glass & translucent surface utilities */
-.glass-nav {
+/* Editorial header & navigation utilities */
+.editorial-nav {
   transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
 }
-.glass-nav.scrolled {
-  background-color: rgba(255, 255, 255, 0.95);
+.editorial-nav.scrolled {
+  background-color: rgba(250, 248, 245, 0.95);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid rgba(220, 252, 231, 0.8);
-  box-shadow: 0 1px 3px 0 rgba(22, 101, 52, 0.05);
+  border-bottom: 1px solid #E7E3DC;
+  box-shadow: 0 1px 3px 0 rgba(23, 23, 23, 0.04);
 }
 
-/* Background grid & subtle ambient glow */
+/* Subtle background grid pattern with warm neutral tone */
 .bg-grid-pattern {
   background-size: 32px 32px;
   background-image:
-    linear-gradient(to right, rgba(226, 232, 240, 0.5) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(226, 232, 240, 0.5) 1px, transparent 1px);
-}
-.glow-radial {
-  background: radial-gradient(circle 600px at 50% 120px, rgba(34, 197, 94, 0.08), transparent 70%);
+    linear-gradient(to right, rgba(231, 227, 220, 0.6) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(231, 227, 220, 0.6) 1px, transparent 1px);
 }
 
 /* Accordion transition for FAQ */
@@ -50,14 +138,14 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #D8D2C5;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #A8A196;
 }
 
-/* High contrast dark mode scrollbar for TV & Dark displays */
+/* High contrast dark mode scrollbar */
 .dark-scroll::-webkit-scrollbar-thumb {
   background: #334155;
 }

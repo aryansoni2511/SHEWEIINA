@@ -1,4 +1,4 @@
-import { query } from '../config/db.js';
+import { query, getClient } from '../config/db.js';
 
 /**
  * Validates if a string is a standard UUID v4
@@ -423,6 +423,19 @@ export const mockHospitalStore = {
 
 /* ─── Query Helper ──────────────────────────────────────────────────────── */
 
+let customHospitalClientHandler = null;
+
+export function setCustomHospitalClientHandler(handler) {
+  customHospitalClientHandler = handler;
+}
+
+async function getDbClient() {
+  if (customHospitalClientHandler) {
+    return customHospitalClientHandler();
+  }
+  return await getClient();
+}
+
 async function runQuery(sql, params = []) {
   try {
     return await query(sql, params);
@@ -456,7 +469,7 @@ export async function findHospitalByAdminUserId(userId) {
     const res = await runQuery('SELECT * FROM hospitals WHERE admin_user_id = $1;', [userId]);
     if (res && res.rows && res.rows[0]) return res.rows[0];
   }
-  return mockHospitalStore.hospitals.find((h) => h.admin_user_id === userId) || mockHospitalStore.hospitals[0];
+  return mockHospitalStore.hospitals.find((h) => h.admin_user_id === userId) || null;
 }
 
 export async function searchHospitals({ search = '', city = '', pincode = '', facility = '', hospitalType = '' }) {
@@ -467,7 +480,7 @@ export async function searchHospitals({ search = '', city = '', pincode = '', fa
   const hType = hospitalType.trim().toLowerCase();
 
   const dbRes = await runQuery(
-    `SELECT * FROM hospitals 
+    `SELECT * FROM hospitals
      WHERE is_active = TRUE
        AND ($1 = '' OR LOWER(name) LIKE $1 OR LOWER(address) LIKE $1 OR LOWER(city) LIKE $1)
        AND ($2 = '' OR LOWER(city) = $2)
@@ -484,11 +497,20 @@ export async function searchHospitals({ search = '', city = '', pincode = '', fa
         Array.isArray(h.facilities) && h.facilities.some((f) => f.toLowerCase().includes(fac))
       );
     }
-    return rows;
+    const seen = new Set();
+    const deduped = [];
+    for (const h of rows) {
+      const key = h.id || h.registration_number;
+      if (key && !seen.has(key)) {
+        seen.add(key);
+        deduped.push(h);
+      }
+    }
+    return deduped;
   }
 
   // Fallback to mockHospitalStore
-  return mockHospitalStore.hospitals.filter((h) => {
+  const filtered = mockHospitalStore.hospitals.filter((h) => {
     if (!h.is_active) return false;
     const matchesSearch =
       !s ||
@@ -504,6 +526,17 @@ export async function searchHospitals({ search = '', city = '', pincode = '', fa
 
     return matchesSearch && matchesCity && matchesPincode && matchesType && matchesFacility;
   });
+
+  const seen = new Set();
+  const deduped = [];
+  for (const h of filtered) {
+    const key = h.id || h.registration_number;
+    if (key && !seen.has(key)) {
+      seen.add(key);
+      deduped.push(h);
+    }
+  }
+  return deduped;
 }
 
 export async function createHospital({
@@ -532,7 +565,7 @@ export async function createHospital({
 
   if (isValidUuid(adminUserId) || isValidUuid(businessId)) {
     const res = await runQuery(
-      `INSERT INTO hospitals 
+      `INSERT INTO hospitals
         (name, slug, registration_number, hospital_type, phone, email, address, city, state, pincode, latitude, longitude, facilities, opening_hours, admin_user_id, business_id, is_active)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, TRUE)
        RETURNING *;`,
@@ -560,6 +593,22 @@ export async function createHospital({
   }
 
   // Fallback to in-memory store
+  const existingIdx = mockHospitalStore.hospitals.findIndex(
+    (h) => h.registration_number && h.registration_number.toLowerCase() === registrationNumber.trim().toLowerCase()
+  );
+  if (existingIdx !== -1) {
+    mockHospitalStore.hospitals[existingIdx] = {
+      ...mockHospitalStore.hospitals[existingIdx],
+      name: name.trim(),
+      phone: phone.trim(),
+      email: email.trim().toLowerCase(),
+      address: address.trim(),
+      city: city.trim(),
+      hospital_type: hospitalType,
+    };
+    return mockHospitalStore.hospitals[existingIdx];
+  }
+
   let mockSlug = baseSlug;
   if (mockHospitalStore.hospitals.some((h) => h.slug === mockSlug)) {
     mockSlug = `${baseSlug}-${Date.now().toString(36)}`;
@@ -596,7 +645,7 @@ export async function createHospital({
 export async function findDepartmentsByHospitalId(hospitalId, includeInactive = false) {
   if (isValidUuid(hospitalId)) {
     const res = await runQuery(
-      `SELECT * FROM hospital_departments 
+      `SELECT * FROM hospital_departments
        WHERE hospital_id = $1 AND ($2 = TRUE OR is_active = TRUE)
        ORDER BY name ASC;`,
       [hospitalId, includeInactive]
@@ -682,7 +731,7 @@ export async function findDoctorsByHospitalId(hospitalId, departmentId = null, i
        FROM hospital_doctors d
        JOIN hospital_departments dept ON d.department_id = dept.id
        LEFT JOIN doctor_queues q ON q.doctor_id = d.id
-       WHERE d.hospital_id = $1 
+       WHERE d.hospital_id = $1
          AND ($2::UUID IS NULL OR d.department_id = $2::UUID)
          AND ($3 = TRUE OR d.is_active = TRUE)
        ORDER BY d.name ASC;`,
@@ -752,7 +801,7 @@ export async function createDoctorWithQueue({
 
   if (isValidUuid(hospitalId) && isValidUuid(departmentId)) {
     const docRes = await runQuery(
-      `INSERT INTO hospital_doctors 
+      `INSERT INTO hospital_doctors
         (hospital_id, department_id, name, qualification, specialization, room_number, consultation_duration_minutes, consultation_fee, availability, is_active)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, TRUE)
        RETURNING *;`,
@@ -843,7 +892,7 @@ export async function findDoctorQueueById(queueId) {
 export async function toggleDoctorQueueStatus(queueId, hospitalId, isOpen) {
   if (isValidUuid(queueId)) {
     const res = await runQuery(
-      `UPDATE doctor_queues 
+      `UPDATE doctor_queues
        SET is_open = $3, updated_at = CURRENT_TIMESTAMP
        WHERE id = $1 AND hospital_id = $2
        RETURNING *;`,
@@ -919,8 +968,8 @@ export async function createPatient({ name, age = null, dob = null, gender = 'No
 export async function findHospitalTokensByQueueId(queueId) {
   if (isValidUuid(queueId)) {
     const res = await runQuery(
-      `SELECT * FROM hospital_tokens 
-       WHERE queue_id = $1 
+      `SELECT * FROM hospital_tokens
+       WHERE queue_id = $1
        ORDER BY sequence_number ASC;`,
       [queueId]
     );
@@ -935,8 +984,8 @@ export async function findHospitalTokensByQueueId(queueId) {
 export async function findHospitalTokensByDoctorId(doctorId) {
   if (isValidUuid(doctorId)) {
     const res = await runQuery(
-      `SELECT * FROM hospital_tokens 
-       WHERE doctor_id = $1 
+      `SELECT * FROM hospital_tokens
+       WHERE doctor_id = $1
        ORDER BY sequence_number ASC;`,
       [doctorId]
     );
@@ -997,138 +1046,272 @@ export async function createHospitalToken({
   patientGender = null,
   estimatedWaitMinutes = 0,
 }) {
+  const isDbEligible =
+    (isValidUuid(queueId) && isValidUuid(hospitalId) && isValidUuid(doctorId)) ||
+    Boolean(customHospitalClientHandler);
+
+  if (isDbEligible) {
+    const client = await getDbClient();
+    if (client) {
+      try {
+        await client.query('BEGIN');
+
+        // 1. Lock doctor queue row for update
+        const qLock = await client.query(
+          `SELECT id, token_prefix, current_sequence, is_open, max_daily_capacity
+           FROM doctor_queues
+           WHERE id = $1
+           FOR UPDATE;`,
+          [queueId]
+        );
+
+        if (qLock.rows.length === 0) {
+          throw new Error(`Doctor OPD queue not found: ${queueId}`);
+        }
+
+        const queueRow = qLock.rows[0];
+        if (!queueRow.is_open) {
+          const err = new Error('Doctor OPD queue is currently paused or closed.');
+          err.statusCode = 409;
+          err.name = 'ConflictError';
+          throw err;
+        }
+
+        // 2. Prevent duplicate active token for same patient and same queue today
+        const dupCheck = await client.query(
+          `SELECT id, token_number, status FROM hospital_tokens
+           WHERE queue_id = $1
+             AND patient_phone = $2
+             AND status IN ('WAITING', 'SERVING')
+             AND created_at >= CURRENT_DATE
+           FOR UPDATE LIMIT 1;`,
+          [queueId, patientPhone.trim()]
+        );
+
+        if (dupCheck.rows.length > 0) {
+          const dup = dupCheck.rows[0];
+          const err = new Error(
+            `You already have an active token (${dup.token_number}) in this OPD queue today.`
+          );
+          err.statusCode = 409;
+          err.name = 'ConflictError';
+          err.code = 'DUPLICATE_ACTIVE_TOKEN';
+          err.details = {
+            code: 'DUPLICATE_ACTIVE_TOKEN',
+            tokenId: dup.id,
+            tokenNumber: dup.token_number,
+            status: dup.status || 'WAITING',
+            queueId,
+          };
+          throw err;
+        }
+
+        // 3. Count waiting tokens for position and capacity under lock
+        const posRes = await client.query(
+          `SELECT COUNT(*)::int as waiting_count
+           FROM hospital_tokens
+           WHERE queue_id = $1 AND status = 'WAITING';`,
+          [queueId]
+        );
+        const waitingCount = posRes.rows[0]?.waiting_count || 0;
+        const maxCap = queueRow.max_daily_capacity || 100;
+        if (waitingCount >= maxCap) {
+          const err = new Error(`Doctor OPD queue has reached maximum daily patient capacity (${maxCap}).`);
+          err.statusCode = 409;
+          err.name = 'ConflictError';
+          throw err;
+        }
+
+        const position = waitingCount + 1;
+
+        // 4. Atomically increment sequence inside transaction
+        const seqRes = await client.query(
+          `UPDATE doctor_queues
+           SET current_sequence = current_sequence + 1, updated_at = CURRENT_TIMESTAMP
+           WHERE id = $1
+           RETURNING current_sequence;`,
+          [queueId]
+        );
+
+        const seq = seqRes.rows[0].current_sequence;
+        const prefix = queueRow.token_prefix || 'H';
+        const tokenNumber = `${prefix}-${seq}`;
+
+        const validPatientId = isValidUuid(patientId) ? patientId : null;
+        const validDeptId = isValidUuid(departmentId) ? departmentId : null;
+
+        // 5. Insert token atomically
+        const tokRes = await client.query(
+          `INSERT INTO hospital_tokens
+            (queue_id, hospital_id, doctor_id, department_id, patient_id, patient_code, patient_name, patient_phone, patient_age, patient_gender, token_number, sequence_number, status, position, estimated_wait_minutes)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'WAITING', $13, $14)
+           RETURNING *;`,
+          [
+            queueId,
+            hospitalId,
+            doctorId,
+            validDeptId,
+            validPatientId,
+            patientCode,
+            patientName.trim(),
+            patientPhone.trim(),
+            patientAge ? Number(patientAge) : null,
+            patientGender || 'Not Specified',
+            tokenNumber,
+            seq,
+            position,
+            estimatedWaitMinutes,
+          ]
+        );
+
+        await client.query('COMMIT');
+        return tokRes.rows[0];
+      } catch (err) {
+        await client.query('ROLLBACK');
+        throw err;
+      } finally {
+        client.release();
+      }
+    }
+  }
+
+  // Fallback in-memory mock store
+  const activeDuplicate = mockHospitalStore.tokens.find(
+    (t) =>
+      t.queue_id === queueId &&
+      t.patient_phone === patientPhone.trim() &&
+      ['WAITING', 'SERVING'].includes(t.status)
+  );
+  if (activeDuplicate) {
+    const err = new Error(
+      `You already have an active token (${activeDuplicate.token_number}) in this OPD queue today.`
+    );
+    err.statusCode = 409;
+    err.name = 'ConflictError';
+    err.code = 'DUPLICATE_ACTIVE_TOKEN';
+    err.details = {
+      code: 'DUPLICATE_ACTIVE_TOKEN',
+      tokenId: activeDuplicate.id,
+      tokenNumber: activeDuplicate.token_number,
+      status: activeDuplicate.status,
+      queueId,
+    };
+    throw err;
+  }
+
   const queue = await findDoctorQueueById(queueId);
   const prefix = queue?.token_prefix || 'H';
+  const q = mockHospitalStore.doctorQueues.find((item) => item.id === queueId);
+  const previousSequence = q ? q.current_sequence || 0 : 0;
 
-  if (isValidUuid(queueId)) {
-    // Atomically increment sequence in doctor_queues
-    const seqRes = await runQuery(
-      `UPDATE doctor_queues
-       SET current_sequence = current_sequence + 1, updated_at = CURRENT_TIMESTAMP
-       WHERE id = $1
-       RETURNING current_sequence;`,
-      [queueId]
-    );
-
-    const seq = seqRes?.rows?.[0]?.current_sequence || 1;
+  try {
+    if (q) {
+      q.current_sequence = previousSequence + 1;
+    }
+    const seq = q?.current_sequence || mockHospitalStore.tokens.length + 1;
     const tokenNumber = `${prefix}-${seq}`;
 
-    // Get position among waiting tokens
-    const posRes = await runQuery(
-      `SELECT COUNT(*)::int as waiting_count 
-       FROM hospital_tokens 
-       WHERE queue_id = $1 AND status = 'WAITING';`,
-      [queueId]
-    );
-    const position = (posRes?.rows?.[0]?.waiting_count || 0) + 1;
+    const waitingCount = mockHospitalStore.tokens.filter(
+      (t) => t.queue_id === queueId && t.status === 'WAITING'
+    ).length;
 
-    const validPatientId = isValidUuid(patientId) ? patientId : null;
+    const newTok = {
+      id: `htok-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      queue_id: queueId,
+      hospital_id: hospitalId,
+      doctor_id: doctorId,
+      department_id: departmentId,
+      patient_id: patientId,
+      patient_code: patientCode,
+      patient_name: patientName.trim(),
+      patient_phone: patientPhone.trim(),
+      patient_age: patientAge ? Number(patientAge) : null,
+      patient_gender: patientGender || 'Not Specified',
+      token_number: tokenNumber,
+      sequence_number: seq,
+      status: 'WAITING',
+      position: waitingCount + 1,
+      estimated_wait_minutes: estimatedWaitMinutes,
+      called_at: null,
+      served_at: null,
+      cancelled_at: null,
+      created_at: new Date().toISOString(),
+    };
 
-    const tokRes = await runQuery(
-      `INSERT INTO hospital_tokens
-        (queue_id, hospital_id, doctor_id, department_id, patient_id, patient_code, patient_name, patient_phone, patient_age, patient_gender, token_number, sequence_number, status, position, estimated_wait_minutes)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'WAITING', $13, $14)
-       RETURNING *;`,
-      [
-        queueId,
-        hospitalId,
-        doctorId,
-        departmentId,
-        validPatientId,
-        patientCode,
-        patientName.trim(),
-        patientPhone.trim(),
-        patientAge,
-        patientGender,
-        tokenNumber,
-        seq,
-        position,
-        estimatedWaitMinutes,
-      ]
-    );
-
-    if (tokRes && tokRes.rows && tokRes.rows[0]) return tokRes.rows[0];
+    mockHospitalStore.tokens.push(newTok);
+    return newTok;
+  } catch (err) {
+    if (q) {
+      q.current_sequence = previousSequence;
+    }
+    throw err;
   }
-
-  // Fallback in-memory
-  const q = mockHospitalStore.doctorQueues.find((item) => item.id === queueId);
-  if (q) {
-    q.current_sequence = (q.current_sequence || 0) + 1;
-  }
-  const seq = q?.current_sequence || mockHospitalStore.tokens.length + 1;
-  const tokenNumber = `${prefix}-${seq}`;
-
-  const waitingCount = mockHospitalStore.tokens.filter(
-    (t) => t.queue_id === queueId && t.status === 'WAITING'
-  ).length;
-
-  const newTok = {
-    id: `htok-${Date.now()}`,
-    queue_id: queueId,
-    hospital_id: hospitalId,
-    doctor_id: doctorId,
-    department_id: departmentId,
-    patient_id: patientId,
-    patient_code: patientCode,
-    patient_name: patientName.trim(),
-    patient_phone: patientPhone.trim(),
-    patient_age: patientAge ? Number(patientAge) : null,
-    patient_gender: patientGender || 'Not Specified',
-    token_number: tokenNumber,
-    sequence_number: seq,
-    status: 'WAITING',
-    position: waitingCount + 1,
-    estimated_wait_minutes: estimatedWaitMinutes,
-    called_at: null,
-    served_at: null,
-    cancelled_at: null,
-    created_at: new Date().toISOString(),
-  };
-
-  mockHospitalStore.tokens.push(newTok);
-  return newTok;
 }
 
 export async function callNextDoctorToken(queueId, hospitalId, doctorId) {
-  if (isValidUuid(queueId)) {
-    // 1. Mark existing SERVING token as SERVED
-    await runQuery(
-      `UPDATE hospital_tokens
-       SET status = 'SERVED', served_at = CURRENT_TIMESTAMP
-       WHERE queue_id = $1 AND status = 'SERVING';`,
-      [queueId]
-    );
+  const isDbEligible =
+    (isValidUuid(queueId) && (!hospitalId || isValidUuid(hospitalId))) ||
+    Boolean(customHospitalClientHandler);
 
-    // 2. Pick next WAITING token atomically
-    const nextRes = await runQuery(
-      `UPDATE hospital_tokens
-       SET status = 'SERVING', called_at = CURRENT_TIMESTAMP, position = 0, estimated_wait_minutes = 0
-       WHERE id = (
-         SELECT id FROM hospital_tokens
-         WHERE queue_id = $1 AND status = 'WAITING'
-         ORDER BY sequence_number ASC
-         FOR UPDATE SKIP LOCKED
-         LIMIT 1
-       )
-       RETURNING *;`,
-      [queueId]
-    );
+  if (isDbEligible) {
+    const client = await getDbClient();
+    if (client) {
+      try {
+        await client.query('BEGIN');
 
-    if (nextRes && nextRes.rows && nextRes.rows[0]) {
-      return nextRes.rows[0];
+        // 1. Lock doctor queue row with FOR UPDATE to serialize concurrent NEXT operations on this queue
+        await client.query(
+          `SELECT id FROM doctor_queues WHERE id = $1 FOR UPDATE;`,
+          [queueId]
+        );
+
+        // 2. Mark existing SERVING token as SERVED
+        await client.query(
+          `UPDATE hospital_tokens
+           SET status = 'SERVED', served_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+           WHERE queue_id = $1 AND ($2::UUID IS NULL OR hospital_id = $2) AND status = 'SERVING';`,
+          [queueId, isValidUuid(hospitalId) ? hospitalId : null]
+        );
+
+        // 3. Pick next WAITING token atomically and mark SERVING
+        const nextRes = await client.query(
+          `UPDATE hospital_tokens
+           SET status = 'SERVING', called_at = CURRENT_TIMESTAMP, position = 0, estimated_wait_minutes = 0, updated_at = CURRENT_TIMESTAMP
+           WHERE id = (
+             SELECT id FROM hospital_tokens
+             WHERE queue_id = $1 AND ($2::UUID IS NULL OR hospital_id = $2) AND status = 'WAITING'
+             ORDER BY sequence_number ASC
+             LIMIT 1
+             FOR UPDATE
+           )
+           RETURNING *;`,
+          [queueId, isValidUuid(hospitalId) ? hospitalId : null]
+        );
+
+        await client.query('COMMIT');
+        if (nextRes && nextRes.rows && nextRes.rows[0]) {
+          return nextRes.rows[0];
+        }
+        return null;
+      } catch (err) {
+        await client.query('ROLLBACK');
+        throw err;
+      } finally {
+        client.release();
+      }
     }
   }
 
   // Fallback in-memory
   mockHospitalStore.tokens.forEach((t) => {
-    if (t.queue_id === queueId && t.status === 'SERVING') {
+    if (t.queue_id === queueId && (!hospitalId || !t.hospital_id || t.hospital_id === hospitalId) && t.status === 'SERVING') {
       t.status = 'SERVED';
       t.served_at = new Date().toISOString();
     }
   });
 
   const nextWaiting = mockHospitalStore.tokens.find(
-    (t) => t.queue_id === queueId && t.status === 'WAITING'
+    (t) => t.queue_id === queueId && (!hospitalId || !t.hospital_id || t.hospital_id === hospitalId) && t.status === 'WAITING'
   );
 
   if (!nextWaiting) return null;
@@ -1138,6 +1321,13 @@ export async function callNextDoctorToken(queueId, hospitalId, doctorId) {
   nextWaiting.position = 0;
   nextWaiting.estimated_wait_minutes = 0;
 
+  let currentPos = 1;
+  mockHospitalStore.tokens.forEach((t) => {
+    if (t.queue_id === queueId && (!hospitalId || !t.hospital_id || t.hospital_id === hospitalId) && t.status === 'WAITING') {
+      t.position = currentPos++;
+    }
+  });
+
   return nextWaiting;
 }
 
@@ -1146,15 +1336,15 @@ export async function completeDoctorServingToken(queueId, hospitalId, doctorId) 
     const res = await runQuery(
       `UPDATE hospital_tokens
        SET status = 'SERVED', served_at = CURRENT_TIMESTAMP
-       WHERE queue_id = $1 AND status = 'SERVING'
+       WHERE queue_id = $1 AND ($2::UUID IS NULL OR hospital_id = $2) AND status = 'SERVING'
        RETURNING *;`,
-      [queueId]
+      [queueId, isValidUuid(hospitalId) ? hospitalId : null]
     );
     if (res && res.rows && res.rows[0]) return res.rows[0];
   }
 
   const serving = mockHospitalStore.tokens.find(
-    (t) => t.queue_id === queueId && t.status === 'SERVING'
+    (t) => t.queue_id === queueId && (!hospitalId || !t.hospital_id || t.hospital_id === hospitalId) && t.status === 'SERVING'
   );
   if (serving) {
     serving.status = 'SERVED';
@@ -1169,18 +1359,45 @@ export async function skipDoctorToken(tokenId, queueId, hospitalId) {
     const res = await runQuery(
       `UPDATE hospital_tokens
        SET status = 'SKIPPED', position = 0, estimated_wait_minutes = 0, updated_at = CURRENT_TIMESTAMP
-       WHERE id = $1 AND queue_id = $2
+       WHERE id = $1 AND queue_id = $2 AND ($3::UUID IS NULL OR hospital_id = $3)
        RETURNING *;`,
-      [tokenId, queueId]
+      [tokenId, queueId, isValidUuid(hospitalId) ? hospitalId : null]
     );
     if (res && res.rows && res.rows[0]) return res.rows[0];
   }
 
-  const token = mockHospitalStore.tokens.find((t) => t.id === tokenId && t.queue_id === queueId);
+  const token = mockHospitalStore.tokens.find(
+    (t) => t.id === tokenId && t.queue_id === queueId && (!hospitalId || !t.hospital_id || t.hospital_id === hospitalId)
+  );
   if (token) {
     token.status = 'SKIPPED';
     token.position = 0;
     token.estimated_wait_minutes = 0;
+    return token;
+  }
+  return null;
+}
+
+export async function cancelHospitalToken(tokenId, hospitalId = null) {
+  if (isValidUuid(tokenId)) {
+    const res = await runQuery(
+      `UPDATE hospital_tokens
+       SET status = 'CANCELLED', position = 0, estimated_wait_minutes = 0, cancelled_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1 AND ($2::UUID IS NULL OR hospital_id = $2)
+       RETURNING *;`,
+      [tokenId, isValidUuid(hospitalId) ? hospitalId : null]
+    );
+    if (res && res.rows && res.rows[0]) return res.rows[0];
+  }
+
+  const token = mockHospitalStore.tokens.find(
+    (t) => t.id === tokenId && (!hospitalId || !t.hospital_id || t.hospital_id === hospitalId)
+  );
+  if (token) {
+    token.status = 'CANCELLED';
+    token.position = 0;
+    token.estimated_wait_minutes = 0;
+    token.cancelled_at = new Date().toISOString();
     return token;
   }
   return null;

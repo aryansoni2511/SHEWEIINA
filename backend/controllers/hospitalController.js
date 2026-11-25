@@ -67,11 +67,7 @@ export async function handleGetHospitalDetails(req, res, next) {
 
 export async function handleCreateDepartment(req, res, next) {
   try {
-    const hospitalId = req.user?.hospitalId || req.user?.businessId || req.body.hospitalId;
-    const result = await processCreateDepartment({
-      ...req.body,
-      hospitalId,
-    });
+    const result = await processCreateDepartment(req.user, req.body);
     return successResponse(res, 'Department created successfully', { department: result }, 201);
   } catch (err) {
     next(err);
@@ -81,10 +77,8 @@ export async function handleCreateDepartment(req, res, next) {
 export async function handleUpdateDepartment(req, res, next) {
   try {
     const { departmentId } = req.params;
-    const hospitalId = req.user?.hospitalId || req.user?.businessId || req.body.hospitalId;
-    const result = await processUpdateDepartment({
+    const result = await processUpdateDepartment(req.user, {
       id: departmentId,
-      hospitalId,
       ...req.body,
     });
     return successResponse(res, 'Department updated successfully', { department: result });
@@ -95,11 +89,7 @@ export async function handleUpdateDepartment(req, res, next) {
 
 export async function handleCreateDoctor(req, res, next) {
   try {
-    const hospitalId = req.user?.hospitalId || req.user?.businessId || req.body.hospitalId;
-    const result = await processCreateDoctor({
-      ...req.body,
-      hospitalId,
-    });
+    const result = await processCreateDoctor(req.user, req.body);
     return successResponse(res, 'Doctor and OPD queue registered successfully', result, 201);
   } catch (err) {
     next(err);
@@ -120,9 +110,7 @@ export async function handleRequestOpdToken(req, res, next) {
 
 export async function handleCallNextPatient(req, res, next) {
   try {
-    const hospitalId = req.user?.hospitalId || req.user?.businessId || req.body.hospitalId;
-    const { doctorId } = req.body;
-    const result = await processCallNextPatient({ hospitalId, doctorId });
+    const result = await processCallNextPatient(req.user, req.body);
     return successResponse(res, 'Next patient called successfully', result);
   } catch (err) {
     next(err);
@@ -131,9 +119,7 @@ export async function handleCallNextPatient(req, res, next) {
 
 export async function handleCompleteConsultation(req, res, next) {
   try {
-    const hospitalId = req.user?.hospitalId || req.user?.businessId || req.body.hospitalId;
-    const { doctorId } = req.body;
-    const result = await processCompleteConsultation({ hospitalId, doctorId });
+    const result = await processCompleteConsultation(req.user, req.body);
     return successResponse(res, 'Consultation marked as completed', { token: result });
   } catch (err) {
     next(err);
@@ -142,9 +128,7 @@ export async function handleCompleteConsultation(req, res, next) {
 
 export async function handleSkipPatientToken(req, res, next) {
   try {
-    const hospitalId = req.user?.hospitalId || req.user?.businessId || req.body.hospitalId;
-    const { doctorId, tokenId } = req.body;
-    const result = await processSkipPatientToken({ hospitalId, doctorId, tokenId });
+    const result = await processSkipPatientToken(req.user, req.body);
     return successResponse(res, 'Patient token skipped', { token: result });
   } catch (err) {
     next(err);
@@ -153,10 +137,8 @@ export async function handleSkipPatientToken(req, res, next) {
 
 export async function handleToggleDoctorQueue(req, res, next) {
   try {
-    const hospitalId = req.user?.hospitalId || req.user?.businessId || req.body.hospitalId;
-    const { doctorId, isOpen } = req.body;
-    const result = await processToggleDoctorQueue({ hospitalId, doctorId, isOpen });
-    return successResponse(res, `Doctor OPD queue is now ${isOpen ? 'OPEN' : 'PAUSED'}`, { queue: result });
+    const result = await processToggleDoctorQueue(req.user, req.body);
+    return successResponse(res, `Doctor OPD queue is now ${req.body.isOpen ? 'OPEN' : 'PAUSED'}`, { queue: result });
   } catch (err) {
     next(err);
   }
@@ -164,8 +146,7 @@ export async function handleToggleDoctorQueue(req, res, next) {
 
 export async function handleGetHospitalDashboard(req, res, next) {
   try {
-    const hospitalId = req.user?.hospitalId || req.user?.businessId || req.query.hospitalId;
-    const result = await processGetHospitalDashboard(hospitalId);
+    const result = await processGetHospitalDashboard(req.user, req.query.hospitalId || null);
     return successResponse(res, 'Hospital dashboard fetched successfully', result);
   } catch (err) {
     next(err);

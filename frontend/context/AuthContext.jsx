@@ -82,11 +82,20 @@ export function AuthProvider({ children }) {
     return res;
   };
 
+  const setAuthSession = (jwtToken, userData) => {
+    setStoredToken(jwtToken);
+    setToken(jwtToken);
+    setUser(userData);
+  };
+
   const logout = () => {
     setStoredToken(null);
     setToken(null);
     setUser(null);
   };
+
+  const isHospital = user?.role === 'BUSINESS' && Boolean(user?.hospitalId || user?.hospital || user?.module === 'hospital');
+  const isGovernment = user?.role === 'BUSINESS' && Boolean(user?.centreId || user?.centre || user?.module === 'government');
 
   return (
     <AuthContext.Provider
@@ -97,9 +106,12 @@ export function AuthProvider({ children }) {
         isAuthenticated: !!user,
         isBusiness: user?.role === 'BUSINESS',
         isCustomer: user?.role === 'CUSTOMER',
+        isHospital,
+        isGovernment,
         login,
         registerCustomer,
         registerBusiness,
+        setAuthSession,
         logout,
       }}
     >

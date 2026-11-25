@@ -1,13 +1,15 @@
 import React from 'react';
 
 /**
- * Clean SaaS Card components with consistent borders, radiuses, and elevation
+ * Premium Editorial Card component with warm borders and restrained elevation
  */
-export function Card({ children, className = '', hover = false, ...props }) {
+export function Card({ children, className = '', hover = false, subtle = false, ...props }) {
   return (
     <div
-      className={`bg-white border border-slate-200/80 rounded-2xl shadow-sm transition-all duration-200 ${
-        hover ? 'hover:shadow-md hover:border-slate-300' : ''
+      className={`${
+        subtle ? 'bg-[#FAF8F5]' : 'bg-white'
+      } border border-[#E7E3DC] rounded-2xl shadow-subtle transition-all duration-200 ${
+        hover ? 'hover:shadow-card-hover hover:border-[#D8D2C5]' : ''
       } ${className}`}
       {...props}
     >
@@ -26,17 +28,17 @@ export function CardHeader({
 }) {
   return (
     <div
-      className={`px-6 py-5 border-b border-slate-100 flex items-center justify-between gap-4 ${className}`}
+      className={`px-6 py-5 border-b border-[#F0ECE4] flex items-center justify-between gap-4 ${className}`}
       {...props}
     >
       <div>
         {title && (
-          <h3 className="text-base font-semibold text-slate-900 tracking-tight">
+          <h3 className="text-base font-semibold text-[#171717] tracking-tight">
             {title}
           </h3>
         )}
         {subtitle && (
-          <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>
+          <p className="text-xs text-[#6B665E] mt-0.5">{subtitle}</p>
         )}
         {children}
       </div>
@@ -56,7 +58,7 @@ export function CardContent({ children, className = '', ...props }) {
 export function CardFooter({ children, className = '', ...props }) {
   return (
     <div
-      className={`px-6 py-4 bg-slate-50/50 border-t border-slate-100 rounded-b-2xl flex items-center justify-between gap-3 ${className}`}
+      className={`px-6 py-4 bg-[#FAF8F5] border-t border-[#F0ECE4] rounded-b-2xl flex items-center justify-between gap-3 ${className}`}
       {...props}
     >
       {children}

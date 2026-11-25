@@ -103,10 +103,27 @@ test('Phase 7B Realtime Queue Updates Test Suite', async (t) => {
 
     // --- Test 3: Customer can connect with tokenId and receives SSE initial event ---
     await t.test('Customer can open SSE stream for specific tokenId', async () => {
-      // First join customer
-      const joinRes = await fetch(`${baseUrl}/api/v1/queue/join`, {
+      // First register customer
+      const cusRes = await fetch(`${baseUrl}/api/v1/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Aarav Patel',
+          email: `aarav_${Date.now()}_${Math.random()}@example.com`,
+          phone: '9911112222',
+          password: pass,
+        }),
+      });
+      const cusData = await cusRes.json();
+      const cusToken = cusData.data.token;
+
+      // Join customer
+      const joinRes = await fetch(`${baseUrl}/api/v1/queue/join`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${cusToken}`,
+        },
         body: JSON.stringify({
           businessId: bizId,
           queueId,
@@ -119,23 +136,27 @@ test('Phase 7B Realtime Queue Updates Test Suite', async (t) => {
       assert.strictEqual(joinRes.status, 201);
       const tokenId = joinData.data.tokenId;
 
-      // Connect via native http.get to observe raw SSE stream
+      // Connect via native http.get with Bearer token
       await new Promise((resolve, reject) => {
-        const req = http.get(`${baseUrl}/api/v1/queue/stream?tokenId=${tokenId}`, (res) => {
-          assert.strictEqual(res.statusCode, 200);
-          assert.strictEqual(res.headers['content-type'], 'text/event-stream');
-          assert.strictEqual(res.headers['connection'], 'keep-alive');
+        const req = http.get(
+          `${baseUrl}/api/v1/queue/stream?tokenId=${tokenId}`,
+          { headers: { Authorization: `Bearer ${cusToken}` } },
+          (res) => {
+            assert.strictEqual(res.statusCode, 200);
+            assert.strictEqual(res.headers['content-type'], 'text/event-stream');
+            assert.strictEqual(res.headers['connection'], 'keep-alive');
 
-          let received = '';
-          res.on('data', (chunk) => {
-            received += chunk.toString();
-            if (received.includes('event: connected')) {
-              req.destroy(); // Cleanly disconnect
-              resolve();
-            }
-          });
-          res.on('error', reject);
-        });
+            let received = '';
+            res.on('data', (chunk) => {
+              received += chunk.toString();
+              if (received.includes('event: connected')) {
+                req.destroy(); // Cleanly disconnect
+                resolve();
+              }
+            });
+            res.on('error', reject);
+          }
+        );
         req.on('error', reject);
       });
     });
@@ -239,10 +260,27 @@ test('Phase 7B Realtime Queue Updates Test Suite', async (t) => {
 
     // --- Test 7: Customer tokenId subscriber receives CUSTOMER_CALLED event (regression for Phase 7B fix) ---
     await t.test('Customer tokenId SSE subscriber receives CUSTOMER_CALLED queue_update event', async () => {
+      // Register customer
+      const cusRes = await fetch(`${baseUrl}/api/v1/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Priya Sharma',
+          email: `priya_${Date.now()}_${Math.random()}@example.com`,
+          phone: '9922223333',
+          password: pass,
+        }),
+      });
+      const cusData = await cusRes.json();
+      const cusToken = cusData.data.token;
+
       // Join a fresh customer
       const joinRes = await fetch(`${baseUrl}/api/v1/queue/join`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${cusToken}`,
+        },
         body: JSON.stringify({
           businessId: bizId,
           queueId,
@@ -255,12 +293,23 @@ test('Phase 7B Realtime Queue Updates Test Suite', async (t) => {
       assert.strictEqual(joinRes.status, 201);
       const cusTokenId = joinData.data.tokenId;
 
-      // Connect SSE stream as the customer (tokenId only, no auth)
+      // Connect SSE stream as the customer with stream ticket
+      const ticketRes = await fetch(`${baseUrl}/api/v1/queue/stream-ticket`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${cusToken}`,
+        },
+        body: JSON.stringify({ tokenId: cusTokenId }),
+      });
+      const ticketData = await ticketRes.json();
+      const ticket = ticketData.data.ticket;
+
       await new Promise(async (resolve, reject) => {
         let streamEstablished = false;
 
         const streamReq = http.get(
-          `${baseUrl}/api/v1/queue/stream?tokenId=${cusTokenId}`,
+          `${baseUrl}/api/v1/queue/stream?ticket=${ticket}`,
           (res) => {
             assert.strictEqual(res.statusCode, 200);
             let buffer = '';
@@ -328,10 +377,41 @@ test('Phase 7B Realtime Queue Updates Test Suite', async (t) => {
 
     // --- Test 9: Multiple tokenId clients both receive queue_update on CUSTOMER_CALLED (fan-out regression) ---
     await t.test('Multiple tokenId subscribers both receive CUSTOMER_CALLED fan-out event', async () => {
+      // Register customer 1
+      const cus1Res = await fetch(`${baseUrl}/api/v1/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Arjun Singh',
+          email: `arjun_${Date.now()}_${Math.random()}@example.com`,
+          phone: '9933334444',
+          password: pass,
+        }),
+      });
+      const cus1Data = await cus1Res.json();
+      const cus1Token = cus1Data.data.token;
+
+      // Register customer 2
+      const cus2Res = await fetch(`${baseUrl}/api/v1/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Meera Nair',
+          email: `meera_${Date.now()}_${Math.random()}@example.com`,
+          phone: '9944445555',
+          password: pass,
+        }),
+      });
+      const cus2Data = await cus2Res.json();
+      const cus2Token = cus2Data.data.token;
+
       // Join two customers
       const join1 = await fetch(`${baseUrl}/api/v1/queue/join`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${cus1Token}`,
+        },
         body: JSON.stringify({
           businessId: bizId,
           queueId,
@@ -345,7 +425,10 @@ test('Phase 7B Realtime Queue Updates Test Suite', async (t) => {
 
       const join2 = await fetch(`${baseUrl}/api/v1/queue/join`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${cus2Token}`,
+        },
         body: JSON.stringify({
           businessId: bizId,
           queueId,
@@ -359,6 +442,29 @@ test('Phase 7B Realtime Queue Updates Test Suite', async (t) => {
 
       const tokenId1 = data1.data.tokenId;
       const tokenId2 = data2.data.tokenId;
+
+      // Acquire tickets for both customers
+      const ticket1Res = await fetch(`${baseUrl}/api/v1/queue/stream-ticket`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${cus1Token}`,
+        },
+        body: JSON.stringify({ tokenId: tokenId1 }),
+      });
+      const ticket1Data = await ticket1Res.json();
+      const ticket1 = ticket1Data.data.ticket;
+
+      const ticket2Res = await fetch(`${baseUrl}/api/v1/queue/stream-ticket`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${cus2Token}`,
+        },
+        body: JSON.stringify({ tokenId: tokenId2 }),
+      });
+      const ticket2Data = await ticket2Res.json();
+      const ticket2 = ticket2Data.data.ticket;
 
       // Both customers open SSE streams
       const received1 = { called: false };
@@ -390,7 +496,7 @@ test('Phase 7B Realtime Queue Updates Test Suite', async (t) => {
         }
 
         const req1 = http.get(
-          `${baseUrl}/api/v1/queue/stream?tokenId=${tokenId1}`,
+          `${baseUrl}/api/v1/queue/stream?ticket=${ticket1}`,
           (res) => {
             let buf = '';
             res.on('data', (chunk) => {
@@ -409,7 +515,7 @@ test('Phase 7B Realtime Queue Updates Test Suite', async (t) => {
         req1.on('error', () => {});
 
         const req2 = http.get(
-          `${baseUrl}/api/v1/queue/stream?tokenId=${tokenId2}`,
+          `${baseUrl}/api/v1/queue/stream?ticket=${ticket2}`,
           (res) => {
             let buf = '';
             res.on('data', (chunk) => {
